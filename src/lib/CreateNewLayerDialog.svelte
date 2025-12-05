@@ -1,6 +1,6 @@
 <script lang="ts">
 import { SlInput, SlSelect, type SlChangeEvent, type SlHideEvent} from '@shoelace-style/shoelace';
-import { appState } from '../state.svelte';
+import { projectState } from '../state.svelte';
 
 let { open = $bindable() } = $props();
 
@@ -14,7 +14,7 @@ let name = $state("New layer");
 let type: "tile" | "image" | "area" = $state("tile");
 
 const saveLayer = () => {
-    appState.layers.push({name, type, data: [], isVisible: true });
+    projectState.layers.push({name, type, data: [], isVisible: true });
     open = false;
 }
 

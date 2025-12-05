@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { SlCheckbox, SlInput, type SlChangeEvent, type SlHideEvent, type SlInputEvent } from '@shoelace-style/shoelace';
-import { appState } from '../state.svelte';
+  import { SlCheckbox, SlInput, type SlChangeEvent, type SlHideEvent,  } from '@shoelace-style/shoelace';
+import {  projectState, guiState } from '../state.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
-  import app from '../main';
 
 let { open = $bindable() } = $props();
 
@@ -11,17 +10,17 @@ const hide = ( ) => {
 }
 const show = () => open = true;
 
-let tileSize = $state(appState.settings.tileSize);
+let tileSize = $state(projectState.tileSize);
 let confirmTileSizeDialogIsOpen = $state(false);
 
 const handleConfirm = () => {
-    appState.settings.tileSize = tileSize;
-    appState.tilemap = [];
+    projectState.tileSize = tileSize;
+    projectState.tilemap = [];
     confirmTileSizeDialogIsOpen = false;
 }
 
 const handleCancel = () => {
-    tileSize = appState.settings.tileSize;
+    tileSize = projectState.tileSize;
     confirmTileSizeDialogIsOpen = false;
 }
 </script>
@@ -29,10 +28,10 @@ const handleCancel = () => {
 <sl-dialog onsl-after-hide={hide} label="Settings" open={open}>
         <sl-input  onsl-change={(e: SlChangeEvent) => {
                 if(e.target) {
-                    appState.projectName = (e.target as SlInput).value;
+                    projectState.projectName = (e.target as SlInput).value;
                 }
             }}  
-            label="Project name"  type="text" value={appState.projectName}></sl-input>   
+            label="Project name"  type="text" value={projectState.projectName}></sl-input>   
         <sl-input
         
         onsl-change={(e: SlChangeEvent) => {   
@@ -46,18 +45,18 @@ const handleCancel = () => {
             <span slot="suffix">px</span>
         </sl-input>
         <sl-color-picker onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()} swatches="#000000; #FFFFFF; #2ada64; #bb46eb; #FFD700; #00BFFF;
-    " value={appState.settings.gridColor}   onsl-change={(e: SlChangeEvent) => {  
+    " value={guiState.gridColor}   onsl-change={(e: SlChangeEvent) => {  
               if(e.target) {
-                appState.settings.gridColor = (e.target as SlInput).value;
+                guiState.gridColor = (e.target as SlInput).value;
               } 
               e.stopPropagation()
         }}  label="Grid color"></sl-color-picker>
 
         <sl-checkbox onsl-change={(e: SlChangeEvent) => {
                 if(e.target) {
-                    appState.settings.showGrid = (e.target as SlCheckbox).checked;
+                    guiState.showGrid = (e.target as SlCheckbox).checked;
                 }
-            }}   checked={appState.settings.showGrid}>Show grid</sl-checkbox>
+            }}   checked={guiState.showGrid}>Show grid</sl-checkbox>
 </sl-dialog>
 
 <ConfirmDialog open={confirmTileSizeDialogIsOpen} 

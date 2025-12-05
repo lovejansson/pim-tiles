@@ -1,14 +1,10 @@
 
-type AppState = {
+type ProjectState = {
     projectName: string,
     tilemap: any[],
-    settings: {
-        gridColor: string,
-        tileSize: number,
-        showGrid: boolean,
-    },
-    selectedTool: "paint" | "erase" | "fill",
+    tileSize: number,
     layers: Layer[],
+    tilesets: Tileset[],
     scripts: Script[],
     images: Image[],
 }
@@ -19,19 +15,23 @@ type Script = {
 }
 
 type Tile = {
-data: string;
+    dataURL: string;
+    bitmap: ImageBitmap;
 };
 
 type Tileset = {
-name: string;
-tiles: Tile[];
+    name: string;
+    tiles: Tile[];
 };
 
 type Image = {
-    data: string;
+    dataURL: string;
+    bitmap: ImageBitmap;
     width: number;
     height: number;
+    filename: string;
 };
+
 
 type PlacedTile = {
     x: number;
@@ -76,5 +76,18 @@ type AreaLayer = {
 type Layer = TileLayer | ImageLayer | AreaLayer;
 
 
-export { type AppState, type Layer,  type Script, type TileLayer, type ImageLayer, 
+type GUIState = {
+    notification: Notification | null;
+    selectedTool: "paint" | "erase" | "fill";
+    showGrid: boolean;
+    gridColor: string;
+}
+type Notification = {
+    variant: "primary" | "success" | "neutral" | "warning" | "danger",
+    title: string;
+    msg: string;
+}
+
+
+export { type ProjectState, type GUIState, type Notification, type Layer,  type Script, type TileLayer, type ImageLayer, 
     type PlacedImage,type PlacedTile,  type Image, type Tileset, type Tile};

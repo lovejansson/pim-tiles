@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState } from "../state.svelte";
+  import { projectState } from "../state.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
 import Layer from "./Layer.svelte";
 
@@ -26,7 +26,7 @@ let createNewLayerDialogIsOpen = $state(false);
   </header>
 
   <ul>
-    {#each appState.layers as _, idx}
+    {#each projectState.layers as _, idx}
       <li class:odd={idx % 2 === 0}>
         <Layer layerIdx={idx} />
       </li>

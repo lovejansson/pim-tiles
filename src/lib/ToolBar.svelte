@@ -26,14 +26,11 @@
 <style lang="postcss">
     #toolbar {
         padding: 2rem 1rem;
-
-    
         overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 1rem;
-   
-   
+        width: 20%;
     }
 
     sl-divider {

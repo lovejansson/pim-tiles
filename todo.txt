@@ -1,0 +1,15 @@
+# Todo
+
+* drag to reorder layers 
+
+* Create new script 
+* edit name of script
+* delete script
+* Put context menu above script?
+
+* close and open script in editor
+* add warnings for unsaved scripts when closing 
+
+* Create auto tiles dialog like vanilla version 
+
+* select image to draw with (show lime border)

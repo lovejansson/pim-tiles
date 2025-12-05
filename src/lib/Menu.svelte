@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState } from "../state.svelte";
+  import {  projectState } from "../state.svelte";
   import SettingsDialog from "./SettingsDialog.svelte";
 
   import {detectOS} from "./utils";
@@ -67,7 +67,7 @@ let settingsDialogIsOpen = $state(false);
 
   <sl-button variant="primary" slot="trigger">Project</sl-button>
   <sl-menu onsl-select={handleMenuSelect}>
-      <p>{appState.projectName}</p>
+      <p>{projectState.projectName}</p>
     <sl-menu-item value="create">Create
       <span class="command" slot="suffix"> {#if isMac} 
         <sl-icon library="pixelarticons" name={"command"}></sl-icon> 

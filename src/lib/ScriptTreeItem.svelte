@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState } from "../state.svelte";
+ 
   import ContextMenu from "./ContextMenu.svelte";
 
   let { userScript} = $props();

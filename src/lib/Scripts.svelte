@@ -1,16 +1,11 @@
 <script lang="ts">
-  import { appState } from "../state.svelte";
-  import ScriptTreeItem from "./ScriptTreeItem.svelte";
+  import { projectState } from "../state.svelte";
   import ContextMenu from "./ContextMenu.svelte";
 
- type Tileset = {
-    name: string;
-    tiles: string[];
- }
-
- const tilesets: Tileset[] = [];
-
- let selectedTilesetIdx = 0;
+    const newScript = () => {
+        const numNamedNewScript = projectState.scripts.filter(s => s.name.match(/New script(\(\d\))?/)).length;
+        projectState.scripts.push({name: `New script${numNamedNewScript === 0 ? "" : "(" + numNamedNewScript + ")"}` , content: ['function x() {', '\tconsole.log("Hello world!");', '}'].join('\n')});
+    }
 
 </script>
 
@@ -19,10 +14,20 @@
     <header>
         <h2>Scripts</h2>
 
-    <sl-button><sl-icon label="New layer" library="pixelarticons" name="plus"></sl-icon></sl-button>
 
 
-</header>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <sl-button
+      onclick={newScript}
+      onkeydown={(e: KeyboardEvent) => {
+        if (e.key === "Enter")  newScript()
+      }}
+    >
+      <sl-icon  label="New script" library="pixelarticons" name="plus"
+      ></sl-icon></sl-button>
+    </header>
+
+
 
     
     <sl-tree selection="leaf">
@@ -30,7 +35,7 @@
               <sl-icon library="pixelarticons" name="folder"></sl-icon>
             Scripts
     
-    {#each appState.scripts as userScript, idx} 
+    {#each projectState.scripts as userScript, idx} 
   
     <sl-tree-item>
             <ContextMenu 

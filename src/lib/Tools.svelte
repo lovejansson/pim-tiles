@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState } from "../state.svelte";
+  import { guiState } from "../state.svelte";
 
 
   import {detectOS} from "./utils";
@@ -18,12 +18,12 @@
         <!-- Svelte wants an aria role but shoelace has handled this internally -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <sl-button
-          class:selected-tool={appState.selectedTool === "paint"}
-            onclick={() => appState.selectedTool = "paint"
+          class:selected-tool={guiState.selectedTool === "paint"}
+            onclick={() => guiState.selectedTool = "paint"
         } 
         onkeydown={(e: KeyboardEvent) => {
             if(e.key === "Enter") {
-                appState.selectedTool = "paint"
+                guiState.selectedTool = "paint"
             }
         }}
         ><sl-icon library="pixelarticons" name="edit" label="Tile paint"></sl-icon></sl-button>
@@ -33,11 +33,11 @@
         <!-- Svelte wants an aria role but shoelace has handled this internally -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <sl-button  
-                  class:selected-tool={appState.selectedTool === "fill"}
-        onclick={() => appState.selectedTool = "fill"}
+                  class:selected-tool={guiState.selectedTool === "fill"}
+        onclick={() => guiState.selectedTool = "fill"}
         onkeydown={(e: KeyboardEvent) => {
             if(e.key === "Enter") {
-                appState.selectedTool = "fill"
+                guiState.selectedTool = "fill"
             }
         }}
         ><sl-icon library="pixelarticons" name="fill-half" label="Fill area"
@@ -47,11 +47,11 @@
         <!-- Svelte wants an aria role but shoelace has handled this internally -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <sl-button
-                  class:selected-tool={appState.selectedTool === "erase"}
-        onclick={() => appState.selectedTool = "erase"}
+                  class:selected-tool={guiState.selectedTool === "erase"}
+        onclick={() => guiState.selectedTool = "erase"}
          onkeydown={(e: KeyboardEvent) => {
             if(e.key === "Enter") {
-                appState.selectedTool = "erase"
+                guiState.selectedTool = "erase"
             }
         }}
         ><sl-icon id="erase" library="pixelarticons" name="layout-sidebar-left" label="Erase"></sl-icon></sl-button>

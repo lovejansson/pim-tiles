@@ -1,7 +1,7 @@
 <script lang="ts">
     import TilemapEditor from "./TilemapEditor.svelte";
     import ScriptEditor from "./ScriptEditor.svelte";
-  import { appState } from "../state.svelte";
+  import { projectState } from "../state.svelte";
   import type { SlTabShowEvent } from "@shoelace-style/shoelace";
 
   let selectedTab = $state("tilemap")
@@ -14,13 +14,13 @@
 
 <div>
 <sl-tab-group onsl-tab-show={handleTabShow}>
-    {#each ["tilemap", ...appState.scripts.map(s => s.name)] as tab} 
+    {#each ["tilemap", ...projectState.scripts.map(s => s.name)] as tab} 
         <sl-tab slot="nav" panel={tab}>{tab}</sl-tab>
     <sl-tab-panel class:active={selectedTab === tab} name={tab} >
         {#if tab === "tilemap"}
         <TilemapEditor/>
         {:else}
-        <ScriptEditor scriptName={tab}/>
+        <ScriptEditor />
         {/if}
 
     </sl-tab-panel>

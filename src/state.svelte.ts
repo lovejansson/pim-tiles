@@ -1,14 +1,9 @@
-import type { AppState } from "./types";
+import type { ProjectState, GUIState } from "./types";
 
-export const appState: AppState = $state({
+export const projectState: ProjectState = $state({
     projectName: "My project",
     tilemap: [],
-    settings: {
-        gridColor: "#000",
-        tileSize: 16,
-        showGrid: true,
-    },
-    selectedTool: "paint",
+    tileSize: 16,
     layers: [
     { name: "Layer1", 
         data: [], isVisible: true, type: "image" },
@@ -25,6 +20,15 @@ export const appState: AppState = $state({
       type: "image",
     },
   ],
+    tilesets: [],
     images: [],
     scripts: [{name: "script1.js", content: "woop"}]
 });
+
+
+export const guiState: GUIState = $state({
+  selectedTool: "paint",
+  notification: null,
+  gridColor: "#000",
+  showGrid: true,
+})
