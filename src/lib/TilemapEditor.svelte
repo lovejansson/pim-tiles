@@ -63,6 +63,36 @@ function getWorldPos(ctx: CanvasRenderingContext2D, pos: {x: number, y: number }
     return {x: worldX, y: worldY}
 }
 
+const handleWheel = (e: WheelEvent) => {
+
+
+    const delta = Math.sign(e.deltaY);
+
+    const zoomFactor = 0.1;
+
+    if(delta < 0) {
+        if(zoom <= 5.0) {
+            zoom += zoomFactor;
+            zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+            // Update current translation to account for zoompoint
+            translation.x = mousePos.x - zoomPos.x * zoom;
+            translation.y = mousePos.y - zoomPos.y * zoom;
+        }
+    } else {
+    if(zoom > 0.5) {
+
+                zoom -=zoomFactor;
+                zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+                // Update current translation to account for zoompoint
+                translation.x = mousePos.x - zoomPos.x * zoom;
+                translation.y = mousePos.y - zoomPos.y * zoom;
+            }
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    
+};  
+
 const handleKeyDown = (e: KeyboardEvent) => {
     switch(e.key) {
         case "ArrowUp":
@@ -161,7 +191,7 @@ function update(elasped: number){
 
 </script>
 
-<svelte:window onkeydown={handleKeyDown} onmousemove={handleMouseMove} />
+<svelte:window onwheel={handleWheel} onkeydown={handleKeyDown} onmousemove={handleMouseMove} />
 
 <canvas onclick={handleClick} bind:this={canvasEl}></canvas>
 

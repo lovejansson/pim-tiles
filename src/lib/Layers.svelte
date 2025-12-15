@@ -15,11 +15,10 @@ let createNewLayerDialogIsOpen = $state(false);
       projectState.layers = e.detail.items;
 	  }
 
-
     const styleDragged = (el: HTMLElement) => {
       el.style.outline = 'var(--color-0) solid 1px';
       return el;
-}
+  }
 
 </script>
 
