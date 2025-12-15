@@ -4,6 +4,7 @@
     
     import ContextMenu from "./ContextMenu.svelte";
 
+
 let { layerIdx} = $props();
 
 let isEditingName = $state(false);
@@ -22,10 +23,10 @@ const handleSelectMenuItem = (item: any) => {
 }
 
 let inputName: SlInput;
-
 </script>
 <ContextMenu onSelect={handleSelectMenuItem} 
     menuItems={[{label: "Rename", value:"rename", icon: "edit-box"}, {label: "Delete", value:"delete", icon: "close"}]}>
+
     <div id="layer">
         {#if projectState.layers[layerIdx].type === "tile"} 
         <sl-icon library="pixelarticons" name="chess"></sl-icon>

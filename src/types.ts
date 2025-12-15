@@ -1,7 +1,7 @@
 
 type ProjectState = {
     projectName: string,
-    tilemap: any[],
+    tilemap: Map<string, {tilesetIdx: number, tileIdx: number}>,
     tileSize: number,
     layers: Layer[],
     tilesets: Tileset[],
@@ -53,6 +53,7 @@ type PlacedArea = {
 
 
 type ImageLayer = {
+    id: number;
     name: string;
     isVisible: boolean;
     data: PlacedImage[];
@@ -60,6 +61,7 @@ type ImageLayer = {
 };
 
 type TileLayer = {
+        id: number;
     name: string;
     data: PlacedTile[];
     isVisible: boolean;
@@ -67,6 +69,7 @@ type TileLayer = {
 };
 
 type AreaLayer = {
+        id: number;
     name: string;
     data: PlacedArea[];
     isVisible: boolean;
