@@ -15,7 +15,7 @@
 <div>
 <sl-tab-group onsl-tab-show={handleTabShow}>
     {#each ["tilemap", ...projectState.scripts.map(s => s.name)] as tab} 
-        <sl-tab slot="nav" panel={tab}>{tab}</sl-tab>
+        <sl-tab class:selected-tab={selectedTab === tab} slot="nav" panel={tab}>{tab}</sl-tab>
     <sl-tab-panel class:active={selectedTab === tab} name={tab} >
         {#if tab === "tilemap"}
         <TilemapEditor/>
@@ -38,6 +38,22 @@ div {
     overflow: hidden;
 }
 
+.selected-tab {
+    border-top-color: var(--color-0);
+      border-bottom: none;
+}
+
+sl-tab {
+    border: 1px solid var(--color-2);
+}
+
+sl-tab:not(:first-child) {
+        margin-left: -1px;   
+ }
+sl-tab-group {
+  --track-color: transparent; /* hides the bottom line */
+  --track-width: 0;           /* removes the height entirely */
+}
 
 sl-tab-group {
     display: flex;
@@ -65,6 +81,7 @@ sl-tab-panel.active{
     display: flex !important;
     flex-direction: column;
     flex: 1;
+    
 }
 
 sl-tab-panel::part(base) {

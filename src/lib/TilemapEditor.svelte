@@ -65,7 +65,6 @@ function getWorldPos(ctx: CanvasRenderingContext2D, pos: {x: number, y: number }
 
 const handleWheel = (e: WheelEvent) => {
 
-
     const delta = Math.sign(e.deltaY);
 
     const zoomFactor = 0.1;
@@ -81,7 +80,7 @@ const handleWheel = (e: WheelEvent) => {
     } else {
     if(zoom > 0.5) {
 
-                zoom -=zoomFactor;
+                zoom -= zoomFactor;
                 zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
                 // Update current translation to account for zoompoint
                 translation.x = mousePos.x - zoomPos.x * zoom;
@@ -111,6 +110,25 @@ const handleKeyDown = (e: KeyboardEvent) => {
         case "d":
             translation.x -= tileSize;
             break;
+        case "+":
+            if(zoom <= 5.0) {
+            zoom += 0.1;
+            zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+            // Update current translation to account for zoompoint
+            translation.x = mousePos.x - zoomPos.x * zoom;
+            translation.y = mousePos.y - zoomPos.y * zoom;
+        }
+            break;
+        case "-":
+             if(zoom > 0.5) {
+
+                zoom -= 0.1;
+                zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+                // Update current translation to account for zoompoint
+                translation.x = mousePos.x - zoomPos.x * zoom;
+                translation.y = mousePos.y - zoomPos.y * zoom;
+            }
+            
        
     }
 };
