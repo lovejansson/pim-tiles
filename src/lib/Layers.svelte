@@ -2,18 +2,24 @@
   import { projectState } from "../state.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
 import Layer from "./Layer.svelte";
-  import { dndzone } from "svelte-dnd-action";
+  import { dndzone, type DndEvent } from "svelte-dnd-action";
 let createNewLayerDialogIsOpen = $state(false);
 	import { flip } from 'svelte/animate';
 
-  	function handleDndConsider(e) {
+  	const  handleDndConsider = (e: CustomEvent<DndEvent<any>>) => {
 
       projectState.layers = e.detail.items;
+	  }
 
-	}
-	function handleDndFinalize(e) {
-	   projectState.layers = e.detail.items;
-	}
+  	const  handleDndFinalize = (e: CustomEvent<DndEvent<any>>) => {
+      projectState.layers = e.detail.items;
+	  }
+
+
+    const styleDragged = (el: HTMLElement) => {
+      el.style.outline = 'var(--color-0) solid 1px';
+      return el;
+}
 
 </script>
 
@@ -36,12 +42,17 @@ let createNewLayerDialogIsOpen = $state(false);
   </header>
 
   <ul use:dndzone={{ 
-    items: projectState.layers, flipDurationMs: 100 ,     
-  transformDraggedElement: ({ x, y }: {x: number, y: number}) => ({ x: 0, y })}}
+    items: projectState.layers, dragDisabled: false, 
+    dropFromOthersDisabled: true, 
+     transformDraggedElement: (el: HTMLElement, item) => styleDragged(el),
+    type: 'layer',
+    dropTargetStyle: {outline: 'var(--color-0) solid 1px'} }}
   onconsider={handleDndConsider} 
   onfinalize={handleDndFinalize}>
     {#each projectState.layers as layer, idx (layer.id)}
-      <li   class:odd={idx % 2 === 0} animate:flip="{{duration: 100}}">
+      <li   class:odd={idx % 2 === 0} animate:flip="{{duration: 100}}"
+     
+      >
         <Layer layerIdx={idx} />
       </li>
     {/each}
@@ -63,9 +74,12 @@ let createNewLayerDialogIsOpen = $state(false);
   }
 
   li {
+    background-color: var(--color-4);
   }
 
   .odd {
-    background-color: var(--color-4);
+    background-color: var(--color-2);
   }
+
+
 </style>
