@@ -104,6 +104,9 @@ html, body {
   overscroll-behavior: none;
 }
 
+* {
+    overscroll-behavior: none;
+}
 
 #app {
   font-size: 1rem;

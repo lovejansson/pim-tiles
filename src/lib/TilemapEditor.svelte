@@ -94,39 +94,24 @@ const handleWheel = (e: WheelEvent) => {
 };  
 
 const handleKeyDown = (e: KeyboardEvent) => {
-    switch(e.key) {
-        case "ArrowUp":
+    switch(e.key.toLowerCase()) {
+        case "arrowup":
+        case "w":
             translation.y += tileSize;
             break;
-        case "ArrowDown":
+        case "arrowdown":
+        case "s":
             translation.y -= tileSize;
             break;
-        case "ArrowLeft":
+        case "arrowleft":
+        case "a":
             translation.x += tileSize;
             break;
-        case "ArrowRight":
+        case "arrowright":
+        case "d":
             translation.x -= tileSize;
             break;
-        case "+": 
-        if(zoom <= 3.0) {
-            zoom += 0.1;
-            zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
-            // Update current translation to account for zoompoint
-            translation.x = mousePos.x - zoomPos.x * zoom;
-            translation.y = mousePos.y - zoomPos.y * zoom;
-        }
-            break;
-        case "-":
-            if(zoom > 0.8) {
-
-                zoom -= 0.1;
-                zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
-                // Update current translation to account for zoompoint
-                translation.x = mousePos.x - zoomPos.x * zoom;
-                translation.y = mousePos.y - zoomPos.y * zoom;
-            }
-        
-            break;  
+       
     }
 };
 
