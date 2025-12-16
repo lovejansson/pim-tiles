@@ -16,3 +16,24 @@
 
 * Implement drawing of areas
 
+* Implement tiling 
+* Implement export of JSON 
+* Implement Save in localstorage
+* Implement Save
+* Implement Save AS 
+* Implement image layer
+* Implement area layer 
+
+What is an area?
+
+Create area assets 
+Edit area asset name/color 
+paint area simple 
+
+
+Mark out areas of your tilemap for roads, grass, water and other landscape zone. 
+
+Create an area, name it, color it. 
+Select an area and paint a tile with it. Use regular tools to erase or bucket fill areas. 
+
+Visa forbidden cursor om man försöker redigera ett lager som inte är gjort för en viss asset. 

@@ -1,24 +1,29 @@
 import type { ProjectState, GUIState } from "./types";
 
+
 export const projectState: ProjectState = $state({
     projectName: "My project",
-    tilemap: [],
+    tilemap: new Map(),
     tileSize: 16,
     layers: [
-    { name: "Layer1", 
-        data: [], isVisible: true, type: "image" },
-    {
-      name: "Layer2",
-      data: [],
-      isVisible: false,
-      type: "tile",
-    },
-    {
-      name: "Layer3",
-      data: [],
-      isVisible: false,
-      type: "image",
-    },
+      { 
+        id:0,
+        name: "Layer1", 
+          data: [], isVisible: true, type: "image" },
+      {
+          id:1,
+        name: "Layer2",
+        data: [],
+        isVisible: false,
+        type: "tile",
+      },
+      {
+          id:2,
+        name: "Layer3",
+        data: [],
+        isVisible: false,
+        type: "image",
+      },
   ],
     tilesets: [],
     images: [],

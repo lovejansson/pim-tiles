@@ -66,6 +66,22 @@ div {
     overflow-y: hidden;
 }
 
+.selected-tab {
+    border-top-color: var(--color-0);
+      border-bottom: none;
+}
+
+sl-tab {
+    border: 1px solid var(--color-2);
+}
+
+sl-tab:not(:first-child) {
+        margin-left: -1px;   
+ }
+sl-tab-group {
+  --track-color: transparent; /* hides the bottom line */
+  --track-width: 0;           /* removes the height entirely */
+}
 
 sl-tab::part(base) {
     gap: 4px;
@@ -97,6 +113,7 @@ sl-tab-panel.active{
     display: flex !important;
     flex-direction: column;
     flex: 1;
+    
 }
 
 sl-tab-panel::part(base) {
