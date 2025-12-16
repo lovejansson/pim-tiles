@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Areas from "./Areas.svelte";
   import AutoTiles from "./AutoTiles.svelte";
   import Images from "./Images.svelte";
   import Layers from "./Layers.svelte";
@@ -15,8 +16,11 @@
       <sl-divider></sl-divider>
     <Tilesets/>
       <sl-divider></sl-divider>
-          <Images/>
-      <sl-divider></sl-divider>
+        <Images/>
+     
+         <sl-divider></sl-divider>
+         <Areas/>
+          <sl-divider></sl-divider>
     <AutoTiles/>
       <sl-divider></sl-divider>
     <Scripts/>

@@ -1,15 +1,23 @@
 # Todo
 
-* drag to reorder layers 
+* Implement tiling 
+* Implement export of JSON 
+* Implement Save in localstorage
+* Implement Save
+* Implement Save AS 
+* Implement image layer
+* Implement area layer 
 
-* Create new script 
-* edit name of script
-* delete script
-* Put context menu above script?
+What is an area?
 
-* close and open script in editor
-* add warnings for unsaved scripts when closing 
+Create area assets 
+Edit area asset name/color 
+paint area simple 
 
-* Create auto tiles dialog like vanilla version 
 
-* select image to draw with (show lime border)
+Mark out areas of your tilemap for roads, grass, water and other landscape zone. 
+
+Create an area, name it, color it. 
+Select an area and paint a tile with it. Use regular tools to erase or bucket fill areas. 
+
+Visa forbidden cursor om man försöker redigera ett lager som inte är gjort för en viss asset. 

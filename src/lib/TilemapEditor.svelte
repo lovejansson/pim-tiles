@@ -65,6 +65,8 @@ function getWorldPos(ctx: CanvasRenderingContext2D, pos: {x: number, y: number }
 
 const handleWheel = (e: WheelEvent) => {
 
+    if(e.target !== canvasEl)  return;
+
     const delta = Math.sign(e.deltaY);
 
     const zoomFactor = 0.1;
@@ -87,7 +89,7 @@ const handleWheel = (e: WheelEvent) => {
                 translation.y = mousePos.y - zoomPos.y * zoom;
             }
     }
-    e.preventDefault();
+
     e.stopPropagation();
     
 };  
