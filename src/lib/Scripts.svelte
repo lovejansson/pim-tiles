@@ -1,11 +1,13 @@
 <script lang="ts">
   import { projectState } from "../state.svelte";
-  import ContextMenu from "./ContextMenu.svelte";
+  import ScriptTreeItem from "./ScriptTreeItem.svelte";
 
-    const newScript = () => {
-        const numNamedNewScript = projectState.scripts.filter(s => s.name.match(/New script(\(\d\))?/)).length;
-        projectState.scripts.push({name: `New script${numNamedNewScript === 0 ? "" : "(" + numNamedNewScript + ")"}` , content: ['function x() {', '\tconsole.log("Hello world!");', '}'].join('\n')});
-    }
+  const newScript = () => {
+      const numNamedNewScript = projectState.scripts.filter(s => s.name.match(/New script(\(\d\))?/)).length;
+      projectState.scripts.push({name: `New script${numNamedNewScript === 0 ? "" : "(" + numNamedNewScript + ")"}` , content: ['function x() {', '\tconsole.log("Hello world!");', '}'].join('\n')});
+  }
+
+
 
 </script>
 
@@ -13,9 +15,6 @@
 
     <header>
         <h2>Scripts</h2>
-
-
-
       <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-button
       onclick={newScript}
@@ -27,24 +26,16 @@
       ></sl-icon></sl-button>
     </header>
 
-
-
-    
     <sl-tree selection="leaf">
         <sl-tree-item>
-              <sl-icon library="pixelarticons" name="folder"></sl-icon>
-            Scripts
+            <sl-icon library="pixelarticons" name="folder"></sl-icon>
+            
+              Scripts
     
-    {#each projectState.scripts as userScript, idx} 
+    {#each projectState.scripts as _, idx} 
   
-    <sl-tree-item>
-            <ContextMenu 
-    menuItems={[{label: "Delete", icon: "close"}, {label: "Rename", icon: "edit-box"}]}
-    onSelect={() => {}}
-  >   
-       
-        <p>{userScript.name}</p>
-        </ContextMenu>
+    <sl-tree-item >
+        <ScriptTreeItem scriptIdx={idx}/>
     </sl-tree-item>
 
     {/each}    
@@ -60,7 +51,6 @@
     }
  
     #scripts {
- 
         width: 320px !important;
         height:  100%;
     }

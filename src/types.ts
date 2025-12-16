@@ -7,6 +7,7 @@ type ProjectState = {
     tilesets: Tileset[],
     scripts: Script[],
     images: Image[],
+    ruleTiles: AutoTile[]
 }
 
 type Script = {
@@ -31,7 +32,6 @@ type Image = {
     height: number;
     filename: string;
 };
-
 
 type PlacedTile = {
     x: number;
@@ -75,13 +75,46 @@ type AreaLayer = {
 
 type Layer = TileLayer | ImageLayer | AreaLayer;
 
+type ConnectedTileRequirement = "required" | "excluded" | "optional";
+
+type AutoTile = {
+  name: string;
+  rules: TileRule[];
+}
+
+type TileRef = {
+  tileIdx: number;
+  tilesetIdx: number;
+}
+
+type ConnectedTilesRequirements = {
+    n: ConnectedTileRequirement;
+    ne: ConnectedTileRequirement;
+    e: ConnectedTileRequirement;
+    se: ConnectedTileRequirement;
+    s: ConnectedTileRequirement;
+    sw: ConnectedTileRequirement;
+    w: ConnectedTileRequirement;
+    nw: ConnectedTileRequirement;
+}
+
+type TileRule = {
+  connectedTilesRequirements: ConnectedTilesRequirements,
+  tile: TileRef | null; 
+}
+
 
 type GUIState = {
     notification: Notification | null;
     selectedTool: "paint" | "erase" | "fill";
+    selectedImageIdx: number | null;
     showGrid: boolean;
     gridColor: string;
+    workspaceTabs: {value: number, label: string}[],
+    selectedWorkspaceTab: string,
 }
+
+
 type Notification = {
     variant: "primary" | "success" | "neutral" | "warning" | "danger",
     title: string;
@@ -90,4 +123,4 @@ type Notification = {
 
 
 export { type ProjectState, type GUIState, type Notification, type Layer,  type Script, type TileLayer, type ImageLayer, 
-    type PlacedImage,type PlacedTile,  type Image, type Tileset, type Tile};
+    type PlacedImage,type PlacedTile,  type Image, type Tileset, type Tile, type AutoTile as RuleTile, type TileRule, type TileRef, type ConnectedTileRequirement, type ConnectedTilesRequirements};

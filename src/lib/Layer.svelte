@@ -3,6 +3,7 @@
   import { projectState } from "../state.svelte";
     
     import ContextMenu from "./ContextMenu.svelte";
+    import EditableText from "./EditableText.svelte";
 
 let { layerIdx} = $props();
 
@@ -13,12 +14,7 @@ const handleSelectMenuItem = (item: any) => {
         projectState.layers.splice(layerIdx, 1);
     } else if (item.value === "rename") {
         isEditingName = true;
-        requestAnimationFrame(() => {
-			if(inputName !== null) inputName.focus();
-		});
-
     }
-    
 }
 
 let inputName: SlInput;
@@ -34,17 +30,9 @@ let inputName: SlInput;
         {:else} 
         <sl-icon library="pixelarticons" name="image"></sl-icon>
         {/if}
-        {#if isEditingName}
-            <sl-input value={projectState.layers[layerIdx].name} size="small" bind:this={inputName} onkeydown={(e: KeyboardEvent) => {
-                if(e.key === "Enter") {
-                    isEditingName = false;
-                }
-            }} onblur={()=> isEditingName = false} onsl-change={(e: SlChangeEvent) => {
-                projectState.layers[layerIdx].name = (e.target as SlInput).value;
-            }}></sl-input>
-        {:else}
-            <p>{projectState.layers[layerIdx].name}</p> 
-        {/if}
+
+        <EditableText bind:isEditing={isEditingName} text={projectState.layers[layerIdx].name}/>
+
         <sl-icon-button onclick={() => projectState.layers[layerIdx].isVisible = !projectState.layers[layerIdx].isVisible} 
             library="pixelarticons" name={projectState.layers[layerIdx].isVisible ? "eye" : "eye-closed"} >
         </sl-icon-button>

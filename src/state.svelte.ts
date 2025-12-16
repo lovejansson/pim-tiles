@@ -22,13 +22,17 @@ export const projectState: ProjectState = $state({
   ],
     tilesets: [],
     images: [],
-    scripts: [{name: "script1.js", content: "woop"}]
+    scripts: [{name: "script1.js", content: "woop"}],
+    ruleTiles: []
 });
 
 
 export const guiState: GUIState = $state({
   selectedTool: "paint",
+  selectedImageIdx: null,
   notification: null,
   gridColor: "#000",
   showGrid: true,
+  workspaceTabs: [{value: -1, label: "tilemap"}], 
+  selectedWorkspaceTab: "tilemap", 
 })

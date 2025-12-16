@@ -31,9 +31,12 @@
 <header>
     <h2>Tilesets</h2>
    
-    <sl-button  onclick={() => {
-    fileInput?.click();
-    }}><sl-icon label="Load asset" library="pixelarticons" name="upload"></sl-icon> </sl-button>
+    <sl-button
+    onkeydown={() =>  fileInput?.click()}  
+    onclick={() => {
+    fileInput?.click()
+    }}>
+    <sl-icon label="Load asset" library="pixelarticons" name="upload"></sl-icon> </sl-button>
 </header>
 
     <input bind:this={fileInput} type="file" style="display:none;"  accept="image/png, image/jpeg" onchange={loadTileset}/>

@@ -27,10 +27,11 @@
     #toolbar {
         padding: 2rem 1rem;
         overflow-y: auto;
+        overflow-x: hidden;
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        width: 20%;
+
     }
 
     sl-divider {

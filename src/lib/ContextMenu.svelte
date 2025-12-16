@@ -6,27 +6,34 @@
     
 let { menuItems, children, onSelect } = $props();
   
-let {isOpen, top, left} = $state({isOpen: false, top: 0, left:0});
+let {isOpen, top, left, placement} = $state({isOpen: false, top: 0, left:0, placement: "bottom"});
+
 
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div id="context-menu-backdrop" onclick={() => {
+<div id="context-menu-backdrop" onclick={(e) => {
     isOpen = false
+    e.stopPropagation()
 }} class:open={isOpen}></div>
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div  oncontextmenu={(e) => {
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div
+    oncontextmenu={(e) => {
     isOpen = !isOpen;
     top = e.pageY;
     left = e.pageX;
-        e.preventDefault();
+    placement = e.pageY > window.innerHeight - 100 ? "top" : "bottom"
+    e.preventDefault();
+    e.stopPropagation();
+
     }}>
         <sl-menu onsl-select={(e: SlSelectEvent) => 
        { onSelect(e.detail.item)
         isOpen = false;
 
-       }} class:open={isOpen} style={`top:${top}px;left:${left}px`}>
+       }} class:open={isOpen} style={`top:${top}px;left:${left}px;transform:translateY(${placement === "top"? -100 : 0}%);`}>
             {#each menuItems as mi} 
             <sl-menu-item value={mi.value}>
                     {mi.label} 

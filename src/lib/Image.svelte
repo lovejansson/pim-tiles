@@ -1,6 +1,6 @@
 <script lang="ts">
     import { SlInput, SlMenuItem, type SlChangeEvent } from "@shoelace-style/shoelace";
-    import { projectState } from "../state.svelte";
+    import { guiState, projectState } from "../state.svelte";
     import ContextMenu from "./ContextMenu.svelte";
     import ImageDialog from "./ImageDialog.svelte";
 
@@ -22,7 +22,8 @@
 
 <ContextMenu onSelect={handleSelectMenuItem} 
 menuItems={[{label: "View", value:"view", icon: "edit-box"}, {label: "Delete", value:"delete", icon: "close"}]}>
-     <sl-button onclick={() => viewImageDialogIsOpen = true}>{projectState.images[imgIdx].filename}</sl-button>
+     <!-- svelte-ignore a11y_no_static_element_interactions -->
+     <sl-button class:selected={guiState.selectedImageIdx === imgIdx} onclick={() => guiState.selectedImageIdx = imgIdx} onkeydown={() => guiState.selectedImageIdx = imgIdx}>{projectState.images[imgIdx].filename}</sl-button>
 </ContextMenu>
 
 <ImageDialog imgIdx={imgIdx} bind:open={viewImageDialogIsOpen}/>
@@ -40,6 +41,10 @@ menuItems={[{label: "View", value:"view", icon: "edit-box"}, {label: "Delete", v
        margin: 0;
     margin-right: auto;
  
+ }
+
+ .selected::part(base) {
+   background-color: rgb(112, 253, 121);
  }
 
 </style>

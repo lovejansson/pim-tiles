@@ -1,32 +1,60 @@
 <script lang="ts">
     import TilemapEditor from "./TilemapEditor.svelte";
     import ScriptEditor from "./ScriptEditor.svelte";
-  import { projectState } from "../state.svelte";
-  import type { SlTabShowEvent } from "@shoelace-style/shoelace";
-
-  let selectedTab = $state("tilemap")
+    import { guiState, projectState } from "../state.svelte";
+    import { SlTab, SlTabGroup, type SlCloseEvent, type SlTabShowEvent } from "@shoelace-style/shoelace";
     
-  const handleTabShow = (e: SlTabShowEvent) => {
-    selectedTab = e.detail.name;
-  }
+    const handleTabShow = (e: SlTabShowEvent) => {
+        guiState.selectedWorkspaceTab = e.detail.name;
+    }
+
+
+
+    let tabGroup: SlTabGroup;
+
+    const closeScript = (e: SlCloseEvent) => {
+
+        const tab = e.target as SlTab;
+
+        const panel = tab.panel;
+
+        const tabIdx = guiState.workspaceTabs.findIndex(wt => wt.label === panel);
+
+        guiState.workspaceTabs.splice(tabIdx, 1);
+
+        if(tab.active) {
+            guiState.selectedWorkspaceTab = guiState.workspaceTabs[tabIdx - 1].label;
+        }
+    }
+
+
+    $effect(() => {
+        
+    console.log(guiState.workspaceTabs.map(si => si.label))
+    })
+
 
 </script>
 
 <div>
-<sl-tab-group onsl-tab-show={handleTabShow}>
-    {#each ["tilemap", ...projectState.scripts.map(s => s.name)] as tab} 
-        <sl-tab slot="nav" panel={tab}>{tab}</sl-tab>
-    <sl-tab-panel class:active={selectedTab === tab} name={tab} >
-        {#if tab === "tilemap"}
-        <TilemapEditor/>
-        {:else}
-        <ScriptEditor />
-        {/if}
+<sl-tab-group bind:this={tabGroup} onsl-close={closeScript} onsl-tab-show={handleTabShow}>
+    {#each guiState.workspaceTabs as tab}
 
-    </sl-tab-panel>
+        <sl-tab active={guiState.selectedWorkspaceTab === tab.label} slot="nav" panel={tab.label} closable={tab.value !==-1}>
+            {tab.label}
+        </sl-tab>
+
+        <sl-tab-panel class:active={guiState.selectedWorkspaceTab === tab.label} name={tab}>
+            {#if tab.value === -1}
+                <TilemapEditor/>
+            {:else}
+                <ScriptEditor />
+            {/if}
+        </sl-tab-panel>
+
     {/each}
-
 </sl-tab-group>
+
 </div>
 
 <style lang="postcss">
@@ -35,8 +63,13 @@ div {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow-y: hidden;
 }
 
+
+sl-tab::part(base) {
+    gap: 4px;
+}
 
 sl-tab-group {
     display: flex;

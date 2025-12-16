@@ -1,15 +1,18 @@
 # Todo
 
-* drag to reorder layers 
+* Drag to reorder layers 
 
-* Create new script 
-* edit name of script
-* delete script
-* Put context menu above script?
+* Add warning when a script is closed 
 
-* close and open script in editor
-* add warnings for unsaved scripts when closing 
+* Show tilemap in a fullscreen mode to see the whole thing? eftersom det nu är gömt under toolbar och menu
 
-* Create auto tiles dialog like vanilla version 
+* Add validation to auto tiles dialog
 
-* select image to draw with (show lime border)
+* Add edit mode to auto tiles
+
+* Implement drawing of tiles with the different tools 
+
+* Implement drawing of images with the different tools 
+
+* Implement drawing of areas
+

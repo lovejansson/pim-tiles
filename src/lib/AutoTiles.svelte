@@ -1,38 +1,29 @@
 <script lang="ts">
   import type { SlInput, SlChangeEvent } from "@shoelace-style/shoelace";
+    import CreateAutoTileDialog from "./CreateAutoTileDialog.svelte";
+
+let createDialogIsOpen = $state(false);
 
 
-type Rule = {
-
-}
-
-type AutoTile = {
-    name: string;
-    rules: Rule[];
-}
-
- let fileInput: SlInput;
 </script>
 
 <section id="auto-tiles">
     <header>
             <h2>Auto tiles</h2>
                 <sl-button  onclick={() => {
-    fileInput?.showPicker()
+    createDialogIsOpen = true;
     }}><sl-icon label="New layer" library="pixelarticons" name="plus"></sl-icon></sl-button>
 
 
     </header>
 
-
-<sl-input bind:this={fileInput} type="file" style="display:none;" onsl-change={(e: SlChangeEvent) => {
-    console.dir(e)  
-}}></sl-input>
     <ul id="ul-auto-tiles">
           
     <li>Create an auto tile to paint with.</li>
    
     </ul>
+
+    <CreateAutoTileDialog bind:open={createDialogIsOpen} />
 </section>
 
 <style lang="postcss">
