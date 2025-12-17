@@ -1,7 +1,6 @@
 
 type ProjectState = {
     projectName: string,
-    tilemap: Map<string, {tilesetIdx: number, tileIdx: number}>,
     tileSize: number,
     layers: Layer[],
     tilesets: Tileset[],
@@ -33,47 +32,46 @@ type Image = {
     filename: string;
 };
 
-type PlacedTile = {
-    x: number;
-    y: number;
-    tileIdx: number;
-};
-
-type PlacedImage = {
-    x: number;
-    y: number;
-    imageIdx: number;
-};
-
 type PlacedArea = {
     x: number;
     y: number;
     areaIdx: number;
 }
 
+type Point = {
+    x: number;
+    y: number;
+}
+
+type Rect = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
 
 type ImageLayer = {
+    type: "image";
     id: number;
     name: string;
     isVisible: boolean;
-    data: PlacedImage[];
-    type: "image";
+    data: (ImageRef & Point & {isSelected: boolean})[]; 
 };
 
 type TileLayer = {
-        id: number;
-    name: string;
-    data: PlacedTile[];
-    isVisible: boolean;
     type: "tile";
+    id: number;
+    name: string;
+    data: Map<string, TileRef>,
+    isVisible: boolean;
 };
 
 type AreaLayer = {
-        id: number;
+    type: "area";
+    id: number;
     name: string;
     data: PlacedArea[];
     isVisible: boolean;
-    type: "area";
 };
 
 type Layer = TileLayer | ImageLayer | AreaLayer;
@@ -106,11 +104,36 @@ type TileRule = {
   tile: TileRef | null; 
 }
 
+type AutoTileRef = {
+    index: number;
+}
+
+type ImageRef = {
+    index: number;
+}
+
+type TileAsset = {
+    type: "tile";
+    ref: TileRef;
+};
+
+type ImageAsset = {
+    type: "image";
+    ref: ImageRef;
+};
+
+type AutoTileAsset = {
+    type: "auto-tile";
+    ref: AutoTileRef;
+};
+
+type SelectedAsset = TileAsset | ImageAsset | AutoTileAsset;
 
 type GUIState = {
     notification: Notification | null;
-    selectedTool: "paint" | "erase" | "fill";
-    selectedImageIdx: number | null;
+    selectedTool: "paint" | "erase";
+    selectedAsset: SelectedAsset | null;
+    selectedLayer: number;
     showGrid: boolean;
     gridColor: string;
     workspaceTabs: {value: number, label: string}[],
@@ -125,5 +148,5 @@ type Notification = {
 }
 
 
-export { type ProjectState, type GUIState, type Notification, type Layer,  type Script, type TileLayer, type ImageLayer, 
-    type PlacedImage,type PlacedTile,  type Image, type Tileset, type Tile, type AutoTile as RuleTile, type TileRule, type TileRef, type ConnectedTileRequirement, type ConnectedTilesRequirements};
+export { type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer,  type Script, type TileLayer, type ImageLayer, 
+      type Image, type ImageRef, type Tileset, type Tile, type AutoTile as RuleTile, type TileRule, type TileRef, type ConnectedTileRequirement, type ConnectedTilesRequirements};

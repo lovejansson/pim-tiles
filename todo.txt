@@ -1,7 +1,5 @@
 # Todo
 
-* Drag to reorder layers 
-
 * Add warning when a script is closed 
 
 * Show tilemap in a fullscreen mode to see the whole thing? eftersom det nu är gömt under toolbar och menu
@@ -10,30 +8,36 @@
 
 * Add edit mode to auto tiles
 
-* Implement drawing of tiles with the different tools 
-
-* Implement drawing of images with the different tools 
-
-* Implement drawing of areas
-
-* Implement tiling 
 * Implement export of JSON 
+
 * Implement Save in localstorage
+
 * Implement Save
+
 * Implement Save AS 
+
 * Implement image layer
-* Implement area layer 
+
+* paint/erase tile drag 
+
+* paint tile with area 
+
 
 What is an area?
-
 Create area assets 
 Edit area asset name/color 
 paint area simple 
-
-
 Mark out areas of your tilemap for roads, grass, water and other landscape zone. 
-
 Create an area, name it, color it. 
 Select an area and paint a tile with it. Use regular tools to erase or bucket fill areas. 
 
 Visa forbidden cursor om man försöker redigera ett lager som inte är gjort för en viss asset. 
+
+Object layer 
+
+Place image on grid by selecting it and clicking the grid -> kanske iriterande att placera på griden på detta sätt, 
+vill dra ut det 
+
+Objects are selected until click outside -> removes selection 
+Pressing delete will remove the objects
+

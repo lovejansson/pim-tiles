@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { projectState } from "../state.svelte";
+  import { guiState, projectState } from "../state.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
 import Layer from "./Layer.svelte";
   import { dndzone, type DndEvent } from "svelte-dnd-action";
@@ -49,7 +49,7 @@ let createNewLayerDialogIsOpen = $state(false);
   onconsider={handleDndConsider} 
   onfinalize={handleDndFinalize}>
     {#each projectState.layers as layer, idx (layer.id)}
-      <li   class:odd={idx % 2 === 0} animate:flip="{{duration: 100}}"
+      <li   class:selected={guiState.selectedLayer === layer.id} animate:flip="{{duration: 100}}"
      
       >
         <Layer layerIdx={idx} />
@@ -76,7 +76,7 @@ let createNewLayerDialogIsOpen = $state(false);
     background-color: var(--color-4);
   }
 
-  .odd {
+  .selected {
     background-color: var(--color-2);
   }
 

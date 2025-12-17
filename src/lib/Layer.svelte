@@ -1,6 +1,6 @@
 <script lang="ts">
   import { SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
-  import { projectState } from "../state.svelte";
+  import { guiState, projectState } from "../state.svelte";
     
     import ContextMenu from "./ContextMenu.svelte";
     import EditableText from "./EditableText.svelte";
@@ -23,7 +23,7 @@ let inputName: SlInput;
 <ContextMenu onSelect={handleSelectMenuItem} 
     menuItems={[{label: "Rename", value:"rename", icon: "edit-box"}, {label: "Delete", value:"delete", icon: "close"}]}>
 
-    <div id="layer">
+    <div id="layer" onclick={() => guiState.selectedLayer = projectState.layers[layerIdx].id}>
         {#if projectState.layers[layerIdx].type === "tile"} 
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
         {:else if projectState.layers[layerIdx].type === "image"}

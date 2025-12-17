@@ -4,7 +4,6 @@
 
     
     $effect(() => {
-        console.log("EFFECT")
         if(guiState.notification !== null && alert) {
             alert.toast();
         }

@@ -4,13 +4,32 @@
     import ContextMenu from "./ContextMenu.svelte";
     import ImageDialog from "./ImageDialog.svelte";
 
+
+    const selectedLayer = $derived.by(() => {
+
+        const layer = projectState.layers.find(l => l.id === guiState.selectedLayer);
+
+        if(layer === undefined) throw new Error("Internal error: selected layer missing");
+
+        if(layer.type !== "image") throw new Error("Internal error: selected layer missing");
+            return layer;
+
+        
+        }
+    );
+
     let { imgIdx} = $props();
+
+    const object = $derived(selectedLayer.data[imgIdx])
+
+
 
     let viewImageDialogIsOpen = $state(false);
 
     const handleSelectMenuItem = (item: SlMenuItem) => {
         if(item.value === "delete") {
-            projectState.images.splice(imgIdx, 1);
+           
+            selectedLayer.data = selectedLayer.data.filter(i => !i.isSelected);
         } else if (item.value === "view") {
         viewImageDialogIsOpen = true;
 
@@ -19,8 +38,11 @@
     }
 
     const selectImage = () => {
-        guiState.selectedAsset = {type: "image", ref: {index: imgIdx}}
+      object.isSelected =   !object.isSelected
+ 
+        
     }
+  
 
 </script>
 
@@ -29,11 +51,11 @@ menuItems={[{label: "View", value:"view", icon: "edit-box"},
 {label: "Delete", value:"delete", icon: "close"}]}>
      <!-- svelte-ignore a11y_no_static_element_interactions -->
      <sl-button 
-     class:selected={guiState.selectedAsset && guiState.selectedAsset.type === "image" && guiState.selectedAsset.ref.index == imgIdx} 
-     onclick={selectImage} onkeydown={selectImage}>{projectState.images[imgIdx].filename}</sl-button>
+     class:selected={object.isSelected} 
+     onclick={selectImage} onkeydown={selectImage}>{projectState.images[object.index]?.filename}</sl-button>
 </ContextMenu>
 
-<ImageDialog imgIdx={imgIdx} bind:open={viewImageDialogIsOpen}/>
+<ImageDialog imgIdx={object.index} bind:open={viewImageDialogIsOpen}/>
 
 <style lang="postcss">
  #layer {

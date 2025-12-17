@@ -1,28 +1,41 @@
 <script lang="ts">
+  import { guiState, projectState } from "../state.svelte";
   import Areas from "./Areas.svelte";
   import AutoTiles from "./AutoTiles.svelte";
   import Images from "./Images.svelte";
   import Layers from "./Layers.svelte";
+  import Objects from "./Objects.svelte";
   import Scripts from "./Scripts.svelte";
   import Tilesets from "./Tilesets.svelte";
   import Tools from "./Tools.svelte";
 
+   const selectedLayer = $derived.by(() => {
+
+        const layer = projectState.layers.find(l => l.id === guiState.selectedLayer);
+
+        if(layer === undefined) throw new Error("Internal error: selected layer missing");
+            return layer;
+        }
+    );
+
 </script>
 
 <section id="toolbar">
-    <Tools/>
-    <sl-divider  ></sl-divider>
     <Layers/>
-      <sl-divider></sl-divider>
-    <Tilesets/>
-      <sl-divider></sl-divider>
-        <Images/>
-     
+    <sl-divider></sl-divider>
+    {#if selectedLayer.type === "tile"}
+      <Tools/>
+      <Tilesets/>
+        <sl-divider></sl-divider>
+      <AutoTiles/>
+    {:else if selectedLayer.type === "area"}
+        <Areas/>
+    {:else if selectedLayer.type === "image"}
+        <Objects/>
+                   <sl-divider></sl-divider>
+         <Images/>
+    {/if}
          <sl-divider></sl-divider>
-         <Areas/>
-          <sl-divider></sl-divider>
-    <AutoTiles/>
-      <sl-divider></sl-divider>
     <Scripts/>
 
 </section>

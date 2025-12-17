@@ -25,6 +25,10 @@
         }
     }
 
+ 
+
+    let selectedTileRef = $derived(guiState.selectedAsset?.type === "tile" ? guiState.selectedAsset.ref : null);
+
 </script>
 
 <section id="tilesets">
@@ -43,13 +47,14 @@
 
         {#if projectState.tilesets.length > 0}
             <sl-tab-group>
-            {#each projectState.tilesets as tileset, idx} 
+            {#each projectState.tilesets as tileset, tilesetIdx} 
    
-    <sl-tab slot="nav" panel={tileset.name}><TilesetTab tilesetIdx={idx}/></sl-tab>
+    <sl-tab slot="nav" panel={tileset.name}><TilesetTab tilesetIdx={tilesetIdx}/></sl-tab>
                 <sl-tab-panel name={tileset.name}>
                     <ul class="tiles">
-                        {#each tileset.tiles as tile}
-                            <li class="selected">
+                        {#each tileset.tiles as tile, tileIdx}
+                            <li onclick={() => guiState.selectedAsset = {type: "tile", ref: {tilesetIdx, tileIdx}}}
+                            class:selected={selectedTileRef?.tilesetIdx === tilesetIdx && selectedTileRef?.tileIdx === tileIdx}>
                                 <img class="tile" src={tile.dataURL} alt="tile"/>
                             </li>
                         {/each}

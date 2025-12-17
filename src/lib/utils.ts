@@ -1,3 +1,5 @@
+import type { Point, Rect } from "../types";
+
 function detectOS() {
     const platform = navigator.platform.toLowerCase();
     
@@ -10,4 +12,8 @@ function detectOS() {
     }
 }
 
-export {detectOS}
+function isPointInRect(point: Point, rect: Rect) {
+    return point.x > rect.x && point.x < rect.x + rect.width && point.y > rect.y && point.y < rect.y + rect.height;
+}
+
+export {detectOS, isPointInRect}
