@@ -1,8 +1,5 @@
 <script lang="ts">
-  import { type SlSelectEvent } from "@shoelace-style/shoelace/dist/react/menu/index.js";
-
-
-
+  import { type SlSelectEvent } from "@shoelace-style/shoelace/dist/react/menu/index.js"
     
 let { menuItems, children, onSelect } = $props();
   

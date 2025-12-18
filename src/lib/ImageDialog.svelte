@@ -1,34 +1,33 @@
-
-
 <script lang="ts">
-    import { projectState } from "../state.svelte";
+  import { projectState } from "../state.svelte";
 
-let { open = $bindable(), imgIdx} = $props();
+  let { open = $bindable(), imgIdx } = $props();
 
-const hide = () => {
+  const hide = () => {
     open = false;
-}
+  };
 </script>
 
-<sl-dialog label={projectState.images[imgIdx].filename} onsl-after-hide={hide} open={open}>
-    <img src={projectState.images[imgIdx].dataURL} alt="tree or something" />
+<sl-dialog
+  label={projectState.images[imgIdx].filename}
+  onsl-after-hide={hide}
+  {open}
+>
+  <img src={projectState.images[imgIdx].dataURL} alt="tree or something" />
 </sl-dialog>
 
-
 <style>
+  sl-dialog::part(body) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+  }
 
-    sl-dialog::part(body) {
-        display: flex;
-        flex-direction: column;
-        gap: 1.6rem;
-    }
+  sl-dialog {
+    --width: 300px;
+  }
 
-    sl-dialog {
-        --width: 300px;
-    }
-
-    img {
-        image-rendering: pixelated;
-    }
-
+  img {
+    image-rendering: pixelated;
+  }
 </style>

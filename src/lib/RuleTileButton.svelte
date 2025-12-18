@@ -49,7 +49,7 @@ const getNextReq = (connection: ConnectedTileRequirement) => {
     </div>
 
     {#if ruleTile.tile !== null}
-        <img class="tile" src={ruleTile.tile !== null ? projectState.tilesets[ruleTile.tile?.tilesetIdx].tiles[ruleTile.tile?.tileIdx].dataURL : ""} alt="tile"/>
+        <img class="tile" src={ruleTile.tile !== null ? projectState.tilesets[ruleTile.tile?.tilesetId].tiles[ruleTile.tile?.tileId].dataURL : ""} alt="tile"/>
         {:else}
             <sl-button onclick={() => {
                 if(selectedTile !== null) {

@@ -1,25 +1,23 @@
-import type { ProjectState, GUIState } from "./types";
+import type { ProjectState, GUIState, TileLayer } from "./types";
 
+const DEFAULT_LAYER: TileLayer = {
+        name: "fg",
+        data: new Map(),
+        isVisible: false,
+        type: "tile",
+};
 
 export const projectState: ProjectState = $state({
     projectName: "My project",
     tileSize: 16,
     layers: [
+      DEFAULT_LAYER,
       { 
-        id:0,
-        name: "Layer1", 
+        name: "stuff", 
           data: [], isVisible: true, type: "image" },
       {
-          id:1,
-        name: "Layer2",
+        name: "zones",
         data: new Map(),
-        isVisible: false,
-        type: "tile",
-      },
-      {
-        id:2,
-        name: "Layer3",
-        data: [],
         isVisible: false,
         type: "area",
       },
@@ -27,18 +25,22 @@ export const projectState: ProjectState = $state({
     tilesets: [],
     images: [],
     scripts: [{name: "script1.js", content: "woop"}],
-    ruleTiles: []
+    ruleTiles: [],
+    areas: []
 });
 
 
 export const guiState: GUIState = $state({
-  selectedTool: "paint",
-  selectedAsset: null,
-  selectedLayer: 0,
+  tilemapEditorState: {
+    type: "tile", 
+    selectedLayer: DEFAULT_LAYER, 
+    selectedAsset: null, 
+    selectedTool: "paint"
+  },
   notification: null,
   gridColor: "#000",
   showGrid: true,
   workspaceTabs: [{value: -1, label: "tilemap"}], 
   selectedWorkspaceTab: "tilemap", 
   selectedTile: null
-})
+});

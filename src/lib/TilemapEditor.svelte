@@ -1,28 +1,19 @@
 <script lang="ts">
     import {onMount, tick } from "svelte";
-    import { guiState, projectState } from "../state.svelte";
+    import {  guiState, projectState } from "../state.svelte";
     import { isPointInRect } from "./utils";
-
+  import type { Tile, TileRef } from "../types";
 
     const {tileSize} = $derived(projectState);
-    const {gridColor, selectedTool} = $derived(guiState);
-
-    const selectedLayer = $derived.by(() => {
-
-        const layer = projectState.layers.find(l => l.id === guiState.selectedLayer);
-
-        if(layer === undefined) throw new Error("Internal error: selected layer missing");
-            return layer;
-        }
-    );
+    const {gridColor, tilemapEditorState} = $derived(guiState);
 
     let shiftKeyIsDown = $state(false);
     let ctrlKeyIsDown = $state(false);
-    let isMouseDownImage = $state(false);
+    let isMousDown = $state(false);
     let translation = $state({ x: 0, y: 0 });
     let zoom = $state(1);
     let zoomPos = $state({ x: 0, y: 0 });
-    let mousePos = $state({ x: 0, y: 0 });  
+    let mousePosCanvas = $state({ x: 0, y: 0 });  
 
     let canvasEl!: HTMLCanvasElement;
     let ctx!: CanvasRenderingContext2D;
@@ -38,127 +29,146 @@
 
 const handleMouseDown = (e: MouseEvent) => {
 
-    if(ctrlKeyIsDown) {
- const rect = canvasEl.getBoundingClientRect();
-        
-        const screenX = e.clientX - rect.left; 
-        const screenY = e.clientY - rect.top;
+    isMousDown = true;
 
-        const {x, y} = getWorldPos(ctx, {x: screenX, y: screenY})
+    const rect = canvasEl.getBoundingClientRect();
+    
+    const screenX = e.clientX - rect.left; 
+    const screenY = e.clientY - rect.top;
 
-        
-        if(selectedLayer.type === "image") {
+    const {x, y} = getWorldPos(ctx, {x: screenX, y: screenY});
+    const col = Math.floor(x / tileSize);
+    const row = Math.floor(y / tileSize);
+      
+    switch(tilemapEditorState.type){
+        case "tile":
+            switch(tilemapEditorState.selectedTool){
+                case "paint":
+                    if(tilemapEditorState.selectedAsset === null) {
+                            guiState.notification = {variant: "neutral", title: "No asset", 
+                        msg: "Select a tile!"};
+                        break;
+                    }
 
-           for(const i of selectedLayer.data.toReversed()) {
-                const image = projectState.images[i.index];
+                    tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, tilemapEditorState.selectedAsset.ref as TileRef);
 
-                if(isPointInRect({x, y}, {x: i.x, y: i.y, width: image.width, height: image.height})) {
-                    i.isSelected = true;
-                    isMouseDownImage = true;
+                    break;
+                case "erase":
+                    tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+                    break;
+            }
+    
+            break;
+        case "area":
+                switch(tilemapEditorState.selectedTool){
+                    case "paint":
+                        if(tilemapEditorState.selectedAsset === null) {
+                                guiState.notification = {variant: "neutral", title: "Select area", 
+                            msg: "No area selected!"};
+                            break;
+                        }
+
+                        tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, tilemapEditorState.selectedAsset.ref);
+                        
+                        break;
+                case "erase":
+                      tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+                    break;
+            }
+    
+            break;
+        case "image":
+            if(ctrlKeyIsDown) {
+                for(const i of  tilemapEditorState.selectedLayer.data.toReversed()) {
+
+                    const image = projectState.images[i.id];
+
+                    if(isPointInRect({x, y}, {x: i.x, y: i.y, width: image.width, height: image.height})) {
+                        i.isSelected = true;
+                        break;
+                    }
+                }
+            } else if(tilemapEditorState.selectedLayer.data.find(i => i.isSelected)){
+                for(const i of tilemapEditorState.selectedLayer.data) {
+                    i.isSelected = false;
+                }
+            } else{
+
+                if(tilemapEditorState.selectedAsset === null) {
+                        guiState.notification = {variant: "neutral", title: "Select image", 
+                    msg: "No image selected!"};
                     break;
                 }
+                
+                tilemapEditorState.selectedLayer.data = [...tilemapEditorState.selectedLayer.data, 
+                {...tilemapEditorState.selectedAsset.ref, x, y, isSelected: false}];
+                
             }
-        }
-    }  
+            break;
+    }
      
 }
 
-const handleMouseUp = (e: MouseEvent) => {
-    if(isMouseDownImage) isMouseDownImage = false;  
+const handleMouseUp = () => {
+    if(isMousDown) isMousDown = false;  
 }
 
 const handleMouseMove = (e: MouseEvent) => {
 
+    if(!canvasEl)return;
+    const rect = canvasEl.getBoundingClientRect();
 
-    if(e.target !== canvasEl)  return;
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
 
-    if(isMouseDownImage && selectedLayer.type === "image") {
-    
-        for(const i of selectedLayer.data){
-            if(i.isSelected) {
-          
-                i.x += e.movementX * (1 / zoom);
-                i.y += e.movementY * (1 / zoom);
-            }
-        }
-    } else {
-   
-        const rect = canvasEl.getBoundingClientRect();
-        const screenX = e.clientX - rect.left;
-        const screenY = e.clientY - rect.top;
+    mousePosCanvas.x = canvasX;
+    mousePosCanvas.y = canvasY;
 
-        mousePos.x = screenX;
-        mousePos.y = screenY;
-    }
+    const {x, y} = getWorldPos(ctx, {x: canvasX, y: canvasY});
+    const col = Math.floor(x / tileSize);
+    const row = Math.floor(y / tileSize);
 
-
-
-};
-
-    const handleClick = (e: MouseEvent) => {
-
-        const rect = canvasEl.getBoundingClientRect();
-        
-        const screenX = e.clientX - rect.left; 
-        const screenY = e.clientY - rect.top;
-
-        const {x, y} = getWorldPos(ctx, {x: screenX, y: screenY})
-
-        const col = Math.floor(x / tileSize);
-        const row = Math.floor(y / tileSize);
-
-    
-        if(selectedLayer.type === "image") {
-            if(guiState.selectedAsset?.type !== "image"){
-                guiState.notification = {variant: "neutral", title: "Select an image", msg: "Select which image to place!"};
-            return;
-        }
-
-
-        if(ctrlKeyIsDown) {
-            for(const i of selectedLayer.data.toReversed()) {
-                const image = projectState.images[i.index];
-
-                
-                if(isPointInRect({x, y}, {x: i.x, y: i.y, width: image.width, height: image.height})) {
-                    i.isSelected = true;
-                    break;
+    if(isMousDown) {
+          switch(tilemapEditorState.type){
+            case "tile":
+                switch(tilemapEditorState.selectedTool) {
+                    case "paint":
+                        if(tilemapEditorState.selectedAsset !== null) {
+                           tilemapEditorState.selectedLayer.data.set(`${row}:${col}`,tilemapEditorState.selectedAsset.ref as TileRef);
+                        }
+                        break;
+                    case "erase":
+                        tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+                        break;
                 }
-            }
-     
 
-        } 
-        else if (selectedLayer.data.find(i => i.isSelected) !== undefined) {
-            selectedLayer.data.forEach(i => i.isSelected = false);
-        } else {
-            // Draw image on top of layer 
-            
-            selectedLayer.data = [...selectedLayer.data, ({...guiState.selectedAsset.ref, x, y, isSelected: false})];
-        }
-        
-   
-    }
-
-    if(selectedTool === "paint") {
-        if(guiState.selectedAsset) {
-            switch(guiState.selectedAsset.type) {
-                case "tile":
-                    if(selectedLayer.type === "tile") {
-                        selectedLayer.data.set(`${row},${col}`, {...guiState.selectedAsset.ref});
-                    }
                 break;
-                case "image":
-                    // Separate image layer map
-                case "auto-tile":
-                    // Separate paint with auto tile
-            }
-        }
-    } else if(selectedTool === "erase") {
-          if(selectedLayer.type !== "tile") throw Error("MKL")
-        // TODO: If tile is painted with auto tile, update its neighbours
-        selectedLayer.data.delete(`${row},${col}`);
-    }
+            case "area":
+                switch(tilemapEditorState.selectedTool) {
+                    case "paint":
+                         if(tilemapEditorState.selectedAsset !== null) {
+                            tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, tilemapEditorState.selectedAsset.ref);
+                        }
+                        break;
+                    case "erase":
+                        tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+                        break;
+                }
+                break;
+            case "image":
+                if(ctrlKeyIsDown) {
+                    for(const i of tilemapEditorState.selectedLayer.data){
+                        if(i.isSelected) {
+                            i.x += e.movementX * (1 / zoom);
+                            i.y += e.movementY * (1 / zoom);
+                        }
+                    }
+                }
 
+                break;
+        }
+    }
+    
 };
 
 
@@ -183,19 +193,19 @@ const handleWheel = (e: WheelEvent) => {
     if(delta < 0) {
         if(zoom <= 5.0) {
             zoom += zoomFactor;
-            zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+            zoomPos = getWorldPos(ctx, { x: mousePosCanvas.x, y: mousePosCanvas.y  });
             // Update current translation to account for zoompoint
-            translation.x = mousePos.x - zoomPos.x * zoom;
-            translation.y = mousePos.y - zoomPos.y * zoom;
+            translation.x = mousePosCanvas.x - zoomPos.x * zoom;
+            translation.y = mousePosCanvas.y - zoomPos.y * zoom;
         }
     } else {
     if(zoom > 0.5) {
 
                 zoom -= zoomFactor;
-                zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+                zoomPos = getWorldPos(ctx, { x: mousePosCanvas.x, y: mousePosCanvas.y  });
                 // Update current translation to account for zoompoint
-                translation.x = mousePos.x - zoomPos.x * zoom;
-                translation.y = mousePos.y - zoomPos.y * zoom;
+                translation.x = mousePosCanvas.x - zoomPos.x * zoom;
+                translation.y = mousePosCanvas.y - zoomPos.y * zoom;
             }
     }
 
@@ -234,26 +244,26 @@ const handleKeyDown = (e: KeyboardEvent) => {
         case "+":
             if(zoom <= 5.0) {
             zoom += 0.1;
-            zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+            zoomPos = getWorldPos(ctx, { x: mousePosCanvas.x, y: mousePosCanvas.y  });
             // Update current translation to account for zoompoint
-            translation.x = mousePos.x - zoomPos.x * zoom;
-            translation.y = mousePos.y - zoomPos.y * zoom;
+            translation.x = mousePosCanvas.x - zoomPos.x * zoom;
+            translation.y = mousePosCanvas.y - zoomPos.y * zoom;
         }
             break;
         case "-":
              if(zoom > 0.5) {
 
                 zoom -= 0.1;
-                zoomPos = getWorldPos(ctx, { x: mousePos.x, y: mousePos.y  });
+                zoomPos = getWorldPos(ctx, { x: mousePosCanvas.x, y: mousePosCanvas.y  });
                 // Update current translation to account for zoompoint
-                translation.x = mousePos.x - zoomPos.x * zoom;
-                translation.y = mousePos.y - zoomPos.y * zoom;
+                translation.x = mousePosCanvas.x - zoomPos.x * zoom;
+                translation.y = mousePosCanvas.y - zoomPos.y * zoom;
             }
             break; 
         case "del":
         case "backspace":
-            if(selectedLayer.type === "image")
-                selectedLayer.data = selectedLayer.data.filter(l => !l.isSelected)
+            if(tilemapEditorState.type === "image")
+                tilemapEditorState.selectedLayer.data = tilemapEditorState.selectedLayer.data.filter(l => !l.isSelected)
             break;
     
     }
@@ -291,15 +301,15 @@ function draw(ctx: CanvasRenderingContext2D) {
             switch(layer.type) {
                 case "tile":
                     for (const [key, tileRef] of layer.data) {
-                        const [ty, tx] = key.split(',').map(Number);
-                        ctx.drawImage(projectState.tilesets[tileRef.tilesetIdx].tiles[tileRef.tileIdx].bitmap, 
+                        const [ty, tx] = key.split(':').map(Number);
+                        ctx.drawImage(projectState.tilesets[tileRef.tilesetId].tiles[tileRef.tileId].bitmap, 
                         tx * tileSize, ty * tileSize, tileSize, tileSize)
                     }
                 break;
                 case "image":
                     for (const i of layer.data) {
 
-                        const image = projectState.images[i.index];
+                        const image = projectState.images[i.id];
                
                         ctx.drawImage(image.bitmap, i.x, i.y, image.width, image.height);
 
@@ -308,7 +318,20 @@ function draw(ctx: CanvasRenderingContext2D) {
                             ctx.strokeRect(i.x, i.y, image.width, image.height);
                         }
                     }
+                    break;
                 case "area":
+
+                    for (const [key, areaRef] of layer.data) {
+
+                        const [ty, tx] = key.split(':').map(Number);
+
+                        ctx.strokeStyle = projectState.areas[areaRef.id].color;
+
+                        ctx.strokeRect(tx * tileSize, ty * tileSize, tileSize, tileSize); 
+                  
+                    }
+
+                    break;
             }
         }
     }
@@ -339,23 +362,21 @@ function update(elasped: number){
 
 </script>
 
-<svelte:window onwheel={handleWheel} 
-    onkeydown={handleKeyDown} 
-    onkeyup={handleKeyUp} 
-    onmousemove={handleMouseMove}
-    onmousedown={handleMouseDown}
-    onmouseup={handleMouseUp}
+<svelte:window
+  onwheel={handleWheel}
+  onkeydown={handleKeyDown}
+  onkeyup={handleKeyUp}
 
- />
+  onmouseup={handleMouseUp}
+/>
 
-<canvas onclick={handleClick} bind:this={canvasEl}></canvas>
+<canvas  bind:this={canvasEl}  onmousemove={handleMouseMove}
+  onmousedown={handleMouseDown} ></canvas>
 
 <style lang="postcss">
-
-   canvas {
-        background-color: var(--color-0);
-        width: 100%;
-        height: 100%;
-    }
-
+  canvas {
+    background-color: var(--color-0);
+    width: 100%;
+    height: 100%;
+  }
 </style>

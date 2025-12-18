@@ -8,19 +8,17 @@
 
 * Add edit mode to auto tiles
 
+* paint with auto tile 
+
 * Implement export of JSON 
 
 * Implement Save in localstorage
 
 * Implement Save
 
-* Implement Save AS 
+* Implement Save AS
 
-* Implement image layer
-
-* paint/erase tile drag 
-
-* paint tile with area 
+* fill areas somehow for easy use 
 
 
 What is an area?

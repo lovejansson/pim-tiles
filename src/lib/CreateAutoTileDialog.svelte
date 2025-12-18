@@ -80,8 +80,8 @@ const deleteRule = (idx: number) => {
                 <sl-tab-panel name={tileset.name}>
                     <ul class="tiles">
                         {#each tileset.tiles as tile, tileIdx}
-                            <li class:selected={selectedTile && selectedTile.tilesetIdx === tilesetIdx && selectedTile.tileIdx === tileIdx}>
-                               <button onclick={() => selectedTile = {tilesetIdx, tileIdx}} class="btn-tile"> <img class="img-tile" src={tile.dataURL} alt="tile"/></button>
+                            <li class:selected={selectedTile && selectedTile.tilesetId === tilesetIdx && selectedTile.tileId === tileIdx}>
+                               <button onclick={() => selectedTile = {tilesetId: tilesetIdx, tileId: tileIdx}} class="btn-tile"> <img class="img-tile" src={tile.dataURL} alt="tile"/></button>
                             </li>
                         {/each}
                     </ul>

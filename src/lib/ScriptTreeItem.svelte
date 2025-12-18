@@ -2,8 +2,8 @@
     import { guiState, projectState } from "../state.svelte";
 
  
-  import ContextMenu from "./ContextMenu.svelte";
-    import EditableText from "./EditableText.svelte";
+  import ContextMenu from "./ui/ContextMenu.svelte";
+    import EditableText from "./ui/EditableText.svelte";
 
   let { scriptIdx} = $props();
   let isEditingName = $state(false);

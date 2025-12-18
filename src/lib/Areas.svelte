@@ -1,10 +1,9 @@
 <script lang="ts">
   import { projectState } from "../state.svelte";
-  import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
-import Layer from "./Layer.svelte";
+  import AreaItem from "./AreaItem.svelte";
+  import CreateNewAreaDialog from "./CreateNewAreaDialog.svelte";
 
-let createNewAreaDialogIsOpen = $state(false);
-
+  let createNewAreaDialogIsOpen = $state(false);
 
 </script>
 
@@ -27,14 +26,16 @@ let createNewAreaDialogIsOpen = $state(false);
   </header>
 
   <ul>
-    {#each projectState.layers as layer, idx (layer.id)}
+    
+    {#each projectState.areas as area, idx}
       <li>
-        <Layer layerIdx={idx} />
+        <AreaItem idx={idx} />
       </li>
     {/each}
   </ul>
 </section>
-<CreateNewLayerDialog bind:open={createNewAreaDialogIsOpen}/>
+
+<CreateNewAreaDialog bind:open={createNewAreaDialogIsOpen}/>
 
 <style lang="postcss">
   header {
@@ -47,6 +48,12 @@ let createNewAreaDialogIsOpen = $state(false);
 
     width: 320px !important;
     height: 100%;
+  }
+
+  ul {
+        display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   li {

@@ -1,9 +1,18 @@
 <script lang="ts">
-    import { SlInput, SlMenuItem, type SlChangeEvent } from "@shoelace-style/shoelace";
+    import { SlMenuItem, } from "@shoelace-style/shoelace";
     import { guiState, projectState } from "../state.svelte";
     import ContextMenu from "./ContextMenu.svelte";
     import ImageDialog from "./ImageDialog.svelte";
+  import type { ImageLayerState } from "../types";
 
+     const tilemapEditorState = $derived.by(
+        (): ImageLayerState => {
+        if (guiState.tilemapEditorState.type === "image") return guiState.tilemapEditorState;
+
+        throw new Error("Invalid UI state");
+        }
+    );
+    
     let { imgIdx} = $props();
 
     let viewImageDialogIsOpen = $state(false);
@@ -19,7 +28,7 @@
     }
 
     const selectImage = () => {
-        guiState.selectedAsset = {type: "image", ref: {index: imgIdx}}
+        tilemapEditorState.selectedAsset = { ref: {id: imgIdx}}
     }
 
 </script>
@@ -29,26 +38,15 @@ menuItems={[{label: "View", value:"view", icon: "edit-box"},
 {label: "Delete", value:"delete", icon: "close"}]}>
      <!-- svelte-ignore a11y_no_static_element_interactions -->
      <sl-button 
-     class:selected={guiState.selectedAsset && guiState.selectedAsset.type === "image" && guiState.selectedAsset.ref.index == imgIdx} 
+     class:selected={guiState.tilemapEditorState.type === "image"  
+     && guiState.tilemapEditorState.selectedAsset !== null 
+     && guiState.tilemapEditorState.selectedAsset.ref.id == imgIdx} 
      onclick={selectImage} onkeydown={selectImage}>{projectState.images[imgIdx].filename}</sl-button>
 </ContextMenu>
 
 <ImageDialog imgIdx={imgIdx} bind:open={viewImageDialogIsOpen}/>
 
 <style lang="postcss">
- #layer {
-    display: flex;  
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.5rem;
-
- }
- p{
-       margin: 0;
-    margin-right: auto;
- 
- }
 
  .selected::part(base) {
    background-color: rgb(112, 253, 121);
