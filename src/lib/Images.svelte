@@ -1,7 +1,7 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
   import { bitmapToDataURL } from "../utils";
-  import FilePicker from "./FilePicker.svelte";
+  import FilePicker from "./ui/FilePicker.svelte";
   import Image from "./Image.svelte";
 
   if (guiState.tilemapEditorState.type !== "image")

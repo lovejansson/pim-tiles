@@ -2,7 +2,7 @@
   import { guiState, projectState } from "../state.svelte";
   import type { TileLayerState } from "../types";
   import { splitIntoTiles } from "../utils";
-  import FilePicker from "./FilePicker.svelte";
+  import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
 
   const tilemapEditorState = $derived.by((): TileLayerState => {

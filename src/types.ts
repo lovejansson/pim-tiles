@@ -58,6 +58,7 @@ type Rect = {
 }
 
 type ImageLayer = {
+    id: Symbol;
     type: "image";
     name: string;
     isVisible: boolean;
@@ -65,6 +66,7 @@ type ImageLayer = {
 };
 
 type TileLayer = {
+    id: Symbol;
     type: "tile";
     name: string;
     data: Map<string, TileRef>,
@@ -72,6 +74,7 @@ type TileLayer = {
 };
 
 type AreaLayer = {
+    id: Symbol;
     type: "area";
     name: string;
     data: Map<string, IdRef>,

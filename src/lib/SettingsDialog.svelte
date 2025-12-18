@@ -6,7 +6,7 @@
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
   import { projectState, guiState } from "../state.svelte";
-  import ConfirmDialog from "./ConfirmDialog.svelte";
+  import ConfirmDialog from "./ui/ConfirmDialog.svelte";
 
   let { open = $bindable() } = $props();
 

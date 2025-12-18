@@ -18,7 +18,8 @@
   let layerType: "tile" | "image" | "area" = $state("tile");
 
   const saveLayer = () => {
-    projectState.layers.push({
+    projectState.layers.push({      
+    id: Symbol(),
       name,
       type: layerType as "tile" | "image" | "area",
       data: [],

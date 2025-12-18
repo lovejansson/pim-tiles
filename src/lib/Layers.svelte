@@ -1,23 +1,27 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
-  import Layer from "./Layer.svelte";
+
   import { dndzone, type DndEvent } from "svelte-dnd-action";
   let createNewLayerDialogIsOpen = $state(false);
   import { flip } from "svelte/animate";
+  import Layer from "./Layer.svelte";
 
   const handleDndConsider = (e: CustomEvent<DndEvent<any>>) => {
-    projectState.layers = e.detail.items.map((i) => i.layer);
+    projectState.layers = e.detail.items;
   };
 
   const handleDndFinalize = (e: CustomEvent<DndEvent<any>>) => {
-    projectState.layers = e.detail.items.map((i) => i.layer);
+    projectState.layers = e.detail.items;
   };
 
   const styleDragged = (el: HTMLElement) => {
     el.style.outline = "var(--color-0) solid 1px";
     return el;
   };
+
+  console.dir(guiState.tilemapEditorState.selectedLayer)
+
 </script>
 
 <section id="layers">
@@ -39,7 +43,7 @@
 
   <ul
     use:dndzone={{
-      items: projectState.layers.map((l, i) => ({ layer: l, id: i })),
+      items: projectState.layers,
       dragDisabled: false,
       dropFromOthersDisabled: true,
       transformDraggedElement: (el: HTMLElement | undefined) =>
@@ -50,10 +54,10 @@
     onconsider={handleDndConsider}
     onfinalize={handleDndFinalize}
   >
-    {#each projectState.layers.map( (l, i) => ({ layer: l, id: i }) ) as layer, idx (layer.id)}
+    {#each projectState.layers as layer, idx (layer.id)}
       <li
-        class:selected={guiState.tilemapEditorState.selectedLayer ===
-          layer.layer}
+        class:selected={guiState.tilemapEditorState.selectedLayer ==
+          layer}
         animate:flip={{ duration: 100 }}
       >
         <Layer layerIdx={idx} />

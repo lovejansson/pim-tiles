@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SlMenuItem } from "@shoelace-style/shoelace";
   import { guiState, projectState } from "../state.svelte";
-  import ContextMenu from "./ContextMenu.svelte";
+  import ContextMenu from "./ui/ContextMenu.svelte";
   import EditAreaDialog from "./EditAreaDialog.svelte";
   import type { AreaLayerState } from "../types";
 

@@ -18,24 +18,8 @@
 
 * Implement Save AS
 
-* fill areas somehow for easy use 
+* Fill areas somehow for easy use 
 
+* Deletion of assets / layers and what happens to map states and how to handle state references here. 
 
-What is an area?
-Create area assets 
-Edit area asset name/color 
-paint area simple 
-Mark out areas of your tilemap for roads, grass, water and other landscape zone. 
-Create an area, name it, color it. 
-Select an area and paint a tile with it. Use regular tools to erase or bucket fill areas. 
-
-Visa forbidden cursor om man försöker redigera ett lager som inte är gjort för en viss asset. 
-
-Object layer 
-
-Place image on grid by selecting it and clicking the grid -> kanske iriterande att placera på griden på detta sätt, 
-vill dra ut det 
-
-Objects are selected until click outside -> removes selection 
-Pressing delete will remove the objects
-
+* Pan 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { projectState } from "../state.svelte";
-  import ContextMenu from "./ContextMenu.svelte";
-  import EditableText from "./EditableText.svelte";
+  import ContextMenu from "./ui/ContextMenu.svelte";
+  import EditableText from "./ui/EditableText.svelte";
 
   let { tilesetIdx } = $props();
 

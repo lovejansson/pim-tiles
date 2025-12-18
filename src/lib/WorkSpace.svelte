@@ -8,8 +8,6 @@
         guiState.selectedWorkspaceTab = e.detail.name;
     }
 
-
-
     let tabGroup: SlTabGroup;
 
     const closeScript = (e: SlCloseEvent) => {
@@ -29,10 +27,8 @@
 
 
     $effect(() => {
-        
-    console.log(guiState.workspaceTabs.map(si => si.label))
+        console.log(guiState.workspaceTabs.map(si => si.label))
     })
-
 
 </script>
 

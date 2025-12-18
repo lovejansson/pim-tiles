@@ -1,7 +1,7 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
-  import ContextMenu from "./ContextMenu.svelte";
-  import EditableText from "./EditableText.svelte";
+  import ContextMenu from "./ui/ContextMenu.svelte";
+  import EditableText from "./ui/EditableText.svelte";
 
   let { layerIdx } = $props();
 
@@ -9,14 +9,30 @@
 
   const handleSelectMenuItem = (item: any) => {
     if (item.value === "delete") {
+      if (layerIdx === 0) {
+        guiState.notification = {
+          variant: "danger",
+          title: "Delete layer",
+          msg: "One layer is required!",
+        };
+        return;
+      }
+
+      const layerIsSelected =
+        guiState.tilemapEditorState.selectedLayer ===
+        projectState.layers[layerIdx];
+
+      if (layerIsSelected) {
+        selectLayer(layerIdx - 1);
+      }
       projectState.layers.splice(layerIdx, 1);
     } else if (item.value === "rename") {
       isEditingName = true;
     }
   };
 
-  const selectLayer = () => {
-    const layer = projectState.layers[layerIdx];
+  const selectLayer = (idx: number) => {
+    const layer = projectState.layers[idx];
 
     switch (layer.type) {
       case "tile":
@@ -45,12 +61,12 @@
   };
 
   const toggleVisibility = () => {
-      projectState.layers[layerIdx].isVisible =
-          !projectState.layers[layerIdx].isVisible;
-  }
-
+    projectState.layers[layerIdx].isVisible =
+      !projectState.layers[layerIdx].isVisible;
+  };
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <ContextMenu
   onSelect={handleSelectMenuItem}
   menuItems={[
@@ -58,7 +74,8 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
-  <button id="layer" onclick={selectLayer}>
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div id="layer" onclick={() => selectLayer(layerIdx)}>
     {#if projectState.layers[layerIdx].type === "tile"}
       <sl-tooltip content="Tile layer">
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
@@ -81,13 +98,13 @@
     <!-- sl handles accessability internally -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-icon-button
-      onkeydown={(e: KeyboardEvent) =>  e.key === "Enter" && toggleVisibility()}
+      onkeydown={(e: KeyboardEvent) => e.key === "Enter" && toggleVisibility()}
       onclick={toggleVisibility}
       library="pixelarticons"
       name={projectState.layers[layerIdx].isVisible ? "eye" : "eye-closed"}
     >
     </sl-icon-button>
-  </button>
+  </div>
 </ContextMenu>
 
 <style lang="postcss">
