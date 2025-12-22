@@ -1,9 +1,5 @@
 # Todo
 
-* Add warning when a script is closed 
-
-* Show tilemap in a fullscreen mode to see the whole thing? eftersom det nu är gömt under toolbar och menu
-
 * Add validation to auto tiles dialog
 
 * Add edit mode to auto tiles
@@ -18,8 +14,8 @@
 
 * Implement Save AS
 
-* Fill areas somehow for easy use 
+* Flood fill somehow for easy use 
 
-* Deletion of assets / layers and what happens to map states and how to handle state references here. 
+* Pan
 
-* Pan 
+* Scripting

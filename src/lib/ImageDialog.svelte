@@ -1,19 +1,30 @@
 <script lang="ts">
-  import { projectState } from "../state.svelte";
+  import { guiState } from "../state.svelte";
+  import type { Image, } from "../types";
 
-  let { open = $bindable(), imgIdx } = $props();
+  if (guiState.tilemapEditorState.type !== "image") throw new Error("Invalid UI state");
+
+  type ImageDialogProps = {
+    open: boolean;
+    image: Image;
+  }
+  
+  let { open = $bindable(), image }: ImageDialogProps = $props();
 
   const hide = () => {
     open = false;
   };
+
+
 </script>
 
 <sl-dialog
-  label={projectState.images[imgIdx].filename}
+  label={image.filename}
   onsl-after-hide={hide}
   {open}
 >
-  <img src={projectState.images[imgIdx].dataURL} alt="tree or something" />
+  <img src={image.dataURL} alt="blueberries" />
+
 </sl-dialog>
 
 <style>
@@ -30,4 +41,5 @@
   img {
     image-rendering: pixelated;
   }
+  
 </style>

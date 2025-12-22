@@ -18,13 +18,15 @@
   let layerType: "tile" | "image" | "area" = $state("tile");
 
   const saveLayer = () => {
-    projectState.layers.push({      
-    id: Symbol(),
-      name,
-      type: layerType as "tile" | "image" | "area",
-      data: [],
-      isVisible: true,
-    });
+    let layer;
+    if (layerType === "image") {
+      layer = { id: Symbol(), name, type: "image" as const, data: [], isVisible: true };
+    } else if (layerType === "tile") {
+      layer = { id: Symbol(), name, type: "tile" as const, data: new Map(), isVisible: true };
+    } else {
+      layer = { id: Symbol(), name, type: "area" as const, data: new Map(), isVisible: true };
+    }
+    projectState.layers.push(layer);
     open = false;
   };
 </script>
@@ -57,7 +59,7 @@
       Image
     </sl-option>
     <sl-option value="area">
-      <sl-icon slot="prefix" library="pixelarticons" name="image"></sl-icon>
+      <sl-icon slot="prefix" library="pixelarticons" name="drop-area"></sl-icon>
       Area
     </sl-option>
   </sl-select>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import { guiState, projectState } from "../state.svelte";
+  import { getAreaByRef, getImageByRef, getTileByRef, guiState, projectState } from "../state.svelte";
   import { isPointInRect } from "./utils";
   import type { TileRef } from "../types";
 
@@ -28,6 +28,7 @@
   });
 
   const handleMouseDown = (e: MouseEvent) => {
+    
     isMousDown = true;
 
     const rect = canvasEl.getBoundingClientRect();
@@ -36,6 +37,7 @@
     const screenY = e.clientY - rect.top;
 
     const { x, y } = getWorldPos(ctx, { x: screenX, y: screenY });
+
     const col = Math.floor(x / tileSize);
     const row = Math.floor(y / tileSize);
 
@@ -44,11 +46,11 @@
         switch (tilemapEditorState.selectedTool) {
           case "paint":
             if (tilemapEditorState.selectedAsset === null) {
-              guiState.notification = {
-                variant: "neutral",
-                title: "No asset",
-                msg: "Select a tile!",
-              };
+                guiState.notification = {
+                  variant: "neutral",
+                  title: "No asset",
+                  msg: "Select a tile!",
+                };
               break;
             }
 
@@ -91,7 +93,11 @@
       case "image":
         if (ctrlKeyIsDown) {
           for (const i of tilemapEditorState.selectedLayer.data.toReversed()) {
-            const image = projectState.images[i.id];
+            const image = getImageByRef(i);
+
+            if(image === undefined) {
+              throw new Error("Image not found");
+            }
 
             if (
               isPointInRect(
@@ -173,10 +179,14 @@
           switch (tilemapEditorState.selectedTool) {
             case "paint":
               if (tilemapEditorState.selectedAsset !== null) {
+
+                console.dir(projectState.layers);
+                
                 tilemapEditorState.selectedLayer.data.set(
                   `${row}:${col}`,
                   tilemapEditorState.selectedAsset.ref
                 );
+
               }
               break;
             case "erase":
@@ -258,7 +268,6 @@
     if (e.shiftKey) shiftKeyIsDown = true;
     if (e.ctrlKey || e.metaKey) ctrlKeyIsDown = true;
 
-    console.log(e.key);
     switch (e.key.toLowerCase()) {
       case "arrowup":
       case "w":
@@ -321,27 +330,19 @@
     const startX = Math.floor(x0 / tileSize) * tileSize;
     const startY = Math.floor(y0 / tileSize) * tileSize;
 
-    ctx.beginPath();
 
-    ctx.strokeStyle = gridColor;
-
-    for (let y = startY; y <= y1; y += tileSize) {
-      for (let x = startX; x <= x1; x += tileSize) {
-        ctx.rect(x, y, tileSize, tileSize);
-      }
-    }
-
-    ctx.stroke();
 
     for (const layer of projectState.layers) {
       if (layer.isVisible) {
         switch (layer.type) {
           case "tile":
             for (const [key, tileRef] of layer.data) {
+
               const [ty, tx] = key.split(":").map(Number);
+              const tile = getTileByRef(tileRef);
+
               ctx.drawImage(
-                projectState.tilesets[tileRef.tilesetId].tiles[tileRef.tileId]
-                  .bitmap,
+                tile.bitmap,
                 tx * tileSize,
                 ty * tileSize,
                 tileSize,
@@ -351,7 +352,7 @@
             break;
           case "image":
             for (const i of layer.data) {
-              const image = projectState.images[i.id];
+              const image = getImageByRef(i);
 
               ctx.drawImage(image.bitmap, i.x, i.y, image.width, image.height);
 
@@ -363,9 +364,12 @@
             break;
           case "area":
             for (const [key, areaRef] of layer.data) {
+
+              const area = getAreaByRef(areaRef);
+
               const [ty, tx] = key.split(":").map(Number);
 
-              ctx.strokeStyle = projectState.areas[areaRef.id].color;
+              ctx.strokeStyle = area.color;
 
               ctx.strokeRect(tx * tileSize, ty * tileSize, tileSize, tileSize);
             }
@@ -374,6 +378,18 @@
         }
       }
     }
+
+        ctx.beginPath();
+
+    ctx.strokeStyle = gridColor;
+
+    for (let y = startY; y <= y1; y += tileSize) {
+      for (let x = startX; x <= x1; x += tileSize) {
+        ctx.rect(x, y, tileSize, tileSize);
+      }
+    }
+
+    ctx.stroke();
   }
 
   function getWorldBounds(ctx: CanvasRenderingContext2D) {
@@ -411,7 +427,6 @@
   onmousemove={handleMouseMove}
   onmousedown={handleMouseDown}
   class:cursor-crosshair={["area", "tile"].includes(tilemapEditorState.type)}
-  
 ></canvas>
 
 <style lang="postcss">

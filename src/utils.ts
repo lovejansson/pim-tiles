@@ -1,4 +1,4 @@
-import type { Image, Tile } from "./types";
+import type { Tile } from "./types";
 
  const splitIntoTiles = async (spritesheet: ImageBitmap, tileSize: number): Promise<Tile[]> => {
 
@@ -23,20 +23,23 @@ import type { Image, Tile } from "./types";
             const bitmap = await window.createImageBitmap(tileImageData);
             const dataURL = canvas.toDataURL("image/png");
 
-            tiles.push({ dataURL, bitmap });
+            tiles.push({ id: Symbol(), dataURL, bitmap });
 
             ctx.clearRect(0, 0, tileSize, tileSize);
 
         } 
     }
 
-    return tiles;
+        return tiles;
+
     }catch(e) {
         console.error(e);
         throw new Error("Failed to split spritesheet into tiles");
     }
 
  }
+
+
 
 async function bitmapToDataURL(bitmap : ImageBitmap) {
     const canvas = document.createElement('canvas');

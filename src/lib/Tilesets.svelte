@@ -15,7 +15,7 @@
   const selectedTileRef = $derived(
     tilemapEditorState.selectedAsset?.type === "tile"
       ? tilemapEditorState.selectedAsset.ref
-      : null
+      : null,
   );
 
   let selectedTilesetIdx = $state(0);
@@ -26,9 +26,10 @@
       const bitmap = await createImageBitmap(file);
       const tiles = await splitIntoTiles(bitmap, projectState.tileSize);
       const numNamedNewTileset = projectState.tilesets.filter((t) =>
-        t.name.match(/New tileset(\(\d\))?/)
+        t.name.match(/New tileset(\(\d\))?/),
       ).length;
       projectState.tilesets.push({
+        id: Symbol(),
         name: `New tileset${numNamedNewTileset === 0 ? "" : "(" + numNamedNewTileset + ")"}`,
         tiles: tiles,
       });
@@ -43,42 +44,45 @@
     }
   };
 
-  const selectTile = (tilesetId: number, tileId: number) => {
+  const selectTile = (tilesetId: Symbol, tileId: Symbol) => {
     tilemapEditorState.selectedAsset = {
       type: "tile",
-      ref: { tilesetId, tileId },
+      ref: { tileset: { id: tilesetId }, tile: { id: tileId } },
     };
   };
+
 </script>
 
 <section id="tilesets">
   <header>
     <h2>Tilesets</h2>
-       <FilePicker accept="image/png, image/jpeg" onFile={loadTileset} />
+    <FilePicker accept="image/png, image/jpeg" onFile={loadTileset} />
   </header>
-
 
   {#if projectState.tilesets.length > 0}
     <sl-tab-group>
       {#each projectState.tilesets as tileset, tilesetIdx}
         <sl-tab slot="nav" panel={tileset.name}>
-          <TilesetTab {tilesetIdx} /></sl-tab
+          <TilesetTab {tileset} idx={tilesetIdx} /></sl-tab
         >
         <sl-tab-panel name={tileset.name}>
           <ul class="tiles">
-            {#each tileset.tiles as tile, tileIdx}
+            {#each tileset.tiles as tile}
               <li
-                class:selected={selectedTileRef &&
-                  selectedTileRef.tilesetId === tilesetIdx &&
-                  selectedTileRef.tileId === tileIdx}
+                class:selected={selectedTileRef 
+                && selectedTileRef.tileset.id === tileset.id 
+                && selectedTileRef.tile.id === tile.id}
               >
-              <button class="tile"
-              onkeydown={(e) =>  {if(e.key.toLowerCase() === "enter") selectTile(tilesetIdx, tileIdx)}}
-            onclick={() => selectTile(tilesetIdx, tileIdx)}>
-                <img  src={tile.dataURL} alt="tile" />
-
+                <button
+                  class="tile"
+                  onkeydown={(e) => {
+                    if (e.key.toLowerCase() === "enter")
+                      selectTile(tileset.id, tile.id);
+                  }}
+                  onclick={() => selectTile(tileset.id, tile.id)}
+                >
+                  <img src={tile.dataURL} alt="tile" />
                 </button>
-
               </li>
             {/each}
           </ul>
@@ -90,7 +94,7 @@
       <sl-tab slot="nav" panel={"empty"}>Load tileset</sl-tab>
       <sl-tab-panel name={"empty"}>
         <div id="div-empty">
-          <sl-icon library="pixelarticons" name="image"></sl-icon>
+          <sl-icon library="pixelarticons" name="chess"></sl-icon>
         </div>
       </sl-tab-panel>
     </sl-tab-group>

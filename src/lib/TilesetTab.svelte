@@ -1,17 +1,52 @@
 <script lang="ts">
-  import { projectState } from "../state.svelte";
+  import { guiState, projectState } from "../state.svelte";
+  import type { Tileset } from "../types";
   import ContextMenu from "./ui/ContextMenu.svelte";
   import EditableText from "./ui/EditableText.svelte";
 
-  let { tilesetIdx } = $props();
+  type TilesetTabProps = {
+    tileset: Tileset;
+    idx: number;
+  };
+
+  let { tileset, idx }: TilesetTabProps = $props();
 
   let isEditingName = $state(false);
 
   const handleSelectMenuItem = (item: any) => {
+
     if (item.value === "delete") {
-      projectState.tilesets.splice(tilesetIdx, 1);
+
+      const usedInTileLayer = projectState.layers.some((layer) => {
+
+        if (layer.type === "tile") {
+          
+          for (const tileRef of layer.data.values()) {
+            if (tileRef.tileset.id === tileset.id) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+
+      });
+
+      if(usedInTileLayer) {
+        
+        guiState.notification = {
+          variant: "danger",
+          title: "Delete tileset",
+          msg: "This tileset is used in one or more tile layers and cannot be deleted.",
+        };
+
+        return;
+      }
+
+      projectState.tilesets.splice(idx, 1);
+
     } else if (item.value === "rename") {
-      isEditingName = true;
+        isEditingName = true;
     }
   };
 </script>
@@ -25,8 +60,8 @@
 >
   <EditableText
     bind:isEditing={isEditingName}
-    text={projectState.tilesets[tilesetIdx].name}
-    inputWidth={projectState.tilesets[tilesetIdx].name.length * 9}
+    text={tileset.name}
+    inputWidth={tileset.name.length * 9}
   />
 </ContextMenu>
 

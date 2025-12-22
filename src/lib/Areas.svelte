@@ -25,14 +25,21 @@
     >
   </header>
 
+
+    {#if projectState.areas.length > 0}
   <ul>
-    
-    {#each projectState.areas as area, idx}
-      <li>
-        <AreaItem idx={idx} />
-      </li>
-    {/each}
+      {#each projectState.areas as area, idx}
+        <li>
+          <AreaItem area={area} idx={idx} />
+        </li>
+      {/each}
   </ul>
+  {:else}
+    <div id="no-areas">
+      <sl-icon library="pixelarticons" name="drop-area"></sl-icon>
+  
+    </div>
+      {/if}
 </section>
 
 <CreateNewAreaDialog bind:open={createNewAreaDialogIsOpen}/>
@@ -48,6 +55,15 @@
 
     width: 320px !important;
     height: 100%;
+  }
+
+  #no-areas {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
   }
 
   ul {

@@ -117,6 +117,8 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  height: 100dvh;
+  width: 100dvw;
 }
 
 h2 {

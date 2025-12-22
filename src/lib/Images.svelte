@@ -2,7 +2,8 @@
   import { guiState, projectState } from "../state.svelte";
   import { bitmapToDataURL } from "../utils";
   import FilePicker from "./ui/FilePicker.svelte";
-  import Image from "./Image.svelte";
+  import ImageItem from "./ImageItem.svelte";
+
 
   if (guiState.tilemapEditorState.type !== "image")
     throw new Error("Invalid UI state");
@@ -13,6 +14,7 @@
       const bitmap = await createImageBitmap(file);
       const dataURL = await bitmapToDataURL(bitmap);
       projectState.images.push({
+        id: Symbol(),
         width: bitmap.width,
         height: bitmap.height,
         bitmap,
@@ -37,17 +39,19 @@
     <FilePicker accept="image/png, image/jpeg" onFile={loadImage} />
   </header>
 
-  <ul>
-    {#if projectState.images.length > 0}
+  {#if projectState.images.length > 0}
+      <ul>  
+
       {#each projectState.images as image, idx}
-        <li><Image imgIdx={idx} /></li>
+        <li><ImageItem image={image} idx={idx}/></li>
       {/each}
+        </ul>
     {:else}
       <div id="div-empty">
         <sl-icon library="pixelarticons" name="image"></sl-icon>
       </div>
     {/if}
-  </ul>
+
 </section>
 
 <style>
@@ -63,11 +67,12 @@
   }
 
   #div-empty {
-    width: 100%;
+     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
   }
 
   ul {

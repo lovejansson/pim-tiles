@@ -8,8 +8,10 @@
   let isEditingName = $state(false);
 
   const handleSelectMenuItem = (item: any) => {
+
     if (item.value === "delete") {
-      if (layerIdx === 0) {
+
+      if(projectState.layers.length === 1) {
         guiState.notification = {
           variant: "danger",
           title: "Delete layer",
@@ -25,13 +27,17 @@
       if (layerIsSelected) {
         selectLayer(layerIdx - 1);
       }
+
       projectState.layers.splice(layerIdx, 1);
+
     } else if (item.value === "rename") {
       isEditingName = true;
     }
+
   };
 
   const selectLayer = (idx: number) => {
+    
     const layer = projectState.layers[idx];
 
     switch (layer.type) {
@@ -64,6 +70,7 @@
     projectState.layers[layerIdx].isVisible =
       !projectState.layers[layerIdx].isVisible;
   };
+
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

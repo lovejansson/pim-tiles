@@ -3,8 +3,12 @@
   import { guiState, projectState } from "../state.svelte";
   import ContextMenu from "./ui/ContextMenu.svelte";
   import EditAreaDialog from "./EditAreaDialog.svelte";
-  import type { AreaLayerState } from "../types";
+  import type { Area, AreaLayerState } from "../types";
 
+  type AreaItemProps = {
+    area: Area;
+    idx: number;
+  };
   const tilemapEditorState = $derived.by((): AreaLayerState => {
     if (guiState.tilemapEditorState.type === "area")
       return guiState.tilemapEditorState;
@@ -12,12 +16,33 @@
     throw new Error("Invalid UI state");
   });
 
-  let { idx } = $props();
+  let { area, idx }: AreaItemProps = $props();
 
   let editAreaDialogOpen = $state(false);
 
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
+      const usedInAreaLayer = projectState.layers.some((layer) => {
+        if (layer.type === "area") {
+          for (const areaRef of layer.data.values()) {
+            if (areaRef.id === area.id) {
+              return true;
+            }
+          }
+        }
+        return false;
+      });
+
+      if (usedInAreaLayer) {
+        guiState.notification = {
+          variant: "danger",
+          title: "Delete area",
+          msg: "This area is used in one or more area layers and cannot be deleted.",
+        };
+
+        return;
+      }
+
       projectState.areas.splice(idx, 1);
     } else if (item.value === "edit") {
       editAreaDialogOpen = true;
@@ -25,7 +50,7 @@
   };
 
   const selectArea = () => {
-    tilemapEditorState.selectedAsset = { ref: { id: idx } };
+    tilemapEditorState.selectedAsset = { ref: { id: area.id } };
   };
 </script>
 
@@ -40,7 +65,7 @@
   <sl-button
     id="area"
     variant="text"
-    class:selected={tilemapEditorState.selectedAsset?.ref.id === idx}
+    class:selected={tilemapEditorState.selectedAsset?.ref.id === area.id}
     onclick={selectArea}
     onkeydown={(e: KeyboardEvent) => {
       if (e.key === "Enter") selectArea();
@@ -49,9 +74,9 @@
     <div
       slot="prefix"
       id="color"
-      style={`background-color:${projectState.areas[idx].color}`}
+      style={`background-color:${area.color}`}
     ></div>
-    {projectState.areas[idx].name}
+    {area.name}
 
     <!-- svelte-ignore a11y_no_static_element_interactions -->
   </sl-button>

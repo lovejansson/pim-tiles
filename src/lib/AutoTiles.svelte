@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SlInput, SlChangeEvent } from "@shoelace-style/shoelace";
     import CreateAutoTileDialog from "./CreateAutoTileDialog.svelte";
+    import { projectState } from "../state.svelte";
 
 let createDialogIsOpen = $state(false);
 
@@ -17,30 +18,60 @@ let createDialogIsOpen = $state(false);
 
     </header>
 
-    <ul id="ul-auto-tiles">
+    {#if projectState.ruleTiles.length > 0 }
+    
+        <ul >
           
-    <li>Create an auto tile to paint with.</li>
+
    
-    </ul>
+    </ul>        {#each projectState.ruleTiles as ruleTile, idx}
+            <li>
+                <div class="auto-tile-item">
+                    <span>{ruleTile.name}</span>
+                </div>
+            </li>
+        {/each}
+    {:else}
+        <div id="div-empty">
+          <sl-icon library="pixelarticons" name="chess"></sl-icon>
+        </div>
+    {/if}
+
+
+
 
     <CreateAutoTileDialog bind:open={createDialogIsOpen} />
 </section>
 
-<style lang="postcss">
-        header {
+<style>
+    header {
         display: flex;
         justify-content: space-between;
     }
     #auto-tiles {
-        
-        width: 320px !important;
-        height:  100%;
+        display: flex;
+    flex-direction: column;
+
+    width: 320px !important;
+    height: 100%;
+
         
     }
 
+      #div-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
     ul {
-        background-color: var(--color-4);
-             padding: 1rem 0;   
+     
+           display: flex;
+    flex-direction: column;
+    gap: 0.5rem;  
     }   
 
 </style>

@@ -1,9 +1,6 @@
 <script lang="ts">
-  import type { SlInput, SlMenuItem } from "@shoelace-style/shoelace";
-  import { guiState, projectState } from "../state.svelte";
-  import { bitmapToDataURL } from "../utils";
-  import Image from "./Image.svelte";
-  import Object from "./Object.svelte";
+  import { guiState } from "../state.svelte";
+  import Object from "./ObjectItem.svelte";
   import type { ImageLayerState } from "../types";
 
   const tilemapEditorState = $derived.by((): ImageLayerState => {
@@ -18,6 +15,7 @@
       i.isSelected = false;
     }
   };
+
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -26,11 +24,17 @@
   <header>
     <h2>Objects</h2>
   </header>
+  {#if tilemapEditorState.selectedLayer.data.length === 0}
+    <div id="no-objects">
+        <sl-icon library="pixelarticons" name="image"></sl-icon>
+    </div>
+  {:else}
   <ul>
-    {#each tilemapEditorState.selectedLayer.data as image, idx}
-      <li><Object imgIdx={idx} /></li>
+    {#each tilemapEditorState.selectedLayer.data as object, idx}
+      <li><Object object={object} /></li>
     {/each}
   </ul>
+  {/if}
 </section>
 
 <style>
@@ -39,18 +43,18 @@
     justify-content: space-between;
     align-items: center;
   }
-
   #objects {
     width: 320px !important;
     height: 100%;
   }
 
-  #div-empty {
+  #no-objects {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
   }
 
   ul {

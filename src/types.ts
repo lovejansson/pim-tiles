@@ -11,7 +11,7 @@ type ProjectState = {
 }
 
 type Area = {
-    id: number;
+    id: Symbol;
     color: string;
     name: string;
 }
@@ -22,28 +22,25 @@ type Script = {
 }
 
 type Tile = {
+    id: Symbol;
     dataURL: string;
     bitmap: ImageBitmap;
 };
 
 type Tileset = {
+    id: Symbol;
     name: string;
     tiles: Tile[];
 };
 
 type Image = {
+    id: Symbol;
     dataURL: string;
     bitmap: ImageBitmap;
     width: number;
     height: number;
     filename: string;
 };
-
-type PlacedArea = {
-    x: number;
-    y: number;
-    areaIdx: number;
-}
 
 type Point = {
     x: number;
@@ -107,12 +104,12 @@ type TileRule = {
 }
 
 type TileRef = {
-  tileId: number;
-  tilesetId: number;
+    tile: IdRef;
+    tileset: IdRef;
 }
 
 type IdRef = {
-    id: number;
+    id: Symbol;
 }
 
 type TileAsset = {
@@ -132,6 +129,8 @@ type AutoTileAsset = {
 type AreaAsset = {
     ref: IdRef;
 }
+
+type AssetRef = TileAsset | ImageAsset | AutoTileAsset | AreaAsset;
 
 type TilemapEditorState = TileLayerState | AreaLayerState | ImageLayerState;
 
@@ -172,6 +171,6 @@ type Notification = {
 }
 
 
-export { type TileLayerState, type AreaLayerState, type ImageLayerState,
+export { type AssetRef, type Area, type TileLayerState, type AreaLayerState, type ImageLayerState,
     type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer,  type Script, type TileLayer, type ImageLayer, 
       type Image, type IdRef, type Tileset, type Tile, type AutoTile as RuleTile, type TileRule, type TileRef, type ConnectedTileRequirement, type ConnectedTilesRequirements};
