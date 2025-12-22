@@ -10,7 +10,10 @@
 
 * paint with auto tile 
 
-* Implement export of JSON 
+* Fill areas somehow for easy use 
+
+* Pan 
+
 
 * Implement Save in localstorage
 
@@ -18,8 +21,8 @@
 
 * Implement Save AS
 
-* Fill areas somehow for easy use 
+* Implement export of JSON 
 
 * Deletion of assets / layers and what happens to map states and how to handle state references here. 
 
-* Pan 
+* Add attributes to objects
