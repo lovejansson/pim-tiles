@@ -1,25 +1,23 @@
 <script lang="ts">
-  import Menu from './lib/Menu.svelte';
-    import Toast from './lib/Toast.svelte';
-  import ToolBar from './lib/ToolBar.svelte';
-  import WorkSpace from './lib/WorkSpace.svelte';
+  import Menu from "./lib/Menu.svelte";
+  import Toast from "./lib/Toast.svelte";
+  import ToolBar from "./lib/ToolBar.svelte";
+  import WorkSpace from "./lib/WorkSpace.svelte";
 </script>
 
-<Toast/>
+<Toast />
 <div id="menu">
-  <Menu/>
-  </div>
+  <Menu />
+</div>
 <div id="content">
-  <ToolBar/>
-  <WorkSpace/>
+  <ToolBar />
+  <WorkSpace />
 </div>
 
 <style>
   #menu {
     padding: 1rem;
     padding-bottom: 0;
-    /* border-bottom: 1px solid var(--color-2) */
-    
   }
 
   #content {

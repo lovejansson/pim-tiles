@@ -1,55 +1,70 @@
 <script lang="ts">
     import { SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
     import { projectState } from "../state.svelte";
-    import type { TileRule, TileAsset, AutoTile } from "../types";
+    import {
+        type TileRule,
+        type TileAsset,
+        type AutoTile,
+        PaintType,
+        TileRequirement,
+    } from "../types";
     import RuleTileButton from "./RuleTileButton.svelte";
 
     type AutoTileDialogProps = {
         idx?: number;
         autoTile?: AutoTile;
         open: boolean;
-    }
+    };
 
     let { open = $bindable(), autoTile, idx }: AutoTileDialogProps = $props();
 
     const hide = () => {
         open = false;
     };
-    const show = () => (open = true);
 
     let selectedTile: TileAsset | null = $state(null);
 
     let name = $state(autoTile?.name ?? "New auto tile");
 
     const create16EmptyRules = (): TileRule[] => {
-        return Array(16).fill(null).map(_ => ({
-            id: crypto.randomUUID(), 
-            tile: null, 
-            connectedTilesRequirements: 
-            {n: "optional", ne: "optional", e: "optional", se: "optional", s: "optional", sw: "optional", w: "optional", nw: "optional"}} as TileRule))
-
-    }
+        return Array(16)
+            .fill(null)
+            .map(
+                (_) =>
+                    ({
+                        id: crypto.randomUUID(),
+                        tile: null,
+                        connections: {
+                            n: TileRequirement.OPTIONAL,
+                            ne: TileRequirement.OPTIONAL,
+                            e: TileRequirement.OPTIONAL,
+                            se: TileRequirement.OPTIONAL,
+                            s: TileRequirement.OPTIONAL,
+                            sw: TileRequirement.OPTIONAL,
+                            w: TileRequirement.OPTIONAL,
+                            nw: TileRequirement.OPTIONAL,
+                        },
+                    }) as TileRule,
+            );
+    };
 
     let rules: TileRule[] = $state(autoTile?.rules ?? create16EmptyRules());
 
     let isValid = $derived.by(() => {
+        if (name === "") return false;
 
-        if(name === "") return false;
-
-        if(rules.length === 0) return false;
+        if (rules.length === 0) return false;
 
         return true;
-    })
-
- 
+    });
 
     const saveRule = () => {
-        if(autoTile !== undefined && idx !== undefined) {
-            projectState.autoTiles.update(autoTile.id, {name, rules});
+        if (autoTile !== undefined && idx !== undefined) {
+            projectState.autoTiles.update(autoTile.id, { name, rules });
         } else {
             projectState.autoTiles.add(name, rules);
         }
-        
+
         name = autoTile?.name ?? "New auto tile";
         rules = autoTile?.rules ?? [];
         open = false;
@@ -58,15 +73,15 @@
     const newRule = () => {
         rules.push({
             id: crypto.randomUUID(),
-            connectedTilesRequirements: {
-                n: "optional",
-                ne: "optional",
-                e: "optional",
-                se: "optional",
-                s: "optional",
-                sw: "optional",
-                w: "optional",
-                nw: "optional",
+            connections: {
+                n: TileRequirement.OPTIONAL,
+                ne: TileRequirement.OPTIONAL,
+                e: TileRequirement.OPTIONAL,
+                se: TileRequirement.OPTIONAL,
+                s: TileRequirement.OPTIONAL,
+                sw: TileRequirement.OPTIONAL,
+                w: TileRequirement.OPTIONAL,
+                nw: TileRequirement.OPTIONAL,
             },
             tile: null,
         });
@@ -106,11 +121,11 @@
 
             <section id="section-help">
                 <ul class="edges">
-                {#each ["required", "excluded" ,"optional"] as edge}
-                    <li class="edge">
-                        <div class={`${edge} edge-mark`}></div>
-                        <p>{edge.toUpperCase()}</p>
-                    </li>
+                    {#each [TileRequirement.REQUIRED, TileRequirement.EXCLUDED, TileRequirement.OPTIONAL] as edge}
+                        <li class="edge">
+                            <div class={`${edge} edge-mark`}></div>
+                            <p>{edge.toLocaleString()}</p>
+                        </li>
                     {/each}
                 </ul>
             </section>
@@ -144,7 +159,7 @@
                                     <button
                                         onclick={() =>
                                             (selectedTile = {
-                                                type: "tile",
+                                                type: PaintType.TILE,
                                                 ref: {
                                                     tile: { id: tile.id },
                                                     tileset: { id: tileset.id },
@@ -155,7 +170,7 @@
                                         <img
                                             class="img-tile"
                                             src={tile.dataURL}
-                                            alt="tile"
+                                            alt="PaintType.TILE"
                                         /></button
                                     >
                                 </li>
@@ -165,7 +180,7 @@
                 {/each}
             </sl-tab-group>
         {:else}
-           <sl-tab-group id="tilesets">
+            <sl-tab-group id="tilesets">
                 <sl-tab slot="nav" panel={"empty"}>Load tileset</sl-tab>
                 <sl-tab-panel name={"empty"}>
                     <div id="div-empty">
@@ -183,27 +198,28 @@
         onclick={saveRule}
         onkeydown={(e: KeyboardEvent) => {
             if (e.key === "Enter") saveRule();
-        }}> Save
+        }}
+    >
+        Save
     </sl-button>
 </sl-dialog>
 
 <style>
-
-   .edges {
-      display: flex;
-               gap: 1rem;
-   }
+    .edges {
+        display: flex;
+        gap: 1rem;
+    }
     .edge {
         display: flex;
-               gap: 1rem;
-               align-items: center;
+        gap: 1rem;
+        align-items: center;
     }
     .edge-mark {
         width: 1em;
         height: 1em;
     }
 
-    .excluded  {
+    .excluded {
         background-color: rgb(64, 255, 64);
     }
 
@@ -214,8 +230,6 @@
     .required {
         background-color: var(--sl-color-rose-600);
     }
-
-   
 
     sl-dialog {
         --width: 50%;
@@ -244,13 +258,13 @@
         flex: 1;
     }
 
-     #div-empty {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+    #div-empty {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
     #rules {
         display: flex;
         flex-direction: column;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { guiState } from "../state.svelte";
+    import { PaintType } from "../types";
   import Areas from "./Areas.svelte";
   import AutoTiles from "./AutoTiles.svelte";
   import Images from "./Images.svelte";
@@ -14,17 +15,17 @@
   <Layers />
   <sl-divider></sl-divider>
   
-  {#if guiState.tilemapEditorState.type === "tile"}
+  {#if guiState.tilemapEditorState.type === PaintType.TILE}
     <Tools />
     <Tilesets />
-  {:else if guiState.tilemapEditorState.type === "auto-tile"}
+  {:else if guiState.tilemapEditorState.type === PaintType.AUTO_TILE}
     <Tools />
 
     <AutoTiles />
-  {:else if guiState.tilemapEditorState.type === "area"}
+  {:else if guiState.tilemapEditorState.type === PaintType.AREA}
     <Tools />
     <Areas />
-  {:else if guiState.tilemapEditorState.type === "image"}
+  {:else if guiState.tilemapEditorState.type === PaintType.IMAGE}
     <Objects />
     <sl-divider></sl-divider>
     <Images />

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { guiState } from "../state.svelte";
-  import type { Image, } from "../types";
+  import { PaintType, type Image, } from "../types";
 
-  if (guiState.tilemapEditorState.type !== "image") throw new Error("Invalid UI state");
+  if (guiState.tilemapEditorState.type !== PaintType.IMAGE) throw new Error("Invalid UI state");
 
   type ImageDialogProps = {
     open: boolean;

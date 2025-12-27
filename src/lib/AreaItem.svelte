@@ -3,13 +3,13 @@
   import { guiState, projectState } from "../state.svelte";
   import ContextMenu from "./ui/ContextMenu.svelte";
   import EditAreaDialog from "./EditAreaDialog.svelte";
-  import type { Area, AreaLayerState } from "../types";
+  import { PaintType, type Area, type AreaLayerState } from "../types";
 
   type AreaItemProps = {
     area: Area;
   };
   const tilemapEditorState = $derived.by((): AreaLayerState => {
-    if (guiState.tilemapEditorState.type === "area")
+    if (guiState.tilemapEditorState.type === PaintType.AREA)
       return guiState.tilemapEditorState;
 
     throw new Error("Invalid UI state");
@@ -22,14 +22,16 @@
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
       projectState.areas.delete(area.id);
-
     } else if (item.value === "edit") {
       editAreaDialogOpen = true;
     }
   };
 
   const selectArea = () => {
-    tilemapEditorState.selectedAsset = {type: "area",   ref: { id: area.id } };
+    tilemapEditorState.selectedAsset = {
+      type: PaintType.AREA,
+      ref: { id: area.id },
+    };
   };
 </script>
 
@@ -42,7 +44,7 @@
 >
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <sl-button
-    id="area"
+    id="PaintType.AREA"
     variant="text"
     class:selected={tilemapEditorState.selectedAsset?.ref.id === area.id}
     onclick={selectArea}
@@ -61,20 +63,13 @@
   </sl-button>
 </ContextMenu>
 
-<EditAreaDialog bind:open={editAreaDialogOpen} area={area} />
+<EditAreaDialog bind:open={editAreaDialogOpen} {area} />
 
 <style lang="postcss">
   #color {
     border-radius: 50%;
     width: 32px;
     height: 32px;
-  }
-
-  #area {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
   }
 
   .selected::part(base) {

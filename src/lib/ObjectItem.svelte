@@ -2,7 +2,7 @@
   import {  SlMenuItem } from "@shoelace-style/shoelace";
   import {  guiState, projectState } from "../state.svelte";
   import ContextMenu from "./ui/ContextMenu.svelte";
-  import type { ImageLayerState, Image, Point, ImageAsset } from "../types";
+  import { type ImageLayerState, type Image, type Point, type ImageAsset, PaintType } from "../types";
 
   type ObjectItemProps = {
     object: (ImageAsset & Point & {isSelected: boolean});
@@ -10,7 +10,7 @@
 
     const tilemapEditorState = $derived.by(
         (): ImageLayerState => {
-        if (guiState.tilemapEditorState.type === "image") return guiState.tilemapEditorState;
+        if (guiState.tilemapEditorState.type === PaintType.IMAGE) return guiState.tilemapEditorState;
 
           throw new Error("Invalid UI state");
         }

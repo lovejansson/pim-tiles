@@ -6,6 +6,7 @@
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
   import { projectState } from "../state.svelte";
+    import { PaintType } from "../types";
 
   type CreateLayerDialogProps = {open: boolean;}
   let { open = $bindable() }: CreateLayerDialogProps = $props();
@@ -16,7 +17,7 @@
  
 
   let name = $state("New layer");
-  let layerType: "tile" | "image" | "area" | "auto-tile" = $state("tile");
+  let layerType: PaintType.TILE | PaintType.IMAGE | PaintType.AREA | PaintType.AUTO_TILE = $state(PaintType.TILE);
 
   const saveLayer = () => {
     projectState.layers.add(name, layerType);
@@ -28,7 +29,7 @@
   <sl-input
     onsl-change={(e: SlChangeEvent) => {
       if (e.target) {
-        name = (e.target as SlInput).value as "tile" | "image" | "area" | "auto-tile";
+        name = (e.target as SlInput).value;
       }
     }}
     label="Layer name"
@@ -40,22 +41,22 @@
     onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
     value={layerType}
     onsl-change={(e: SlChangeEvent) => {
-      layerType = (e.target as SlSelect).value as "tile" | "area" | "image";
+      layerType = +(e.target as SlSelect).value as PaintType.TILE | PaintType.AREA | PaintType.IMAGE;
     }}
   >
-    <sl-option value="tile">
+    <sl-option value=PaintType.TILE>
       <sl-icon slot="prefix" library="pixelarticons" name="chess"></sl-icon>
       Tile
     </sl-option>
-    <sl-option value="image">
-      <sl-icon slot="prefix" library="pixelarticons" name="image"></sl-icon>
+    <sl-option value=PaintType.IMAGE>
+      <sl-icon slot="prefix" library="pixelarticons" name=PaintType.IMAGE></sl-icon>
       Image
     </sl-option>
-    <sl-option value="area">
+    <sl-option value=PaintType.AREA>
       <sl-icon slot="prefix" library="pixelarticons" name="section"></sl-icon>
       Area
     </sl-option>
-    <sl-option value="auto-tile">
+    <sl-option value=PaintType.AUTO_TILE>
       <sl-icon slot="prefix" library="pixelarticons" name="grid"></sl-icon>
       Auto tile
     </sl-option>

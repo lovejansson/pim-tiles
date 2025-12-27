@@ -1,10 +1,11 @@
 <script lang="ts">
   import { guiState } from "../state.svelte";
   import Object from "./ObjectItem.svelte";
-  import type { ImageLayerState } from "../types";
+  import { PaintType, type ImageLayerState } from "../types";
+
 
   const tilemapEditorState = $derived.by((): ImageLayerState => {
-    if (guiState.tilemapEditorState.type === "image")
+    if (guiState.tilemapEditorState.type === PaintType.IMAGE)
       return guiState.tilemapEditorState;
 
     throw new Error("Invalid UI state");
@@ -26,7 +27,7 @@
   </header>
   {#if tilemapEditorState.selectedLayer.data.length === 0}
     <div id="no-objects">
-        <sl-icon library="pixelarticons" name="image"></sl-icon>
+        <sl-icon library="pixelarticons" name=PaintType.IMAGE></sl-icon>
     </div>
   {:else}
   <ul>

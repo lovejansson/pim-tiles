@@ -6,6 +6,7 @@
     HistoryStack,
   } from "../state.svelte";
   import { getNeighbours, isPointInRect, roundToDecimal } from "../utils";
+    import { PaintType, Tool } from "../types";
 
   const { tileSize } = $derived(projectState);
   const { gridColor, tilemapEditorState } = $derived(guiState);
@@ -44,9 +45,9 @@
     const row = Math.floor(y / tileSize);
 
     switch (tilemapEditorState.type) {
-      case "auto-tile":
+      case PaintType.AUTO_TILE:
         switch (tilemapEditorState.selectedTool) {
-          case "paint":
+          case Tool.PAINT:
             if (tilemapEditorState.selectedAsset === null) {
               guiState.notification = {
                 variant: "neutral",
@@ -64,7 +65,7 @@
             );
 
             break;
-          case "erase":
+          case Tool.ERASE:
             projectState.layers.eraseAutoTile(
               row,
               col,
@@ -73,9 +74,9 @@
             break;
         }
         break;
-      case "tile":
+      case PaintType.TILE:
         switch (tilemapEditorState.selectedTool) {
-          case "paint":
+          case Tool.PAINT:
             if (tilemapEditorState.selectedAsset === null) {
               guiState.notification = {
                 variant: "neutral",
@@ -118,7 +119,7 @@
             }
 
             break;
-          case "erase":
+          case Tool.ERASE:
             if (tilemapEditorState.fillToolIsActive) {
               const filledTiles = floodFill(
                 tilemapEditorState.selectedLayer.id,
@@ -151,9 +152,9 @@
         }
 
         break;
-      case "area":
+      case PaintType.AREA:
         switch (tilemapEditorState.selectedTool) {
-          case "paint":
+          case Tool.PAINT:
             if (tilemapEditorState.selectedAsset === null) {
               guiState.notification = {
                 variant: "neutral",
@@ -195,7 +196,7 @@
             }
 
             break;
-          case "erase":
+          case Tool.ERASE:
             projectState.layers.eraseTile(
               row,
               col,
@@ -205,7 +206,7 @@
         }
 
         break;
-      case "image":
+      case PaintType.IMAGE:
         if (ctrlKeyIsDown) {
           for (const i of tilemapEditorState.selectedLayer.data.toReversed()) {
             const image = projectState.images.getImage(i.ref.id);
@@ -271,40 +272,40 @@
 
     if (isMousDown) {
       switch (tilemapEditorState.type) {
-        case "tile":
+        case PaintType.TILE:
           if (tilemapEditorState.fillToolIsActive) break;
 
           switch (tilemapEditorState.selectedTool) {
-            case "paint":
+            case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
                 tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, {
                   ...tilemapEditorState.selectedAsset,
                 });
               }
               break;
-            case "erase":
+            case Tool.ERASE:
               tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
               break;
           }
 
           break;
-        case "area":
+        case PaintType.AREA:
           if (tilemapEditorState.fillToolIsActive) break;
 
           switch (tilemapEditorState.selectedTool) {
-            case "paint":
+            case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
                 tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, {
                   ...tilemapEditorState.selectedAsset,
                 });
               }
               break;
-            case "erase":
+            case Tool.ERASE:
               tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
               break;
           }
           break;
-        case "image":
+        case PaintType.IMAGE:
           if (ctrlKeyIsDown) {
             for (const i of tilemapEditorState.selectedLayer.data) {
               if (i.isSelected) {
@@ -476,7 +477,7 @@
         break;
       case "del":
       case "backspace":
-        if (tilemapEditorState.type === "image")
+        if (tilemapEditorState.type === PaintType.IMAGE)
           tilemapEditorState.selectedLayer.data =
             tilemapEditorState.selectedLayer.data.filter((l) => !l.isSelected);
         break;
@@ -499,7 +500,7 @@
     for (const layer of projectState.layers.get()) {
       if (layer.isVisible) {
         switch (layer.type) {
-          case "tile":
+          case PaintType.TILE:
             for (const [key, tileAsset] of layer.data) {
               const [ty, tx] = key.split(":").map(Number);
               const tile = projectState.tilesets.getTile(
@@ -516,7 +517,7 @@
               );
             }
             break;
-          case "auto-tile":
+          case PaintType.AUTO_TILE:
             for (const [key, autoTileAsset] of layer.data) {
               const [ty, tx] = key.split(":").map(Number);
               const autoTile = projectState.autoTiles.getAutoTile(
@@ -543,7 +544,7 @@
             }
             break;
 
-          case "image":
+          case PaintType.IMAGE:
             for (const i of layer.data) {
               const image = projectState.images.getImage(i.ref.id);
 
@@ -555,7 +556,7 @@
               }
             }
             break;
-          case "area":
+          case PaintType.AREA:
             for (const [key, areaAsset] of layer.data) {
               const area = projectState.areas.getArea(areaAsset.ref.id);
 
@@ -625,7 +626,7 @@
   bind:this={canvasEl}
   onmousemove={handleMouseMove}
   onmousedown={handleMouseDown}
-  class:cursor-crosshair={["area", "tile", "auto-tile"].includes(
+  class:cursor-crosshair={[PaintType.AREA, PaintType.TILE, PaintType.AUTO_TILE].includes(
     tilemapEditorState.type,
   )}
 ></canvas>

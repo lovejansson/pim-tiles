@@ -1,10 +1,10 @@
 <script lang="ts">
     import { projectState } from "../state.svelte";
-    import type {
-        ConnectedTilesRequirements,
-        TileRule,
-        ConnectedTileRequirement,
-        TileAsset,
+    import {
+        type TileRule,
+        type TileAsset,
+        TileRequirement,
+        type TileConnections,
     } from "../types";
 
     type RuleTileButtonProps = {
@@ -18,21 +18,21 @@
         onDelete,
     }: RuleTileButtonProps = $props();
 
-    const getNextReq = (connection: ConnectedTileRequirement) => {
+    const getNextReq = (connection: TileRequirement) => {
         switch (connection) {
-            case "required":
-                return "excluded";
-            case "excluded":
-                return "optional";
-            case "optional":
-                return "required";
+            case TileRequirement.REQUIRED:
+                return TileRequirement.EXCLUDED;
+            case TileRequirement.EXCLUDED:
+                return TileRequirement.OPTIONAL;
+            case TileRequirement.OPTIONAL:
+                return TileRequirement.REQUIRED;
         }
     };
 
     const entries = $derived(
-        Object.entries(ruleTile.connectedTilesRequirements) as [
-            keyof ConnectedTilesRequirements,
-            ConnectedTileRequirement,
+        Object.entries(ruleTile.connections) as [
+            keyof TileConnections,
+            TileRequirement,
         ][],
     );
 </script>
@@ -44,11 +44,11 @@
             <sl-button
                 style={`grid-area: ${direction};`}
                 onclick={() =>
-                    (ruleTile.connectedTilesRequirements[direction] =
+                    (ruleTile.connections[direction] =
                         getNextReq(connectionReq))}
                 onkeydown={(e: KeyboardEvent) => {
                     if (e.key === "Enter") {
-                        ruleTile.connectedTilesRequirements[direction] =
+                        ruleTile.connections[direction] =
                             getNextReq(connectionReq);
                     }
                 }}
@@ -60,11 +60,21 @@
     </div>
 
     {#if ruleTile.tile !== null}
-        <img class="tile" src={projectState.api.tilesets.getTile(ruleTile.tile.ref.tileset.id, ruleTile.tile.ref.tile.id).dataURL} alt="tile" />
+        <img
+            class="PaintType.TILE"
+            src={projectState.tilesets.getTile(
+                ruleTile.tile.ref.tileset.id,
+                ruleTile.tile.ref.tile.id,
+            ).dataURL}
+            alt="PaintType.TILE"
+        />
     {:else}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <sl-button
-            onkeydown={(e: KeyboardEvent) => { if(e.key === "Enter" && selectedTile !== null)  ruleTile.tile = { ...selectedTile }}}
+            onkeydown={(e: KeyboardEvent) => {
+                if (e.key === "Enter" && selectedTile !== null)
+                    ruleTile.tile = { ...selectedTile };
+            }}
             onclick={() => {
                 if (selectedTile !== null) {
                     ruleTile.tile = { ...selectedTile };
@@ -74,7 +84,13 @@
         ></sl-button>
     {/if}
 
-    <sl-icon-button onclick={onDelete} library="pixelarticons" name="close">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <sl-icon-button
+        onclick={onDelete}
+        onkeydown={(e: KeyboardEvent) => e.key === "Enter" && onDelete()}
+        library="pixelarticons"
+        name="close"
+    >
     </sl-icon-button>
 </div>
 

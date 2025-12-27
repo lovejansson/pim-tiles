@@ -3,9 +3,10 @@
   import { bitmapToDataURL } from "../utils";
   import FilePicker from "./ui/FilePicker.svelte";
   import ImageItem from "./ImageItem.svelte";
+    import { PaintType } from "../types";
 
 
-  if (guiState.tilemapEditorState.type !== "image")
+  if (guiState.tilemapEditorState.type !== PaintType.IMAGE)
     throw new Error("Invalid UI state");
 
   const loadImage = async (files: FileList) => {
@@ -41,7 +42,7 @@
         </ul>
     {:else}
       <div id="div-empty">
-        <sl-icon library="pixelarticons" name="image"></sl-icon>
+        <sl-icon library="pixelarticons" name=PaintType.IMAGE></sl-icon>
       </div>
     {/if}
 

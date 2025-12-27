@@ -1,9 +1,8 @@
 # Todo
 
-UNDO / REDO 
-* Implement history api 
+UNDO / REDO
 
-* Replace string type uniions with enums
+* Implement history api 
 
 * The user can select from all tiles and click on the corners / center to edit the rule for that tile 
 
@@ -12,8 +11,8 @@ UNDO / REDO
 SCRIPTING
 
 * expose project state api in scripting env
-* execute scripts 
 
+* execute scripts 
 
 FILE 
 
@@ -24,4 +23,5 @@ FILE
 
 
 * Pan add drag of tilemap
+
 * Add attributes to objects

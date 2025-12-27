@@ -4,8 +4,6 @@
     import AutoTileItem from "./AutoTileItem.svelte";
 
     let createDialogIsOpen = $state(false);
-
- 
 </script>
 
 <section id="auto-tiles">

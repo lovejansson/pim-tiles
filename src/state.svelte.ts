@@ -1,4 +1,7 @@
-import type { ProjectState, GUIState, TileLayer, TileRef, IdRef, AssetRef, AreaAsset, TileAsset, ImageAsset, AutoTileAsset, AutoTile, HistoryEntry, Area, Tile, TileRule, Layer, Point } from "./types";
+import {
+  type ProjectState, type GUIState, type TileLayer, type TileRef, type IdRef, type AssetRef, type AreaAsset, type TileAsset, type ImageAsset, type AutoTileAsset, type AutoTile, type HistoryEntry, type Tile, type TileRule, type Layer,
+  PaintType, TileRequirement, Tool
+} from "./types";
 import { getNeighbours } from "./utils";
 
 
@@ -7,15 +10,15 @@ const DEFAULT_LAYER: TileLayer = {
   name: "fg",
   data: new Map(),
   isVisible: false,
-  type: "tile",
+  type: PaintType.TILE,
 };
 
 export const guiState: GUIState = $state({
   tilemapEditorState: {
-    type: "tile",
+    type: PaintType.TILE,
     selectedLayer: DEFAULT_LAYER,
     selectedAsset: null,
-    selectedTool: "paint",
+    selectedTool: Tool.PAINT,
     fillToolIsActive: false
   },
   notification: null,
@@ -28,12 +31,6 @@ export const guiState: GUIState = $state({
   historyIdx: 0,
 
 });
-type LayerKind = "tile" | "image" | "auto-tile" | "area";
-
-type TypedID<K extends LayerKind> =
-  `${K}:${string}`;
-
-
 
 class ProjectStateError extends Error {
   constructor(msg: string, public code: string) {
@@ -57,21 +54,21 @@ function createProjectState() {
       {
         id: generateId(),
         name: "stuff",
-        data: [], isVisible: true, type: "image"
+        data: [], isVisible: true, type: PaintType.IMAGE
       },
       {
         id: generateId(),
         name: "zones",
         data: new Map(),
         isVisible: false,
-        type: "area",
+        type: PaintType.AREA,
       },
       {
         id: generateId(),
         name: "walls",
         data: new Map(),
         isVisible: false,
-        type: "auto-tile",
+        type: PaintType.AUTO_TILE,
       },
     ],
 
@@ -82,14 +79,6 @@ function createProjectState() {
     areas: [],
   });
 
-
-
-  /**
-   * TODO: separera delarna så att det skapas olika APIer för olika data typer 
-   * 
-   * TODO: Modda input parameters så det känns genomtänkt och användbart
-   * 
-   */
 
   const api = {
 
@@ -130,8 +119,8 @@ function createProjectState() {
         const tileset = projectState.tilesets[idx];
 
         const isUsedInTileLayer = projectState.layers.find(l => {
-          if (l.type === "tile") {
-            if (l.data.values().find(a => a.type === "tile" && a.ref.tileset.id === tileset.id)) return true;
+          if (l.type === PaintType.TILE) {
+            if (l.data.values().find(a => a.type === PaintType.TILE && a.ref.tileset.id === tileset.id)) return true;
           }
           return false;
         }) !== undefined;
@@ -172,8 +161,8 @@ function createProjectState() {
         const area = projectState.areas[idx];
 
         const isUsed = projectState.layers.find(l => {
-          if (l.type === "area") {
-            if (l.data.values().find(a => a.type === "area" && a.ref.id === area.id)) return true;
+          if (l.type === PaintType.AREA) {
+            if (l.data.values().find(a => a.type === PaintType.AREA && a.ref.id === area.id)) return true;
           }
           return false;
         }) !== undefined;
@@ -212,8 +201,8 @@ function createProjectState() {
         const image = projectState.images[idx];
 
         const isUsed = projectState.layers.find(l => {
-          if (l.type === "image") {
-            if (l.data.values().find(a => a.type === "image" && a.ref.id === image.id)) return true;
+          if (l.type === PaintType.IMAGE) {
+            if (l.data.values().find(a => a.type === PaintType.IMAGE && a.ref.id === image.id)) return true;
           }
           return false;
         }) !== undefined;
@@ -254,67 +243,67 @@ function createProjectState() {
         const autoTile = projectState.autoTiles[idx];
 
         const isUsed = projectState.layers.find(l => {
-          if (l.type === "auto-tile") {
-            if (l.data.values().find(a => a.type === "auto-tile" && a.ref.id === autoTile.id)) return true;
+          if (l.type === PaintType.AUTO_TILE) {
+            if (l.data.values().find(a => a.type === PaintType.AUTO_TILE && a.ref.id === autoTile.id)) return true;
           }
           return false;
         }) !== undefined;
         if (isUsed) throw new ProjectStateError("Autotile is referenced in project", "asset-in-use");
         projectState.autoTiles.splice(idx, 1);
       },
-      selectTileRule(row: number, col: number, autoTile: AutoTile, layerId: string) {
+      selectTileRule(row: number, col: number, autoTile: AutoTile, layerID: string) {
 
-        const n = api.layers.getTileAt(row - 1, col, layerId);
-        const ne = api.layers.getTileAt(row - 1, col + 1, layerId);
-        const e = api.layers.getTileAt(row, col + 1, layerId);
-        const se = api.layers.getTileAt(row + 1, col + 1, layerId);
-        const s = api.layers.getTileAt(row + 1, col, layerId);
-        const sw = api.layers.getTileAt(row + 1, col - 1, layerId);
-        const w = api.layers.getTileAt(row, col - 1, layerId);
-        const nw = api.layers.getTileAt(row + 1, col - 1, layerId);
+        const n = api.layers.getTileAt(row - 1, col, layerID);
+        const ne = api.layers.getTileAt(row - 1, col + 1, layerID);
+        const e = api.layers.getTileAt(row, col + 1, layerID);
+        const se = api.layers.getTileAt(row + 1, col + 1, layerID);
+        const s = api.layers.getTileAt(row + 1, col, layerID);
+        const sw = api.layers.getTileAt(row + 1, col - 1, layerID);
+        const w = api.layers.getTileAt(row, col - 1, layerID);
+        const nw = api.layers.getTileAt(row + 1, col - 1, layerID);
 
         const connections = {
-          n: n !== null && n.type === "auto-tile" && n.ref.id === autoTile.id,
-          ne: ne !== null && ne.type === "auto-tile" && ne.ref.id === autoTile.id,
-          e: e !== null && e.type === "auto-tile" && e.ref.id === autoTile.id,
-          se: se !== null && se.type === "auto-tile" && se.ref.id === autoTile.id,
-          s: s !== null && s.type === "auto-tile" && s.ref.id === autoTile.id,
-          sw: sw !== null && sw.type === "auto-tile" && sw.ref.id === autoTile.id,
-          w: w !== null && w.type === "auto-tile" && w.ref.id === autoTile.id,
-          nw: nw !== null && nw.type === "auto-tile" && nw.ref.id === autoTile.id,
+          n: n !== null && n.type === PaintType.AUTO_TILE && n.ref.id === autoTile.id,
+          ne: ne !== null && ne.type === PaintType.AUTO_TILE && ne.ref.id === autoTile.id,
+          e: e !== null && e.type === PaintType.AUTO_TILE && e.ref.id === autoTile.id,
+          se: se !== null && se.type === PaintType.AUTO_TILE && se.ref.id === autoTile.id,
+          s: s !== null && s.type === PaintType.AUTO_TILE && s.ref.id === autoTile.id,
+          sw: sw !== null && sw.type === PaintType.AUTO_TILE && sw.ref.id === autoTile.id,
+          w: w !== null && w.type === PaintType.AUTO_TILE && w.ref.id === autoTile.id,
+          nw: nw !== null && nw.type === PaintType.AUTO_TILE && nw.ref.id === autoTile.id,
         };
 
         const rules = autoTile.rules.filter((tr) => {
 
           return (
-            ((tr.connectedTilesRequirements.n === "required" && connections.n) ||
-              (tr.connectedTilesRequirements.n === "excluded" && !connections.n) ||
-              tr.connectedTilesRequirements.n === "optional") &&
-            ((tr.connectedTilesRequirements.ne === "required" && connections.ne) ||
-              (tr.connectedTilesRequirements.ne === "excluded" &&
+            ((tr.connections.n === TileRequirement.REQUIRED && connections.n) ||
+              (tr.connections.n === TileRequirement.EXCLUDED && !connections.n) ||
+              tr.connections.n === TileRequirement.OPTIONAL) &&
+            ((tr.connections.ne === TileRequirement.REQUIRED && connections.ne) ||
+              (tr.connections.ne === TileRequirement.EXCLUDED &&
                 !connections.ne) ||
-              tr.connectedTilesRequirements.ne === "optional") &&
-            ((tr.connectedTilesRequirements.e === "required" && connections.e) ||
-              (tr.connectedTilesRequirements.e === "excluded" && !connections.e) ||
-              tr.connectedTilesRequirements.e === "optional") &&
-            ((tr.connectedTilesRequirements.se === "required" && connections.se) ||
-              (tr.connectedTilesRequirements.se === "excluded" &&
+              tr.connections.ne === TileRequirement.OPTIONAL) &&
+            ((tr.connections.e === TileRequirement.REQUIRED && connections.e) ||
+              (tr.connections.e === TileRequirement.EXCLUDED && !connections.e) ||
+              tr.connections.e === TileRequirement.OPTIONAL) &&
+            ((tr.connections.se === TileRequirement.REQUIRED && connections.se) ||
+              (tr.connections.se === TileRequirement.EXCLUDED &&
                 !connections.se) ||
-              tr.connectedTilesRequirements.se === "optional") &&
-            ((tr.connectedTilesRequirements.s === "required" && connections.s) ||
-              (tr.connectedTilesRequirements.s === "excluded" && !connections.s) ||
-              tr.connectedTilesRequirements.s === "optional") &&
-            ((tr.connectedTilesRequirements.sw === "required" && connections.sw) ||
-              (tr.connectedTilesRequirements.sw === "excluded" &&
+              tr.connections.se === TileRequirement.OPTIONAL) &&
+            ((tr.connections.s === TileRequirement.REQUIRED && connections.s) ||
+              (tr.connections.s === TileRequirement.EXCLUDED && !connections.s) ||
+              tr.connections.s === TileRequirement.OPTIONAL) &&
+            ((tr.connections.sw === TileRequirement.REQUIRED && connections.sw) ||
+              (tr.connections.sw === TileRequirement.EXCLUDED &&
                 !connections.sw) ||
-              tr.connectedTilesRequirements.sw === "optional") &&
-            ((tr.connectedTilesRequirements.w === "required" && connections.w) ||
-              (tr.connectedTilesRequirements.w === "excluded" && !connections.w) ||
-              tr.connectedTilesRequirements.w === "optional") &&
-            ((tr.connectedTilesRequirements.nw === "required" && connections.nw) ||
-              (tr.connectedTilesRequirements.nw === "excluded" &&
+              tr.connections.sw === TileRequirement.OPTIONAL) &&
+            ((tr.connections.w === TileRequirement.REQUIRED && connections.w) ||
+              (tr.connections.w === TileRequirement.EXCLUDED && !connections.w) ||
+              tr.connections.w === TileRequirement.OPTIONAL) &&
+            ((tr.connections.nw === TileRequirement.REQUIRED && connections.nw) ||
+              (tr.connections.nw === TileRequirement.EXCLUDED &&
                 !connections.nw) ||
-              tr.connectedTilesRequirements.nw === "optional")
+              tr.connections.nw === TileRequirement.OPTIONAL)
           );
         });
 
@@ -358,23 +347,21 @@ function createProjectState() {
         if (layer === undefined) throw new ProjectStateError("Layer not found", "not-found");
         return layer;
       },
-      add(name: string, type: "tile" | "image" | "auto-tile" | "area") {
+      add(name: string, type: PaintType) {
         switch (type) {
-          case "tile":
+          case PaintType.TILE:
             projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
             break;
-          case "image":
+          case PaintType.IMAGE:
             projectState.layers.push({ id: generateId(), name, type, data: [], isVisible: false });
             break;
-          case "auto-tile":
+          case PaintType.AUTO_TILE:
             projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
             break;
-          case "area":
+          case PaintType.AREA:
             projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
             break;
-
         }
-
       },
       update(id: string, layer: Layer) {
         const idx = projectState.layers.findIndex(l => l.id === id);
@@ -386,45 +373,44 @@ function createProjectState() {
         if (idx === -1) throw new ProjectStateError("Layer not found", "not-found");
         projectState.layers.splice(idx, 1);
       },
-      getTileAt(row: number, col: number, layerId: string): AssetRef | null {
-        const layer = this.getLayer(layerId);
+      getTileAt(row: number, col: number, layerID: string): AssetRef | null {
+        const layer = this.getLayer(layerID);
 
-        switch (layer.type) {
-          case "tile":
-          case "auto-tile":
-          case "area":
-            return layer.data.get(`${row}:${col}`) || null;
-          case "image":
-            throw new ProjectStateError("getTileAt not supported for image layers", "not-supported");
-        }
+        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("getTileAt not supported for image layers", "not-supported");
+
+        return layer.data.get(`${row}:${col}`) || null;
       },
 
-      paintTile(row: number, col: number, layerId: string, asset: TileAsset | AreaAsset | AutoTileAsset) {
-        const layer = this.getLayer(layerId);
-        
-        if (layer.type === "image") throw new ProjectStateError("paintTile not supported for image layers", "not-supported");
+      paintTile(row: number, col: number, layerID: string, asset: TileAsset | AreaAsset | AutoTileAsset) {
+        const layer = this.getLayer(layerID);
+
+        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("paintTile not supported for image layers", "not-supported");
         if (layer.type !== asset.type) throw new ProjectStateError("type mismatch between layer and asset", "not-supported");
         // cast to as any bc type check between layer and asset is done above
         layer.data.set(`${row}:${col}`, { ...asset } as any);
       },
-      paintArea(row: number, col: number, layerId: string, areaAsset: TileAsset | AreaAsset | AutoTileAsset) {
-        const layer = this.getLayer(layerId);
-        
-        if (layer.type === "image") throw new ProjectStateError("paintTile not supported for image layers", "not-supported");
-        if (layer.type !== asset.type) throw new ProjectStateError("type mismatch between layer and asset", "not-supported");
-        // cast to as any bc type check between layer and asset is done above
-        layer.data.set(`${row}:${col}`, { ...asset } as any);
+      paintArea(row: number, col: number, layerID: string, areaAsset: AreaAsset) {
+        const layer = this.getLayer(layerID);
+
+        if (layer.type !== PaintType.AREA) throw new ProjectStateError("paintArea not supported for image layers", "not-supported");
+
+        layer.data.set(`${row}:${col}`, { ...areaAsset });
       },
-      eraseTile(row: number, col: number, layerId: string) {
-        const layer = this.getLayer(layerId);
-        if (layer.type !== "tile") throw new ProjectStateError("eraseTile not supported for image layers", "not-supported");
+      eraseTile(row: number, col: number, layerID: string) {
+        const layer = this.getLayer(layerID);
+        if (layer.type !== PaintType.TILE) throw new ProjectStateError("typemismatch between ", "not-supported");
+        layer.data.delete(`${row}:${col}`);
+      },
+      eraseArea(row: number, col: number, layerID: string) {
+        const layer = this.getLayer(layerID);
+        if (layer.type !== PaintType.TILE) throw new ProjectStateError("eraseTile not supported for image layers", "not-supported");
         layer.data.delete(`${row}:${col}`);
       },
 
-      paintImage(x: number, y: number, layerId: string, asset: ImageAsset) {
-        const layer = this.getLayer(layerId);
+      paintImage(x: number, y: number, layerID: string, asset: ImageAsset) {
+        const layer = this.getLayer(layerID);
 
-        if (layer.type !== "image") throw new ProjectStateError("paintImage only supported for image layers", "not-supported");
+        if (layer.type !== PaintType.IMAGE) throw new ProjectStateError("paintImage only supported for image layers", "not-supported");
 
         layer.data.push({ ...asset, x, y, isSelected: false });
       },
@@ -438,11 +424,11 @@ function createProjectState() {
 
         const layer = api.layers.getLayer(layerID);
 
-        if (layer.type !== "auto-tile") throw new ProjectStateError("paintWithAutoTile only supported for auto-tile layers", "not-supported");
+        if (layer.type !== PaintType.AUTO_TILE) throw new ProjectStateError("paintWithAutoTile only supported for auto-tile layers", "not-supported");
 
 
         if (tileRule !== null) {
-          layer.data.set(`${row}:${col}`, { type: "auto-tile", ref: {id: autoTileID}, tileRule: { ref: { id: tileRule.id } } });
+          layer.data.set(`${row}:${col}`, { type: PaintType.AUTO_TILE, ref: { id: autoTileID }, tileRule: { ref: { id: tileRule.id } } });
         } else {
           layer.data.delete(`${row}:${col}`);
         }
@@ -454,7 +440,7 @@ function createProjectState() {
           const tileRule = api.autoTiles.selectTileRule(n.row, n.col, autoTile, layerID);
 
           if (tileRule !== null) {
-            layer.data.set(`${n.row}:${n.col}`,  { type: "auto-tile", ref: {id: autoTileID}, tileRule: { ref: { id: tileRule.id } } });
+            layer.data.set(`${n.row}:${n.col}`, { type: PaintType.AUTO_TILE, ref: { id: autoTileID }, tileRule: { ref: { id: tileRule.id } } });
           } else {
             layer.data.delete(`${n.row}:${n.col}`);
           }
@@ -466,12 +452,12 @@ function createProjectState() {
 
         const autoTileAsset = api.layers.getTileAt(row, col, layerID);
         if (autoTileAsset === null) return;
-        if (autoTileAsset.type !== "auto-tile") return;
+        if (autoTileAsset.type !== PaintType.AUTO_TILE) return;
 
         const autoTile = api.autoTiles.getAutoTile(autoTileAsset.ref.id);
 
         const layer = api.layers.getLayer(layerID);
-        if (layer.type !== "auto-tile") throw new ProjectStateError("eraseAutoTile only supported for auto-tile layers", "not-supported");
+        if (layer.type !== PaintType.AUTO_TILE) throw new ProjectStateError("eraseAutoTile only supported for auto-tile layers", "not-supported");
 
         layer.data.delete(`${row}:${col}`);
 
@@ -502,13 +488,13 @@ function createProjectState() {
         if (a.type !== b.type) return false;
 
         switch (a.type) {
-          case "tile":
+          case PaintType.TILE:
             return a.ref.tile.id === (b as typeof a).ref.tile.id && a.ref.tileset.id === (b as typeof a).ref.tileset.id;
-          case "auto-tile":
+          case PaintType.AUTO_TILE:
             return a.ref.id === (b as typeof a).ref.id;
-          case "area":
+          case PaintType.AREA:
             return a.ref.id === (b as typeof a).ref.id;
-          case "image":
+          case PaintType.IMAGE:
             return a.ref.id === (b as typeof a).ref.id;
         }
       }
@@ -534,12 +520,26 @@ export const HistoryStack = (() => {
 
     if (layer.type !== entry.type) throw new Error("type mismatch between layer and entry");
 
-    if (layer.type === "tile" && entry.type === "tile") layer.data.set(`${entry.row}:${entry.col}`, { ...entry.data });
-    if (layer.type === "auto-tile" && entry.type === "auto-tile") layer.data.set(`${entry.row}:${entry.col}`, { ...entry.data });
-    if (layer.type === "area" && entry.type === "area") layer.data.set(`${entry.row}:${entry.col}`, { ...entry.data });
-    if (layer.type === "image" && entry.type === "image") {
-      const idx = layer.data.findIndex(i => i.x === entry.x && i.y === entry.y);
-      layer.data[idx] = { ...entry.data };
+    switch (entry.type) {
+      case PaintType.TILE:
+        for (const d of entry.data) {
+          projectState.layers.paintTile(d.row, d.col, entry.layer.id, { type: d.type, ref: d.ref });
+        }
+        break;
+      case PaintType.AUTO_TILE:
+        for (const d of entry.data) {
+
+          projectState.layers.paintTile(d.row, d.col, entry.layer.id, { type: d.type, ref: d.ref });
+        }
+        break;
+      case PaintType.AREA:
+        for (const d of entry.data) {
+          projectState.layers.paintArea(d.row, d.col, entry.layer.id, { type: d.type, ref: d.ref });
+        }
+        break;
+      case PaintType.IMAGE:
+        projectState.layers.paintImage(entry.data.x, entry.data.y, entry.layer.id, { ...entry.data });
+        break;
     }
   };
 

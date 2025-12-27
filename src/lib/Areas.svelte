@@ -4,9 +4,7 @@
   import CreateNewAreaDialog from "./CreateNewAreaDialog.svelte";
 
   let createNewAreaDialogIsOpen = $state(false);
-
 </script>
-
 
 <section id="areas">
   <header>
@@ -17,7 +15,7 @@
         createNewAreaDialogIsOpen = true;
       }}
       onkeydown={(e: KeyboardEvent) => {
-        if (e.key === "Enter")      createNewAreaDialogIsOpen = true;
+        if (e.key === "Enter") createNewAreaDialogIsOpen = true;
       }}
     >
       <sl-icon label="New area" library="pixelarticons" name="plus"
@@ -25,24 +23,22 @@
     >
   </header>
 
-
-    {#if projectState.areas.get().length > 0}
-  <ul>
+  {#if projectState.areas.get().length > 0}
+    <ul>
       {#each projectState.areas.get() as area}
         <li>
-          <AreaItem area={area} />
+          <AreaItem {area} />
         </li>
       {/each}
-  </ul>
+    </ul>
   {:else}
     <div id="no-areas">
       <sl-icon library="pixelarticons" name="section"></sl-icon>
-  
     </div>
-      {/if}
+  {/if}
 </section>
 
-<CreateNewAreaDialog bind:open={createNewAreaDialogIsOpen}/>
+<CreateNewAreaDialog bind:open={createNewAreaDialogIsOpen} />
 
 <style lang="postcss">
   header {
@@ -67,7 +63,7 @@
   }
 
   ul {
-        display: flex;
+    display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
@@ -75,7 +71,4 @@
   li {
     background-color: var(--color-4);
   }
-
-
-
 </style>

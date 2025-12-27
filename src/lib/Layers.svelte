@@ -5,14 +5,14 @@
   let createNewLayerDialogIsOpen = $state(false);
   import { flip } from "svelte/animate";
   import LayerItem from "./LayerItem.svelte";
-    import type { Layer } from "../types";
+  import type { Layer } from "../types";
 
   const handleDndConsider = (e: CustomEvent<DndEvent<Layer>>) => {
     projectState.layers.set(e.detail.items);
   };
 
   const handleDndFinalize = (e: CustomEvent<DndEvent<Layer>>) => {
-      projectState.layers.set(e.detail.items);
+    projectState.layers.set(e.detail.items);
   };
 
   const styleDragged = (el: HTMLElement) => {
@@ -20,29 +20,24 @@
     return el;
   };
 
-
-  let dndLayers = $derived(projectState.layers.get().map(l => ({...l})));
-
-
+  let dndLayers = $derived(projectState.layers.get().map((l) => ({ ...l })));
 </script>
 
-
 <section id="layers">
-
   <header>
     <h2>Layers</h2>
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <sl-button
-        onclick={() => {
-          createNewLayerDialogIsOpen = true;
-        }}
-        onkeydown={(e: KeyboardEvent) => {
-          if (e.key === "Enter") createNewLayerDialogIsOpen = true;
-        }}
-      >
-        <sl-icon label="New layer" library="pixelarticons" name="plus"
-        ></sl-icon></sl-button
-      >
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <sl-button
+      onclick={() => {
+        createNewLayerDialogIsOpen = true;
+      }}
+      onkeydown={(e: KeyboardEvent) => {
+        if (e.key === "Enter") createNewLayerDialogIsOpen = true;
+      }}
+    >
+      <sl-icon label="New layer" library="pixelarticons" name="plus"
+      ></sl-icon></sl-button
+    >
   </header>
 
   <ul
@@ -51,7 +46,7 @@
       transformDraggedElement: (el: HTMLElement | undefined) =>
         el && styleDragged(el),
       dropTargetStyle: { outline: "var(--color-0) solid 1px" },
-      flipDurationMs: 100
+      flipDurationMs: 100,
     }}
     onconsider={handleDndConsider}
     onfinalize={handleDndFinalize}
@@ -62,7 +57,7 @@
           layer.id}
         animate:flip={{ duration: 100 }}
       >
-        <LayerItem idx={idx} layer={layer} />
+        <LayerItem {idx} {layer} />
       </li>
     {/each}
   </ul>

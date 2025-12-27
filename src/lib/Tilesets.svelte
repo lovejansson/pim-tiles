@@ -1,21 +1,21 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
-  import type { AutoTileLayerState, TileLayerState } from "../types";
+  import { PaintType, type AutoTileLayerState, type TileLayerState } from "../types";
   import { splitIntoTiles } from "../utils";
   import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
 
   const tilemapEditorState = $derived.by((): TileLayerState | AutoTileLayerState => {
-    if (guiState.tilemapEditorState.type === "tile")
+    if (guiState.tilemapEditorState.type === PaintType.TILE)
       return guiState.tilemapEditorState;
-    if (guiState.tilemapEditorState.type === "auto-tile")
+    if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
         return guiState.tilemapEditorState;
 
     throw new Error("Invalid UI state");
   });
 
   const selectedTileRef = $derived(
-    tilemapEditorState.selectedAsset?.type === "tile"
+    tilemapEditorState.selectedAsset?.type === PaintType.TILE
       ? tilemapEditorState.selectedAsset.ref
       : null,
   );
@@ -46,7 +46,7 @@
 
   const selectTile = (tilesetId: string, tileId: string) => {
     tilemapEditorState.selectedAsset = {
-      type: "tile",
+      type: PaintType.TILE,
       ref: { tileset: { id: tilesetId }, tile: { id: tileId } },
     };
   };
@@ -74,14 +74,14 @@
                 && selectedTileRef.tile.id === tile.id}
               >
                 <button
-                  class="tile"
+                  class=PaintType.TILE
                   onkeydown={(e) => {
                     if (e.key.toLowerCase() === "enter")
                       selectTile(tileset.id, tile.id);
                   }}
                   onclick={() => selectTile(tileset.id, tile.id)}
                 >
-                  <img src={tile.dataURL} alt="tile" />
+                  <img src={tile.dataURL} alt=PaintType.TILE />
                 </button>
               </li>
             {/each}

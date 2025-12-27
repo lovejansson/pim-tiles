@@ -1,14 +1,14 @@
 <script lang="ts">
   import { guiState } from "../state.svelte";
-  import type { AreaLayerState, AutoTileLayerState, TileLayerState } from "../types";
+  import { PaintType, Tool, type AreaLayerState, type AutoTileLayerState, type TileLayerState } from "../types";
 
   const tilemapEditorState = $derived.by(
     (): TileLayerState | AreaLayerState | AutoTileLayerState => {
-      if (guiState.tilemapEditorState.type === "tile")
+      if (guiState.tilemapEditorState.type === PaintType.TILE)
         return guiState.tilemapEditorState;
-      if (guiState.tilemapEditorState.type === "area")
+      if (guiState.tilemapEditorState.type === PaintType.AREA)
         return guiState.tilemapEditorState;
-      if(guiState.tilemapEditorState.type === "auto-tile") 
+      if(guiState.tilemapEditorState.type === PaintType.AUTO_TILE) 
         return guiState.tilemapEditorState;
 
       throw new Error("Invalid UI state");
@@ -21,10 +21,10 @@
 
     switch (e.key.toLowerCase()) {
       case "e":
-        tilemapEditorState.selectedTool = "erase";
+        tilemapEditorState.selectedTool = Tool.ERASE;
         break;
       case "t":
-        tilemapEditorState.selectedTool = "paint";
+        tilemapEditorState.selectedTool = Tool.PAINT;
         break;
       case "f":
         tilemapEditorState.fillToolIsActive = !tilemapEditorState.fillToolIsActive;
@@ -43,11 +43,11 @@
     <!-- Svelte wants an aria role but shoelace has handled this internally -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-button
-      class:selected-tool={tilemapEditorState.selectedTool === "paint"}
-      onclick={() => (tilemapEditorState.selectedTool = "paint")}
+      class:selected-tool={tilemapEditorState.selectedTool === Tool.PAINT}
+      onclick={() => (tilemapEditorState.selectedTool = Tool.PAINT)}
       onkeydown={(e: KeyboardEvent) => {
         if (e.key === "Enter") {
-          tilemapEditorState.selectedTool = "paint";
+          tilemapEditorState.selectedTool = Tool.PAINT;
         }
       }}
       ><sl-icon library="pixelarticons" name="edit" label="Tile paint"
@@ -59,18 +59,18 @@
     <!-- Svelte wants an aria role   but shoelace has handled this internally -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-button
-      class:selected-tool={tilemapEditorState.selectedTool === "erase"}
-      onclick={() => (tilemapEditorState.selectedTool = "erase")}
+      class:selected-tool={tilemapEditorState.selectedTool === Tool.ERASE}
+      onclick={() => (tilemapEditorState.selectedTool = Tool.ERASE)}
       onkeydown={(e: KeyboardEvent) => {
         if (e.key === "Enter") {
-          tilemapEditorState.selectedTool = "erase";
+          tilemapEditorState.selectedTool = Tool.ERASE;
         }
       }}
       ><sl-icon
-        id="erase"
+        id=Tool.ERASE
         library="pixelarticons"
         name="layout-sidebar-left"
-        label="Erase"
+        label=Tool.ERASE
       ></sl-icon></sl-button
     >
   </sl-tooltip>

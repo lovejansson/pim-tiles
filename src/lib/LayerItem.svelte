@@ -1,23 +1,21 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
-    import type { Layer } from "../types";
+  import { PaintType, Tool, type Layer } from "../types";
   import ContextMenu from "./ui/ContextMenu.svelte";
   import EditableText from "./ui/EditableText.svelte";
 
   type LayerItemProps = {
     layer: Layer;
     idx: number;
-  }
+  };
 
-  let { layer, idx}: LayerItemProps = $props();
+  let { layer, idx }: LayerItemProps = $props();
 
   let isEditingName = $state(false);
 
   const handleSelectMenuItem = (item: any) => {
-
     if (item.value === "delete") {
-
-      if(projectState.layers.get().length === 1) {
+      if (projectState.layers.get().length === 1) {
         guiState.notification = {
           variant: "danger",
           title: "Delete layer",
@@ -27,56 +25,52 @@
       }
 
       const layerIsSelected =
-        guiState.tilemapEditorState.selectedLayer.id ===
-        layer.id
+        guiState.tilemapEditorState.selectedLayer.id === layer.id;
 
       if (layerIsSelected) {
         selectLayer(layer, idx);
       }
 
       projectState.layers.delete(layer.id);
-
     } else if (item.value === "rename") {
       isEditingName = true;
     }
-
   };
 
   const selectLayer = (layer: Layer, idx: number) => {
-
     switch (layer.type) {
-      case "tile":
+      case PaintType.TILE:
         guiState.tilemapEditorState = {
-          type: "tile",
+          type: PaintType.TILE,
           selectedLayer: layer,
-          selectedTool: "paint",
+          selectedTool: Tool.PAINT,
           selectedAsset: null,
-          fillToolIsActive: false
+          fillToolIsActive: false,
         };
         break;
-      case "auto-tile":
+      case PaintType.AUTO_TILE:
         guiState.tilemapEditorState = {
-          type: "auto-tile",
+          type: PaintType.AUTO_TILE,
           selectedLayer: layer,
-          selectedTool: "paint",
+          selectedTool: Tool.PAINT,
           selectedAsset: null,
-          fillToolIsActive: false
+          fillToolIsActive: false,
         };
         break;
-      case "image":
+      case PaintType.IMAGE:
         guiState.tilemapEditorState = {
-          type: "image",
+          type: PaintType.IMAGE,
           selectedLayer: layer,
           selectedAsset: null,
         };
         break;
-      case "area":
+      case PaintType.AREA:
         guiState.tilemapEditorState = {
-          type: "area",
+          type: PaintType.AREA,
           selectedLayer: layer,
-          selectedTool: "paint",
+          selectedTool: Tool.PAINT,
           selectedAsset: null,
-          fillToolIsActive: false
+          fillToolIsActive: false,
         };
     }
   };
@@ -85,7 +79,6 @@
     projectState.layers.get()[idx].isVisible =
       !projectState.layers.get()[idx].isVisible;
   };
-
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -98,39 +91,34 @@
 >
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div id="layer" onclick={() => selectLayer(layer, idx)}>
-    {#if layer.type === "tile"}
+    {#if layer.type === PaintType.TILE}
       <sl-tooltip content="Tile layer">
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
       </sl-tooltip>
-      {:else if layer.type === "auto-tile"}
+    {:else if layer.type === PaintType.AUTO_TILE}
       <sl-tooltip content="Auto tile layer layer">
         <sl-icon library="pixelarticons" name="grid"></sl-icon>
       </sl-tooltip>
-    {:else if layer.type === "image"}
+    {:else if layer.type === PaintType.IMAGE}
       <sl-tooltip content="Image layer">
-        <sl-icon library="pixelarticons" name="image"></sl-icon>
+        <sl-icon library="pixelarticons" name="PaintType.IMAGE"></sl-icon>
       </sl-tooltip>
-          {:else}
+    {:else}
       <sl-tooltip content="Area layer">
         <sl-icon library="pixelarticons" name="section"></sl-icon>
       </sl-tooltip>
     {/if}
 
-    <EditableText
-      bind:isEditing={isEditingName}
-      text={layer.name}
-    />
+    <EditableText bind:isEditing={isEditingName} text={layer.name} />
 
     <!-- sl handles accessability internally -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-icon-button
       onkeydown={(e: KeyboardEvent) => e.key === "Enter" && toggleVisibility()}
       onclick={(e: MouseEvent) => {
-          e.stopPropagation();
-          toggleVisibility();
-
-        }
-      }
+        e.stopPropagation();
+        toggleVisibility();
+      }}
       library="pixelarticons"
       name={layer.isVisible ? "eye" : "eye-closed"}
     >

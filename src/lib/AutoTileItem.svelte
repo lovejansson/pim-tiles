@@ -2,7 +2,7 @@
   import { SlMenuItem } from "@shoelace-style/shoelace";
   import { guiState, projectState } from "../state.svelte";
   import ContextMenu from "./ui/ContextMenu.svelte";
-  import type { AutoTileLayerState, AutoTile, IdRef } from "../types";
+  import { type AutoTileLayerState, type AutoTile, type IdRef, PaintType } from "../types";
   import CreateAutoTileDialog from "./AutoTileDialog.svelte";
 
   type AreaItemProps = {
@@ -10,7 +10,7 @@
     idx: number;
   };
   const tilemapEditorState = $derived.by((): AutoTileLayerState => {
-    if (guiState.tilemapEditorState.type === "auto-tile")
+    if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
       return guiState.tilemapEditorState;
 
     throw new Error("Invalid UI state");
@@ -23,7 +23,7 @@
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
       const usedInTileLayer = projectState.layers.get().some((layer) => {
-        if (layer.type === "auto-tile") {
+        if (layer.type === PaintType.AUTO_TILE) {
           for (const tile of layer.data.values()) {
             if (tile.ref.id === autoTile.id) {
               return true;
@@ -44,7 +44,6 @@
       }
 
       projectState.autoTiles.delete(autoTile.id);
-
     } else if (item.value === "edit") {
       editAutoTileDialogIsOpen = true;
     }
@@ -52,7 +51,7 @@
 
   const selectAutoTile = () => {
     tilemapEditorState.selectedAsset = {
-      type: "auto-tile",
+      type: PaintType.AUTO_TILE,
       ref: { id: autoTile.id },
     };
   };
@@ -69,8 +68,7 @@
   <sl-button
     id="auto-tile-item"
     variant="text"
-    class:selected={tilemapEditorState.selectedAsset?.ref.id ===
-      autoTile.id}
+    class:selected={tilemapEditorState.selectedAsset?.ref.id === autoTile.id}
     onclick={selectAutoTile}
     onkeydown={(e: KeyboardEvent) => {
       if (e.key === "Enter") selectAutoTile();

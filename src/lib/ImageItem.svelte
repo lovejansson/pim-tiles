@@ -3,7 +3,7 @@
     import { guiState, projectState } from "../state.svelte";
     import ContextMenu from "./ui/ContextMenu.svelte";
     import ImageDialog from "./ImageDialog.svelte";
-    import type { ImageLayerState, Image } from "../types";
+    import { type ImageLayerState, type Image, PaintType } from "../types";
 
     type ImageItemProps = {
         image: Image;
@@ -11,7 +11,7 @@
     };
 
     const tilemapEditorState = $derived.by((): ImageLayerState => {
-        if (guiState.tilemapEditorState.type === "image")
+        if (guiState.tilemapEditorState.type === PaintType.IMAGE)
             return guiState.tilemapEditorState;
 
         throw new Error("Invalid UI state");
@@ -24,7 +24,7 @@
     const handleSelectMenuItem = (item: SlMenuItem) => {
         if (item.value === "delete") {
             const isUsedInLayer = projectState.layers.get().some((layer) => {
-                if (layer.type === "image") {
+                if (layer.type === PaintType.IMAGE) {
                     return layer.data.some((i) => i.ref.id === image.id);
                 }
                 return false;
@@ -47,7 +47,7 @@
     };
 
     const selectImage = () => {
-        tilemapEditorState.selectedAsset = {type: "image", ref: { id: image.id } };
+        tilemapEditorState.selectedAsset = {type: PaintType.IMAGE, ref: { id: image.id } };
     };
 
 </script>
@@ -61,7 +61,7 @@
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-button
-        class:selected={guiState.tilemapEditorState.type === "image" &&
+        class:selected={guiState.tilemapEditorState.type === PaintType.IMAGE &&
             guiState.tilemapEditorState.selectedAsset !== null &&
             guiState.tilemapEditorState.selectedAsset.ref.id === image.id}
         onclick={selectImage}
