@@ -74,37 +74,44 @@ enum Tool {
     ERASE,
 }
 
-type TileLayer = {
-  id: string;
-  type: PaintType.TILE;
-  name: string;
-  data:  Map<string, TileAsset>;
-  isVisible: boolean;
-};
-type AreaLayer = {
-  id: string;
-  type: PaintType.AREA;
-  name: string;
-  data:  Map<string, AreaAsset>;
-  isVisible: boolean;
-};
 
+type AssetRefT<T extends PaintType> = {
+    type: T,
+    ref: T extends PaintType.TILE ? TileRef : IdRef;
+}
 
-type ImageLayer = {
-  id: string;
-  type: PaintType.IMAGE;
-  name: string;
-  data:  (ImageAsset & Point & { isSelected: boolean })[];
-  isVisible: boolean;
-};
+type LayerData<T extends PaintType> = T extends PaintType.IMAGE ? PaintedAssetT<T>[]
+    : T extends PaintType.AUTO_TILE ? Map<string, PaintedAssetT<T>>
+    : T extends PaintType.AREA ? Map<string, PaintedAssetT<T>>
+    : T extends PaintType.TILE ? Map<string, PaintedAssetT<T>>
+    : never;
 
-type AutoTileLayer = {
-  id: string;
-  type: PaintType.AUTO_TILE;
-  name: string;
-  data:  Map<string, AutoTileAsset & {tileRule: {ref: {id: string}}}>;
-  isVisible: boolean;
-};
+type PaintedAssetT<T extends PaintType> =
+    T extends PaintType.IMAGE ? (AssetRefT<T> & Point & { id: string, isSelected: boolean })
+    : T extends PaintType.AUTO_TILE ? AssetRefT<T> & { tileRule: IdRef }
+    : T extends PaintType.AREA ? AssetRefT<T>
+    : T extends PaintType.TILE ? AssetRefT<T>
+    : never;
+
+type LayerT<T extends PaintType> = {
+    id: string;
+    type: T;
+    name: string;
+    data: LayerData<T>,
+    isVisible: boolean;
+}
+
+type PaintedTile = PaintedAssetT<PaintType.TILE>;
+type PaintedArea = PaintedAssetT<PaintType.AREA>;
+type PaintedImage = PaintedAssetT<PaintType.IMAGE>;
+type PaintedAutoTile = PaintedAssetT<PaintType.AUTO_TILE>;
+
+type PaintedAsset = PaintedTile | PaintedArea | PaintedImage | PaintedAutoTile;
+
+type TileLayer = LayerT<PaintType.TILE>;
+type AreaLayer = LayerT<PaintType.AREA>;
+type ImageLayer = LayerT<PaintType.IMAGE>;
+type AutoTileLayer = LayerT<PaintType.AUTO_TILE>;
 
 type Layer = TileLayer | AreaLayer | ImageLayer | AutoTileLayer;
 
@@ -146,29 +153,15 @@ type IdRef = {
     id: string;
 }
 
-type TileAsset = {
-    type: PaintType.TILE,
-    ref: TileRef;
-};
-
-type ImageAsset = {
-    type: PaintType.IMAGE,
-    ref: IdRef;
-};
-
-type AutoTileAsset = {
-    type: PaintType.AUTO_TILE,
-    ref: IdRef;
-};
-
-type AreaAsset = {
-    type: PaintType.AREA,
-    ref: IdRef;
-}
+type TileAsset = AssetRefT<PaintType.TILE>;
+type ImageAsset = AssetRefT<PaintType.IMAGE>;
+type AutoTileAsset = AssetRefT<PaintType.AUTO_TILE>;
+type AreaAsset = AssetRefT<PaintType.AREA>;
 
 type AssetRef = TileAsset | ImageAsset | AutoTileAsset | AreaAsset;
 
 type TilemapEditorState = TileLayerState | AutoTileLayerState | AreaLayerState | ImageLayerState;
+
 
 type TileLayerState = {
     type: PaintType.TILE;
@@ -217,36 +210,46 @@ type Notification = {
     msg: string;
 }
 
+type HistoryEntryData<T extends PaintType> = T extends PaintType.IMAGE ? AssetRefT<T> & Point & { isSelected: boolean }
+    : T extends PaintType.AUTO_TILE ? (AssetRefT<PaintType.AUTO_TILE> & { tileRule: IdRef })
+    : T extends PaintType.AREA ? (AssetRefT<PaintType.AREA>)
+    : T extends PaintType.TILE ? (AssetRefT<PaintType.TILE>)
+    : never;
 
-type ImageHistoryEntry = {
-    type:PaintType.IMAGE;
-    data: (ImageAsset & Point & { isSelected: boolean });
-    layer: IdRef;
+type HistoryEntryPos<T extends PaintType> = T extends PaintType.IMAGE ? Point : Cell;
+
+type HistoryEntryItem<T extends PaintType> = {
+    data: HistoryEntryData<T> | null,
+    pos: HistoryEntryPos<T>,
 }
 
-type TileHistoryEntry = {
-    type:PaintType.TILE;
-    data: (TileAsset & Cell)[];
-    layer: IdRef;
+
+type ImageHistoryEntryItem = HistoryEntryItem<PaintType.IMAGE>;
+type TileHistoryEntryItem = HistoryEntryItem<PaintType.TILE>;
+type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
+type AreaHistoryEntryItem = HistoryEntryItem<PaintType.AREA>;
+
+
+type HistoryEntryT<T extends PaintType> = {
+    type: T,
+    layer: IdRef,
+    items: HistoryEntryItem<T>[]
 }
 
-type AutoTileHistoryEntry = {
-    type:PaintType.AUTO_TILE;
-    data: (AutoTileAsset & Cell & {tileRule: {ref: {id: string}}})[];
-    layer: IdRef;
-}
+type ImageHistoryEntry = HistoryEntryT<PaintType.IMAGE>;
+type TileHistoryEntry = HistoryEntryT<PaintType.TILE>;
+type AutoTileHistoryEntry = HistoryEntryT<PaintType.AUTO_TILE>;
+type AreaHistoryEntry = HistoryEntryT<PaintType.AREA>;
 
-type AreaHistoryEntry = {
-    type:PaintType.AREA;
-    data: (AreaAsset & Cell)[];
-    layer: IdRef;
-}
 
 type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry | ImageHistoryEntry;
 
 
-export {PaintType, Tool,TileRequirement,  type HistoryEntry,type TileHistoryEntry, type AreaHistoryEntry, type ImageHistoryEntry,
- type TilemapEditorState, type AssetRef, type Area, type AreaAsset, type TileAsset, type ImageAsset, type AutoTileAsset, type TileLayerState, type AutoTileLayerState, type AreaLayerState, type ImageLayerState,
+export {
+    type PaintedTile, type PaintedArea, type PaintedAutoTile, type PaintedImage, type PaintedAsset, type LayerT, type PaintedAssetT,
+    type AreaHistoryEntryItem, type AutoTileHistoryEntryItem, type TileHistoryEntryItem, type ImageHistoryEntryItem,
+    PaintType, Tool, TileRequirement, type HistoryEntry, type TileHistoryEntry, type AreaHistoryEntry, type ImageHistoryEntry,
+    type TilemapEditorState, type AssetRef, type Area, type AreaAsset, type TileAsset, type ImageAsset, type AutoTileAsset, type TileLayerState, type AutoTileLayerState, type AreaLayerState, type ImageLayerState,
     type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer, type Script, type TileLayer, type ImageLayer,
-    type Image, type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type TileConnections 
+    type Image, type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type TileConnections
 };

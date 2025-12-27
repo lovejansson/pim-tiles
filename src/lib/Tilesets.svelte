@@ -1,18 +1,24 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
-  import { PaintType, type AutoTileLayerState, type TileLayerState } from "../types";
+  import {
+    PaintType,
+    type AutoTileLayerState,
+    type TileLayerState,
+  } from "../types";
   import { splitIntoTiles } from "../utils";
   import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
 
-  const tilemapEditorState = $derived.by((): TileLayerState | AutoTileLayerState => {
-    if (guiState.tilemapEditorState.type === PaintType.TILE)
-      return guiState.tilemapEditorState;
-    if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
+  const tilemapEditorState = $derived.by(
+    (): TileLayerState | AutoTileLayerState => {
+      if (guiState.tilemapEditorState.type === PaintType.TILE)
+        return guiState.tilemapEditorState;
+      if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
         return guiState.tilemapEditorState;
 
-    throw new Error("Invalid UI state");
-  });
+      throw new Error("Invalid UI state");
+    },
+  );
 
   const selectedTileRef = $derived(
     tilemapEditorState.selectedAsset?.type === PaintType.TILE
@@ -27,13 +33,15 @@
       const file = files[0];
       const bitmap = await createImageBitmap(file);
       const tiles = await splitIntoTiles(bitmap, projectState.tileSize);
-      const numNamedNewTileset = projectState.tilesets.get().filter((t) =>
-        t.name.match(/New tileset(\(\d\))?/),
-      ).length;
+      const numNamedNewTileset = projectState.tilesets
+        .get()
+        .filter((t) => t.name.match(/New tileset(\(\d\))?/)).length;
 
-      projectState.tilesets.add(`New tileset${numNamedNewTileset === 0 ? "" : "(" + numNamedNewTileset + ")"}`, tiles);
+      projectState.tilesets.add(
+        `New tileset${numNamedNewTileset === 0 ? "" : "(" + numNamedNewTileset + ")"}`,
+        tiles,
+      );
       selectedTilesetIdx = projectState.tilesets.get().length - 1;
-
     } catch (e) {
       console.error(e);
       guiState.notification = {
@@ -50,7 +58,6 @@
       ref: { tileset: { id: tilesetId }, tile: { id: tileId } },
     };
   };
-
 </script>
 
 <section id="tilesets">
@@ -69,19 +76,19 @@
           <ul class="tiles">
             {#each tileset.tiles as tile}
               <li
-                class:selected={selectedTileRef 
-                && selectedTileRef.tileset.id === tileset.id 
-                && selectedTileRef.tile.id === tile.id}
+                class:selected={selectedTileRef &&
+                  selectedTileRef.tileset.id === tileset.id &&
+                  selectedTileRef.tile.id === tile.id}
               >
                 <button
-                  class=PaintType.TILE
+                  class="tile"
                   onkeydown={(e) => {
                     if (e.key.toLowerCase() === "enter")
                       selectTile(tileset.id, tile.id);
                   }}
                   onclick={() => selectTile(tileset.id, tile.id)}
                 >
-                  <img src={tile.dataURL} alt=PaintType.TILE />
+                  <img src={tile.dataURL} alt="tile" />
                 </button>
               </li>
             {/each}

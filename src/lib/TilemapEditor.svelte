@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import {
-    guiState,
-    projectState,
-    HistoryStack,
-  } from "../state.svelte";
+  import { guiState, projectState, HistoryStack } from "../state.svelte";
   import { getNeighbours, isPointInRect, roundToDecimal } from "../utils";
-    import { PaintType, Tool } from "../types";
+  import {
+    PaintType,
+    Tool,
+    type AreaHistoryEntryItem,
+    type TileHistoryEntryItem,
+  } from "../types";
 
   const { tileSize } = $derived(projectState);
   const { gridColor, tilemapEditorState } = $derived(guiState);
@@ -27,6 +28,7 @@
     await tick();
     canvasEl.width = canvasEl.clientWidth;
     canvasEl.height = canvasEl.clientHeight;
+    ctx.imageSmoothingEnabled = false;
 
     update(0);
   });
@@ -47,7 +49,7 @@
     switch (tilemapEditorState.type) {
       case PaintType.AUTO_TILE:
         switch (tilemapEditorState.selectedTool) {
-          case Tool.PAINT:
+          case Tool.PAINT: {
             if (tilemapEditorState.selectedAsset === null) {
               guiState.notification = {
                 variant: "neutral",
@@ -57,21 +59,36 @@
               break;
             }
 
-            projectState.layers.paintWithAutoTile(
+            const historyItems = projectState.layers.paintWithAutoTile(
               row,
               col,
               tilemapEditorState.selectedAsset.ref.id,
-               tilemapEditorState.selectedLayer.id
+              tilemapEditorState.selectedLayer.id,
             );
 
+            HistoryStack.push({
+              type: PaintType.AUTO_TILE,
+              layer: { id: tilemapEditorState.selectedLayer.id },
+              items: historyItems,
+            });
+
             break;
-          case Tool.ERASE:
-            projectState.layers.eraseAutoTile(
+          }
+          case Tool.ERASE: {
+            const historyItems = projectState.layers.eraseAutoTile(
               row,
               col,
-              tilemapEditorState.selectedLayer.id
+              tilemapEditorState.selectedLayer.id,
             );
+
+            HistoryStack.push({
+              type: PaintType.AUTO_TILE,
+              layer: { id: tilemapEditorState.selectedLayer.id },
+              items: historyItems,
+            });
+
             break;
+          }
         }
         break;
       case PaintType.TILE:
@@ -94,6 +111,7 @@
                 col,
               );
               if (filledTiles !== null) {
+                const historyItems: TileHistoryEntryItem[] = [];
                 for (const tile of filledTiles) {
                   projectState.layers.paintTile(
                     tile.row,
@@ -101,7 +119,20 @@
                     tilemapEditorState.selectedLayer.id,
                     tilemapEditorState.selectedAsset,
                   );
+                  historyItems.push({
+                    pos: {
+                      row: tile.row,
+                      col: tile.col,
+                    },
+                    data: { ...tilemapEditorState.selectedAsset },
+                  });
                 }
+
+                HistoryStack.push({
+                  type: PaintType.TILE,
+                  layer: { id: tilemapEditorState.selectedLayer.id },
+                  items: historyItems,
+                });
               } else {
                 guiState.notification = {
                   variant: "neutral",
@@ -116,6 +147,17 @@
                 tilemapEditorState.selectedLayer.id,
                 tilemapEditorState.selectedAsset,
               );
+
+              HistoryStack.push({
+                type: PaintType.TILE,
+                layer: { id: tilemapEditorState.selectedLayer.id },
+                items: [
+                  {
+                    pos: { row, col },
+                    data: { ...tilemapEditorState.selectedAsset },
+                  },
+                ],
+              });
             }
 
             break;
@@ -127,13 +169,26 @@
                 col,
               );
               if (filledTiles !== null) {
+                const historyItems: TileHistoryEntryItem[] = [];
                 for (const tile of filledTiles) {
                   projectState.layers.eraseTile(
                     tile.row,
                     tile.col,
                     tilemapEditorState.selectedLayer.id,
                   );
+                  historyItems.push({
+                    pos: {
+                      row: tile.row,
+                      col: tile.col,
+                    },
+                    data: null,
+                  });
                 }
+                HistoryStack.push({
+                  type: PaintType.TILE,
+                  layer: { id: tilemapEditorState.selectedLayer.id },
+                  items: historyItems,
+                });
               } else {
                 guiState.notification = {
                   variant: "neutral",
@@ -147,6 +202,12 @@
                 col,
                 tilemapEditorState.selectedLayer.id,
               );
+
+              HistoryStack.push({
+                type: PaintType.TILE,
+                layer: { id: tilemapEditorState.selectedLayer.id },
+                items: [{ pos: { row, col }, data: null }],
+              });
             }
             break;
         }
@@ -171,7 +232,15 @@
                 col,
               );
               if (filledTiles !== null) {
+                const historyItems: AreaHistoryEntryItem[] = [];
                 for (const tile of filledTiles) {
+                  historyItems.push({
+                    pos: {
+                      row: tile.row,
+                      col: tile.col,
+                    },
+                    data: { ...tilemapEditorState.selectedAsset },
+                  });
                   projectState.layers.paintTile(
                     tile.row,
                     tile.col,
@@ -179,6 +248,11 @@
                     tilemapEditorState.selectedAsset,
                   );
                 }
+                HistoryStack.push({
+                  type: PaintType.AREA,
+                  layer: { id: tilemapEditorState.selectedLayer.id },
+                  items: historyItems,
+                });
               } else {
                 guiState.notification = {
                   variant: "neutral",
@@ -193,15 +267,72 @@
                 tilemapEditorState.selectedLayer.id,
                 tilemapEditorState.selectedAsset,
               );
+              HistoryStack.push({
+                type: PaintType.AREA,
+                layer: { id: tilemapEditorState.selectedLayer.id },
+                items: [
+                  {
+                    pos: {
+                      row: row,
+                      col: col,
+                    },
+                    data: {
+                      ...tilemapEditorState.selectedAsset,
+                    },
+                  },
+                ],
+              });
             }
 
             break;
           case Tool.ERASE:
-            projectState.layers.eraseTile(
-              row,
-              col,
-              tilemapEditorState.selectedLayer.id,
-            );
+            if (tilemapEditorState.fillToolIsActive) {
+              const filledTiles = floodFill(
+                tilemapEditorState.selectedLayer.id,
+                row,
+                col,
+              );
+              if (filledTiles !== null) {
+                const historyItems: AreaHistoryEntryItem[] = [];
+                for (const tile of filledTiles) {
+                  projectState.layers.eraseTile(
+                    tile.row,
+                    tile.col,
+                    tilemapEditorState.selectedLayer.id,
+                  );
+                  historyItems.push({
+                    pos: {
+                      row: tile.row,
+                      col: tile.col,
+                    },
+                    data: null,
+                  });
+                }
+                HistoryStack.push({
+                  type: PaintType.AREA,
+                  layer: { id: tilemapEditorState.selectedLayer.id },
+                  items: historyItems,
+                });
+              } else {
+                guiState.notification = {
+                  variant: "neutral",
+                  title: "Fill error",
+                  msg: "You can't fill a non enclosed area",
+                };
+              }
+            } else {
+              projectState.layers.eraseTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer.id,
+              );
+
+              HistoryStack.push({
+                type: PaintType.AREA,
+                layer: { id: tilemapEditorState.selectedLayer.id },
+                items: [{ pos: { row, col }, data: null }],
+              });
+            }
             break;
         }
 
@@ -233,19 +364,30 @@
           }
         } else {
           if (tilemapEditorState.selectedAsset === null) {
-            guiState.notification = {
-              variant: "neutral",
-              title: "Select image",
-              msg: "No image selected!",
-            };
             break;
           }
-
-          tilemapEditorState.selectedLayer.data.push({
-            ...tilemapEditorState.selectedAsset,
+          // image x and y is 
+          const id = projectState.layers.paintImage(
             x,
             y,
-            isSelected: false,
+            tilemapEditorState.selectedLayer.id,
+            tilemapEditorState.selectedAsset,
+          );
+
+          HistoryStack.push({
+            type: PaintType.IMAGE,
+            layer: { id: tilemapEditorState.selectedLayer.id },
+            items: [
+              {
+                pos: {x, y},
+                data: {
+                  x,
+                  y,
+                  ...tilemapEditorState.selectedAsset,
+                  isSelected: false,
+                },
+              },
+            ],
           });
         }
         break;
@@ -278,13 +420,67 @@
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, {
-                  ...tilemapEditorState.selectedAsset,
-                });
+                const currTile = projectState.layers.getTileAt(
+                  row,
+                  col,
+                  tilemapEditorState.selectedLayer.id,
+                );
+
+                if (
+                  !projectState.utils.isSameAsset(
+                    currTile,
+                    tilemapEditorState.selectedAsset,
+                  )
+                ) {
+                  projectState.layers.paintTile(
+                    row,
+                    col,
+                    tilemapEditorState.selectedLayer.id,
+                    tilemapEditorState.selectedAsset,
+                  );
+
+                  HistoryStack.push({
+                    type: PaintType.TILE,
+                    layer: { id: tilemapEditorState.selectedLayer.id },
+                    items: [
+                      {
+                        pos: { row, col },
+                        data: { ...tilemapEditorState.selectedAsset },
+                      },
+                    ],
+                  });
+                }
               }
               break;
             case Tool.ERASE:
-              tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+              const currTile = projectState.layers.getTileAt(
+                row,
+                col,
+                tilemapEditorState.selectedLayer.id,
+              );
+
+              if (
+                !projectState.utils.isSameAsset(
+                  currTile,
+                  tilemapEditorState.selectedAsset,
+                )
+              ) {
+                projectState.layers.eraseTile(
+                  row,
+                  col,
+                  tilemapEditorState.selectedLayer.id,
+                );
+                HistoryStack.push({
+                  type: PaintType.TILE,
+                  layer: { id: tilemapEditorState.selectedLayer.id },
+                  items: [
+                    {
+                      pos: { row, col },
+                      data: null,
+                    },
+                  ],
+                });
+              }
               break;
           }
 
@@ -295,13 +491,67 @@
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, {
-                  ...tilemapEditorState.selectedAsset,
-                });
+                const currTile = projectState.layers.getTileAt(
+                  row,
+                  col,
+                  tilemapEditorState.selectedLayer.id,
+                );
+
+                if (
+                  !projectState.utils.isSameAsset(
+                    currTile,
+                    tilemapEditorState.selectedAsset,
+                  )
+                ) {
+                  projectState.layers.paintTile(
+                    row,
+                    col,
+                    tilemapEditorState.selectedLayer.id,
+                    tilemapEditorState.selectedAsset,
+                  );
+
+                  HistoryStack.push({
+                    type: PaintType.AREA,
+                    layer: { id: tilemapEditorState.selectedLayer.id },
+                    items: [
+                      {
+                        pos: { row, col },
+                        data: { ...tilemapEditorState.selectedAsset },
+                      },
+                    ],
+                  });
+                }
               }
               break;
             case Tool.ERASE:
-              tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+              const currTile = projectState.layers.getTileAt(
+                row,
+                col,
+                tilemapEditorState.selectedLayer.id,
+              );
+
+              if (
+                !projectState.utils.isSameAsset(
+                  currTile,
+                  tilemapEditorState.selectedAsset,
+                )
+              ) {
+                projectState.layers.eraseTile(
+                  row,
+                  col,
+                  tilemapEditorState.selectedLayer.id,
+                );
+                HistoryStack.push({
+                  type: PaintType.AREA,
+                  layer: { id: tilemapEditorState.selectedLayer.id },
+                  items: [
+                    {
+                      pos: { row, col },
+                      data: null,
+                    },
+                  ],
+                });
+              }
               break;
           }
           break;
@@ -477,9 +727,17 @@
         break;
       case "del":
       case "backspace":
-        if (tilemapEditorState.type === PaintType.IMAGE)
-          tilemapEditorState.selectedLayer.data =
-            tilemapEditorState.selectedLayer.data.filter((l) => !l.isSelected);
+        if (tilemapEditorState.type === PaintType.IMAGE) {
+          for (const i of tilemapEditorState.selectedLayer.data.filter(
+            (i) => i.isSelected,
+          )) {
+            projectState.layers.eraseImage(
+              i.x,
+              i.y,
+              tilemapEditorState.selectedLayer.id,
+            );
+          }
+        }
         break;
       case "z":
         ctrlKeyIsDown && HistoryStack.undo();
@@ -524,7 +782,7 @@
                 autoTileAsset.ref.id,
               );
               const tileRule = autoTile.rules.find(
-                (tr) => tr.id === autoTileAsset.tileRule.ref.id,
+                (tr) => tr.id === autoTileAsset.tileRule.id,
               );
 
               if (tileRule?.tile) {
@@ -626,18 +884,17 @@
   bind:this={canvasEl}
   onmousemove={handleMouseMove}
   onmousedown={handleMouseDown}
-  class:cursor-crosshair={[PaintType.AREA, PaintType.TILE, PaintType.AUTO_TILE].includes(
-    tilemapEditorState.type,
-  )}
+
 ></canvas>
 
 <style lang="postcss">
-  .cursor-crosshair {
+  canvas {
     cursor: crosshair;
   }
   canvas {
     background-color: var(--color-0);
     width: 100%;
     height: 100%;
+    image-rendering: pixelated;
   }
 </style>
