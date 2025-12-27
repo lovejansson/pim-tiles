@@ -1,9 +1,15 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
+    import type { Layer } from "../types";
   import ContextMenu from "./ui/ContextMenu.svelte";
   import EditableText from "./ui/EditableText.svelte";
 
-  let { layerIdx } = $props();
+  type LayerItemProps = {
+    layer: Layer;
+    idx: number;
+  }
+
+  let { layer, idx}: LayerItemProps = $props();
 
   let isEditingName = $state(false);
 
@@ -11,7 +17,7 @@
 
     if (item.value === "delete") {
 
-      if(projectState.layers.length === 1) {
+      if(projectState.layers.get().length === 1) {
         guiState.notification = {
           variant: "danger",
           title: "Delete layer",
@@ -21,14 +27,14 @@
       }
 
       const layerIsSelected =
-        guiState.tilemapEditorState.selectedLayer ===
-        projectState.layers[layerIdx];
+        guiState.tilemapEditorState.selectedLayer.id ===
+        layer.id
 
       if (layerIsSelected) {
-        selectLayer(layerIdx - 1);
+        selectLayer(layer, idx);
       }
 
-      projectState.layers.splice(layerIdx, 1);
+      projectState.layers.delete(layer.id);
 
     } else if (item.value === "rename") {
       isEditingName = true;
@@ -36,9 +42,7 @@
 
   };
 
-  const selectLayer = (idx: number) => {
-    
-    const layer = projectState.layers[idx];
+  const selectLayer = (layer: Layer, idx: number) => {
 
     switch (layer.type) {
       case "tile":
@@ -47,6 +51,16 @@
           selectedLayer: layer,
           selectedTool: "paint",
           selectedAsset: null,
+          fillToolIsActive: false
+        };
+        break;
+      case "auto-tile":
+        guiState.tilemapEditorState = {
+          type: "auto-tile",
+          selectedLayer: layer,
+          selectedTool: "paint",
+          selectedAsset: null,
+          fillToolIsActive: false
         };
         break;
       case "image":
@@ -62,13 +76,14 @@
           selectedLayer: layer,
           selectedTool: "paint",
           selectedAsset: null,
+          fillToolIsActive: false
         };
     }
   };
 
   const toggleVisibility = () => {
-    projectState.layers[layerIdx].isVisible =
-      !projectState.layers[layerIdx].isVisible;
+    projectState.layers.get()[idx].isVisible =
+      !projectState.layers.get()[idx].isVisible;
   };
 
 </script>
@@ -82,33 +97,42 @@
   ]}
 >
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div id="layer" onclick={() => selectLayer(layerIdx)}>
-    {#if projectState.layers[layerIdx].type === "tile"}
+  <div id="layer" onclick={() => selectLayer(layer, idx)}>
+    {#if layer.type === "tile"}
       <sl-tooltip content="Tile layer">
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
       </sl-tooltip>
-    {:else if projectState.layers[layerIdx].type === "image"}
+      {:else if layer.type === "auto-tile"}
+      <sl-tooltip content="Auto tile layer layer">
+        <sl-icon library="pixelarticons" name="grid"></sl-icon>
+      </sl-tooltip>
+    {:else if layer.type === "image"}
       <sl-tooltip content="Image layer">
         <sl-icon library="pixelarticons" name="image"></sl-icon>
       </sl-tooltip>
-    {:else}
+          {:else}
       <sl-tooltip content="Area layer">
-        <sl-icon library="pixelarticons" name="drop-area"></sl-icon>
+        <sl-icon library="pixelarticons" name="section"></sl-icon>
       </sl-tooltip>
     {/if}
 
     <EditableText
       bind:isEditing={isEditingName}
-      text={projectState.layers[layerIdx].name}
+      text={layer.name}
     />
 
     <!-- sl handles accessability internally -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-icon-button
       onkeydown={(e: KeyboardEvent) => e.key === "Enter" && toggleVisibility()}
-      onclick={toggleVisibility}
+      onclick={(e: MouseEvent) => {
+          e.stopPropagation();
+          toggleVisibility();
+
+        }
+      }
       library="pixelarticons"
-      name={projectState.layers[layerIdx].isVisible ? "eye" : "eye-closed"}
+      name={layer.isVisible ? "eye" : "eye-closed"}
     >
     </sl-icon-button>
   </div>

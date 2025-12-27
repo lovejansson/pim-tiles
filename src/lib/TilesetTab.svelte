@@ -6,44 +6,16 @@
 
   type TilesetTabProps = {
     tileset: Tileset;
-    idx: number;
   };
 
-  let { tileset, idx }: TilesetTabProps = $props();
+  let { tileset }: TilesetTabProps = $props();
 
   let isEditingName = $state(false);
 
   const handleSelectMenuItem = (item: any) => {
 
     if (item.value === "delete") {
-
-      const usedInTileLayer = projectState.layers.some((layer) => {
-
-        if (layer.type === "tile") {
-          
-          for (const tileRef of layer.data.values()) {
-            if (tileRef.tileset.id === tileset.id) {
-              return true;
-            }
-          }
-        }
-
-        return false;
-
-      });
-
-      if(usedInTileLayer) {
-        
-        guiState.notification = {
-          variant: "danger",
-          title: "Delete tileset",
-          msg: "This tileset is used in one or more tile layers and cannot be deleted.",
-        };
-
-        return;
-      }
-
-      projectState.tilesets.splice(idx, 1);
+      projectState.tilesets.delete(tileset.id);
 
     } else if (item.value === "rename") {
         isEditingName = true;

@@ -1,18 +1,18 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
-
   import { dndzone, type DndEvent } from "svelte-dnd-action";
   let createNewLayerDialogIsOpen = $state(false);
   import { flip } from "svelte/animate";
-  import Layer from "./Layer.svelte";
+  import LayerItem from "./LayerItem.svelte";
+    import type { Layer } from "../types";
 
-  const handleDndConsider = (e: CustomEvent<DndEvent<any>>) => {
-    projectState.layers = e.detail.items;
+  const handleDndConsider = (e: CustomEvent<DndEvent<Layer>>) => {
+    projectState.layers.set(e.detail.items);
   };
 
-  const handleDndFinalize = (e: CustomEvent<DndEvent<any>>) => {
-    projectState.layers = e.detail.items;
+  const handleDndFinalize = (e: CustomEvent<DndEvent<Layer>>) => {
+      projectState.layers.set(e.detail.items);
   };
 
   const styleDragged = (el: HTMLElement) => {
@@ -21,45 +21,48 @@
   };
 
 
+  let dndLayers = $derived(projectState.layers.get().map(l => ({...l})));
+
+
 </script>
 
+
 <section id="layers">
+
   <header>
     <h2>Layers</h2>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <sl-button
-      onclick={() => {
-        createNewLayerDialogIsOpen = true;
-      }}
-      onkeydown={(e: KeyboardEvent) => {
-        if (e.key === "Enter") createNewLayerDialogIsOpen = true;
-      }}
-    >
-      <sl-icon label="New layer" library="pixelarticons" name="plus"
-      ></sl-icon></sl-button
-    >
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <sl-button
+        onclick={() => {
+          createNewLayerDialogIsOpen = true;
+        }}
+        onkeydown={(e: KeyboardEvent) => {
+          if (e.key === "Enter") createNewLayerDialogIsOpen = true;
+        }}
+      >
+        <sl-icon label="New layer" library="pixelarticons" name="plus"
+        ></sl-icon></sl-button
+      >
   </header>
 
   <ul
     use:dndzone={{
-      items: projectState.layers,
-      dragDisabled: false,
-      dropFromOthersDisabled: true,
+      items: dndLayers,
       transformDraggedElement: (el: HTMLElement | undefined) =>
         el && styleDragged(el),
-      type: "layer",
       dropTargetStyle: { outline: "var(--color-0) solid 1px" },
+      flipDurationMs: 100
     }}
     onconsider={handleDndConsider}
     onfinalize={handleDndFinalize}
   >
-    {#each projectState.layers as layer, idx (layer.id)}
+    {#each dndLayers as layer, idx (layer.id)}
       <li
-        class:selected={guiState.tilemapEditorState.selectedLayer ==
-          layer}
+        class:selected={guiState.tilemapEditorState.selectedLayer.id ===
+          layer.id}
         animate:flip={{ duration: 100 }}
       >
-        <Layer layerIdx={idx} />
+        <LayerItem idx={idx} layer={layer} />
       </li>
     {/each}
   </ul>
@@ -76,7 +79,6 @@
     flex-direction: column;
 
     width: 320px !important;
-    height: 100%;
   }
 
   li {

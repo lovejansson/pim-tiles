@@ -1,13 +1,15 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
-  import type { TileLayerState } from "../types";
+  import type { AutoTileLayerState, TileLayerState } from "../types";
   import { splitIntoTiles } from "../utils";
   import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
 
-  const tilemapEditorState = $derived.by((): TileLayerState => {
+  const tilemapEditorState = $derived.by((): TileLayerState | AutoTileLayerState => {
     if (guiState.tilemapEditorState.type === "tile")
       return guiState.tilemapEditorState;
+    if (guiState.tilemapEditorState.type === "auto-tile")
+        return guiState.tilemapEditorState;
 
     throw new Error("Invalid UI state");
   });
@@ -25,15 +27,13 @@
       const file = files[0];
       const bitmap = await createImageBitmap(file);
       const tiles = await splitIntoTiles(bitmap, projectState.tileSize);
-      const numNamedNewTileset = projectState.tilesets.filter((t) =>
+      const numNamedNewTileset = projectState.tilesets.get().filter((t) =>
         t.name.match(/New tileset(\(\d\))?/),
       ).length;
-      projectState.tilesets.push({
-        id: Symbol(),
-        name: `New tileset${numNamedNewTileset === 0 ? "" : "(" + numNamedNewTileset + ")"}`,
-        tiles: tiles,
-      });
-      selectedTilesetIdx = projectState.tilesets.length - 1;
+
+      projectState.tilesets.add(`New tileset${numNamedNewTileset === 0 ? "" : "(" + numNamedNewTileset + ")"}`, tiles);
+      selectedTilesetIdx = projectState.tilesets.get().length - 1;
+
     } catch (e) {
       console.error(e);
       guiState.notification = {
@@ -44,7 +44,7 @@
     }
   };
 
-  const selectTile = (tilesetId: Symbol, tileId: Symbol) => {
+  const selectTile = (tilesetId: string, tileId: string) => {
     tilemapEditorState.selectedAsset = {
       type: "tile",
       ref: { tileset: { id: tilesetId }, tile: { id: tileId } },
@@ -59,11 +59,11 @@
     <FilePicker accept="image/png, image/jpeg" onFile={loadTileset} />
   </header>
 
-  {#if projectState.tilesets.length > 0}
+  {#if projectState.tilesets.get().length > 0}
     <sl-tab-group>
-      {#each projectState.tilesets as tileset, tilesetIdx}
+      {#each projectState.tilesets.get() as tileset}
         <sl-tab slot="nav" panel={tileset.name}>
-          <TilesetTab {tileset} idx={tilesetIdx} /></sl-tab
+          <TilesetTab {tileset} /></sl-tab
         >
         <sl-tab-panel name={tileset.name}>
           <ul class="tiles">

@@ -1,4 +1,6 @@
 
+
+
 type ProjectState = {
     projectName: string,
     tileSize: number,
@@ -6,35 +8,36 @@ type ProjectState = {
     tilesets: Tileset[],
     scripts: Script[],
     images: Image[],
-    ruleTiles: AutoTile[],
+    autoTiles: AutoTile[],
     areas: Area[],
 }
 
 type Area = {
-    id: Symbol;
+    id: string;
     color: string;
     name: string;
 }
 
 type Script = {
+    id: string;
     name: string;
     content: string;
 }
 
 type Tile = {
-    id: Symbol;
+    id: string;
     dataURL: string;
     bitmap: ImageBitmap;
 };
 
 type Tileset = {
-    id: Symbol;
+    id: string;
     name: string;
     tiles: Tile[];
 };
 
 type Image = {
-    id: Symbol;
+    id: string;
     dataURL: string;
     bitmap: ImageBitmap;
     width: number;
@@ -54,37 +57,70 @@ type Rect = {
     height: number;
 }
 
-type ImageLayer = {
-    id: Symbol;
-    type: "image";
-    name: string;
-    isVisible: boolean;
-    data: (IdRef & Point & {isSelected: boolean})[]; 
-};
+
+/**
+ * 
+ * tile layers 
+ * 
+ * type tile 
+ * contains tile assets with type tile 
+ * 
+ * area layers 
+ * contains area assets 
+ * 
+ * 
+ * auto-tile layers
+ * contains auto-tile assets
+ * 
+ * image layers 
+ * contains image assets
+ * 
+ * 
+ * 
+ */
+
+type PaintType = "tile" | "area" | "auto-tile" | "image";
 
 type TileLayer = {
-    id: Symbol;
-    type: "tile";
-    name: string;
-    data: Map<string, TileRef>,
-    isVisible: boolean;
+  id: string;
+  type: "tile";
+  name: string;
+  data:  Map<string, TileAsset>;
+  isVisible: boolean;
 };
-
 type AreaLayer = {
-    id: Symbol;
-    type: "area";
-    name: string;
-    data: Map<string, IdRef>,
-    isVisible: boolean;
+  id: string;
+  type: "area";
+  name: string;
+  data:  Map<string, AreaAsset>;
+  isVisible: boolean;
 };
 
-type Layer = TileLayer | ImageLayer | AreaLayer;
+
+type ImageLayer = {
+  id: string;
+  type: "image";
+  name: string;
+  data:  (ImageAsset & Point & { isSelected: boolean })[];
+  isVisible: boolean;
+};
+
+type AutoTileLayer = {
+  id: string;
+  type: "auto-tile";
+  name: string;
+  data:  Map<string, AutoTileAsset & {tileRule: {ref: {id: string}}}>;
+  isVisible: boolean;
+};
+
+type Layer = TileLayer | AreaLayer | ImageLayer | AutoTileLayer;
 
 type ConnectedTileRequirement = "required" | "excluded" | "optional";
 
 type AutoTile = {
-  name: string;
-  rules: TileRule[];
+    id: string;
+    name: string;
+    rules: TileRule[];
 }
 
 type ConnectedTilesRequirements = {
@@ -99,8 +135,9 @@ type ConnectedTilesRequirements = {
 }
 
 type TileRule = {
-  connectedTilesRequirements: ConnectedTilesRequirements,
-  tile: TileRef | null; 
+    id: string;
+    connectedTilesRequirements: ConnectedTilesRequirements,
+    tile: TileAsset | null;
 }
 
 type TileRef = {
@@ -109,7 +146,7 @@ type TileRef = {
 }
 
 type IdRef = {
-    id: Symbol;
+    id: string;
 }
 
 type TileAsset = {
@@ -118,6 +155,7 @@ type TileAsset = {
 };
 
 type ImageAsset = {
+    type: "image",
     ref: IdRef;
 };
 
@@ -127,31 +165,44 @@ type AutoTileAsset = {
 };
 
 type AreaAsset = {
+    type: "area",
     ref: IdRef;
 }
 
 type AssetRef = TileAsset | ImageAsset | AutoTileAsset | AreaAsset;
 
-type TilemapEditorState = TileLayerState | AreaLayerState | ImageLayerState;
+type TilemapEditorState = TileLayerState | AutoTileLayerState | AreaLayerState | ImageLayerState;
+
+
 
 type TileLayerState = {
     type: "tile";
     selectedTool: "paint" | "erase";
     selectedLayer: TileLayer;
-    selectedAsset: TileAsset | AutoTileAsset | null;
+    selectedAsset: TileRef | null;
+    fillToolIsActive: boolean;
+}
+
+type AutoTileLayerState = {
+    type: "auto-tile";
+    selectedTool: "paint" | "erase";
+    selectedLayer: AutoTileLayer;
+    selectedAsset: AutoTileAsset | null;
+    fillToolIsActive: boolean;
 }
 
 type AreaLayerState = {
     type: "area";
     selectedTool: "paint" | "erase";
     selectedLayer: AreaLayer;
-    selectedAsset: AreaAsset | null;
+    selectedAsset: AreaAsset | null;
+    fillToolIsActive: boolean;
 }
 
 type ImageLayerState = {
     type: "image";
     selectedLayer: ImageLayer;
-    selectedAsset: ImageAsset | null;
+    selectedAsset: ImageAsset | null;
 }
 
 type GUIState = {
@@ -159,8 +210,10 @@ type GUIState = {
     tilemapEditorState: TilemapEditorState;
     showGrid: boolean;
     gridColor: string;
-    workspaceTabs: {value: number, label: string}[];
+    workspaceTabs: { value: number | string, label: string }[];
     selectedWorkspaceTab: string;
+    history: HistoryEntry[];
+    historyIdx: number;
 }
 
 
@@ -171,6 +224,42 @@ type Notification = {
 }
 
 
-export { type AssetRef, type Area, type TileLayerState, type AreaLayerState, type ImageLayerState,
-    type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer,  type Script, type TileLayer, type ImageLayer, 
-      type Image, type IdRef, type Tileset, type Tile, type AutoTile as RuleTile, type TileRule, type TileRef, type ConnectedTileRequirement, type ConnectedTilesRequirements};
+type ImageHistoryEntry = {
+    type:PaintType;
+    x: number;
+    y: number;
+    data: (ImageAsset & Point & { isSelected: boolean });
+   layer: IdRef;
+}
+
+type TileHistoryEntry = {
+    type:"tile";
+    row: number;
+    col: number;
+    data: TileAsset;
+    layer: IdRef;
+}
+type AutoTileHistoryEntry = {
+    type:"auto-tile";
+    row: number;
+    col: number;
+    data: AutoTileAsset & {tileRule: {ref: {id: string}}};
+     layer: IdRef;
+}
+
+type AreaHistoryEntry = {
+    type:"area";
+    row: number;
+    col: number;
+    data: AreaAsset;
+    layer: IdRef;
+}
+
+type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry | ImageHistoryEntry;
+
+
+export {  type HistoryEntry,type TileHistoryEntry, type AreaHistoryEntry, type ImageHistoryEntry,
+ type TilemapEditorState, type AssetRef, type Area, type AreaAsset, type TileAsset, type ImageAsset, type AutoTileAsset, type TileLayerState, type AutoTileLayerState, type AreaLayerState, type ImageLayerState,
+    type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer, type Script, type TileLayer, type ImageLayer,
+    type Image, type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type ConnectedTileRequirement, type ConnectedTilesRequirements
+};

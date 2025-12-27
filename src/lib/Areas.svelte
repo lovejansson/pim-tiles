@@ -26,17 +26,17 @@
   </header>
 
 
-    {#if projectState.areas.length > 0}
+    {#if projectState.areas.get().length > 0}
   <ul>
-      {#each projectState.areas as area, idx}
+      {#each projectState.areas.get() as area}
         <li>
-          <AreaItem area={area} idx={idx} />
+          <AreaItem area={area} />
         </li>
       {/each}
   </ul>
   {:else}
     <div id="no-areas">
-      <sl-icon library="pixelarticons" name="drop-area"></sl-icon>
+      <sl-icon library="pixelarticons" name="section"></sl-icon>
   
     </div>
       {/if}

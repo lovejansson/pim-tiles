@@ -28,29 +28,28 @@
 
     $effect(() => {
         console.log(guiState.workspaceTabs.map(si => si.label))
-    })
+    });
 
 </script>
 
 <div>
-<sl-tab-group bind:this={tabGroup} onsl-close={closeScript} onsl-tab-show={handleTabShow}>
-    {#each guiState.workspaceTabs as tab}
+    <sl-tab-group bind:this={tabGroup} onsl-close={closeScript} onsl-tab-show={handleTabShow}>
+        {#each guiState.workspaceTabs as tab}
 
-        <sl-tab active={guiState.selectedWorkspaceTab === tab.label} slot="nav" panel={tab.label} closable={tab.value !==-1}>
-            {tab.label}
-        </sl-tab>
+            <sl-tab active={guiState.selectedWorkspaceTab === tab.label} slot="nav" panel={tab.label} closable={tab.value !==-1}>
+                {tab.label}
+            </sl-tab>
 
-        <sl-tab-panel class:active={guiState.selectedWorkspaceTab === tab.label} name={tab}>
-            {#if tab.value === -1}
-                <TilemapEditor/>
-            {:else}
-                <ScriptEditor />
-            {/if}
-        </sl-tab-panel>
+            <sl-tab-panel class:active={guiState.selectedWorkspaceTab === tab.label} name={tab}>
+                {#if tab.value === -1}
+                    <TilemapEditor/>
+                {:else}
+                    <ScriptEditor />
+                {/if}
+            </sl-tab-panel>
 
-    {/each}
-</sl-tab-group>
-
+        {/each}
+    </sl-tab-group>
 </div>
 
 <style lang="postcss">

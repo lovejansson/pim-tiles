@@ -7,7 +7,6 @@
 
   type AreaItemProps = {
     area: Area;
-    idx: number;
   };
   const tilemapEditorState = $derived.by((): AreaLayerState => {
     if (guiState.tilemapEditorState.type === "area")
@@ -16,41 +15,21 @@
     throw new Error("Invalid UI state");
   });
 
-  let { area, idx }: AreaItemProps = $props();
+  let { area }: AreaItemProps = $props();
 
   let editAreaDialogOpen = $state(false);
 
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
-      const usedInAreaLayer = projectState.layers.some((layer) => {
-        if (layer.type === "area") {
-          for (const areaRef of layer.data.values()) {
-            if (areaRef.id === area.id) {
-              return true;
-            }
-          }
-        }
-        return false;
-      });
+      projectState.areas.delete(area.id);
 
-      if (usedInAreaLayer) {
-        guiState.notification = {
-          variant: "danger",
-          title: "Delete area",
-          msg: "This area is used in one or more area layers and cannot be deleted.",
-        };
-
-        return;
-      }
-
-      projectState.areas.splice(idx, 1);
     } else if (item.value === "edit") {
       editAreaDialogOpen = true;
     }
   };
 
   const selectArea = () => {
-    tilemapEditorState.selectedAsset = { ref: { id: area.id } };
+    tilemapEditorState.selectedAsset = {type: "area",   ref: { id: area.id } };
   };
 </script>
 
@@ -82,7 +61,7 @@
   </sl-button>
 </ContextMenu>
 
-<EditAreaDialog bind:open={editAreaDialogOpen} {idx} />
+<EditAreaDialog bind:open={editAreaDialogOpen} area={area} />
 
 <style lang="postcss">
   #color {

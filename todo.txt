@@ -1,21 +1,27 @@
 # Todo
 
-* Add validation to auto tiles dialog
+UNDO / REDO 
+* Implement history api 
 
-* Add edit mode to auto tiles
+* Replace string type uniions with enums
 
-* paint with auto tile 
+* The user can select from all tiles and click on the corners / center to edit the rule for that tile 
 
-* Implement export of JSON 
+* Make sure paint with auto tile works
+ 
+SCRIPTING
+
+* expose project state api in scripting env
+* execute scripts 
+
+
+FILE 
 
 * Implement Save in localstorage
-
 * Implement Save
-
 * Implement Save AS
+* Implement export of JSON 
 
-* Flood fill somehow for easy use 
 
-* Pan
-
-* Scripting
+* Pan add drag of tilemap
+* Add attributes to objects

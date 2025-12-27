@@ -1,7 +1,8 @@
 <script lang="ts">
   import { projectState } from "../state.svelte";
+    import { detectOS } from "../utils";
   import SettingsDialog from "./SettingsDialog.svelte";
-  import { detectOS } from "./utils";
+
 
   const OS = detectOS();
   const isMac = OS === "Mac";

@@ -1,20 +1,23 @@
 <script lang="ts">
 import { SlInput, SlSelect, type SlChangeEvent, type SlHideEvent} from '@shoelace-style/shoelace';
 import { projectState } from '../state.svelte';
+    import type { Area } from '../types';
 
-let { open = $bindable(), idx } = $props();
+type EditAreaDialogProps = {
+    area: Area;
+    open: boolean;
+}
+let { open = $bindable(), area }: EditAreaDialogProps = $props();
 
 const hide = ( ) => {
     open = false;
 }
-const show = () => open = true;
 
-let name = $state(projectState.areas[idx].name);
-let color = $state(projectState.areas[idx].color);
+let name = $state(area.name);
+let color = $state(area.color);
 
 const saveArea = () => {
-    projectState.areas[idx].name = name;
-    projectState.areas[idx].color = color;
+    projectState.areas.update(area.id, name, color);
     open = false;
 }
 

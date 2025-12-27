@@ -1,8 +1,11 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import { getAreaByRef, getImageByRef, getTileByRef, guiState, projectState } from "../state.svelte";
-  import { isPointInRect } from "./utils";
-  import type { TileRef } from "../types";
+  import {
+    guiState,
+    projectState,
+    HistoryStack,
+  } from "../state.svelte";
+  import { getNeighbours, isPointInRect, roundToDecimal } from "../utils";
 
   const { tileSize } = $derived(projectState);
   const { gridColor, tilemapEditorState } = $derived(guiState);
@@ -28,7 +31,6 @@
   });
 
   const handleMouseDown = (e: MouseEvent) => {
-    
     isMousDown = true;
 
     const rect = canvasEl.getBoundingClientRect();
@@ -42,26 +44,109 @@
     const row = Math.floor(y / tileSize);
 
     switch (tilemapEditorState.type) {
-      case "tile":
+      case "auto-tile":
         switch (tilemapEditorState.selectedTool) {
           case "paint":
             if (tilemapEditorState.selectedAsset === null) {
-                guiState.notification = {
-                  variant: "neutral",
-                  title: "No asset",
-                  msg: "Select a tile!",
-                };
+              guiState.notification = {
+                variant: "neutral",
+                title: "No asset",
+                msg: "Select an auto tile!",
+              };
               break;
             }
 
-            tilemapEditorState.selectedLayer.data.set(
-              `${row}:${col}`,
-              tilemapEditorState.selectedAsset.ref as TileRef
+            projectState.layers.paintWithAutoTile(
+              row,
+              col,
+              tilemapEditorState.selectedAsset.ref.id,
+               tilemapEditorState.selectedLayer.id
             );
 
             break;
           case "erase":
-            tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+            projectState.layers.eraseAutoTile(
+              row,
+              col,
+              tilemapEditorState.selectedLayer.id
+            );
+            break;
+        }
+        break;
+      case "tile":
+        switch (tilemapEditorState.selectedTool) {
+          case "paint":
+            if (tilemapEditorState.selectedAsset === null) {
+              guiState.notification = {
+                variant: "neutral",
+                title: "No asset",
+                msg: "Select a tile!",
+              };
+
+              break;
+            }
+
+            if (tilemapEditorState.fillToolIsActive) {
+              const filledTiles = floodFill(
+                tilemapEditorState.selectedLayer.id,
+                row,
+                col,
+              );
+              if (filledTiles !== null) {
+                for (const tile of filledTiles) {
+                  projectState.layers.paintTile(
+                    tile.row,
+                    tile.col,
+                    tilemapEditorState.selectedLayer.id,
+                    tilemapEditorState.selectedAsset,
+                  );
+                }
+              } else {
+                guiState.notification = {
+                  variant: "neutral",
+                  title: "Fill error",
+                  msg: "You can't fill a non enclosed area",
+                };
+              }
+            } else {
+              projectState.layers.paintTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer.id,
+                tilemapEditorState.selectedAsset,
+              );
+            }
+
+            break;
+          case "erase":
+            if (tilemapEditorState.fillToolIsActive) {
+              const filledTiles = floodFill(
+                tilemapEditorState.selectedLayer.id,
+                row,
+                col,
+              );
+              if (filledTiles !== null) {
+                for (const tile of filledTiles) {
+                  projectState.layers.eraseTile(
+                    tile.row,
+                    tile.col,
+                    tilemapEditorState.selectedLayer.id,
+                  );
+                }
+              } else {
+                guiState.notification = {
+                  variant: "neutral",
+                  title: "Fill error",
+                  msg: "You can't fill a non enclosed area",
+                };
+              }
+            } else {
+              projectState.layers.eraseTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer.id,
+              );
+            }
             break;
         }
 
@@ -78,14 +163,44 @@
               break;
             }
 
-            tilemapEditorState.selectedLayer.data.set(
-              `${row}:${col}`,
-              tilemapEditorState.selectedAsset.ref
-            );
+            if (tilemapEditorState.fillToolIsActive) {
+              const filledTiles = floodFill(
+                tilemapEditorState.selectedLayer.id,
+                row,
+                col,
+              );
+              if (filledTiles !== null) {
+                for (const tile of filledTiles) {
+                  projectState.layers.paintTile(
+                    tile.row,
+                    tile.col,
+                    tilemapEditorState.selectedLayer.id,
+                    tilemapEditorState.selectedAsset,
+                  );
+                }
+              } else {
+                guiState.notification = {
+                  variant: "neutral",
+                  title: "Fill error",
+                  msg: "You can't fill a non enclosed area",
+                };
+              }
+            } else {
+              projectState.layers.paintTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer.id,
+                tilemapEditorState.selectedAsset,
+              );
+            }
 
             break;
           case "erase":
-            tilemapEditorState.selectedLayer.data.delete(`${row}:${col}`);
+            projectState.layers.eraseTile(
+              row,
+              col,
+              tilemapEditorState.selectedLayer.id,
+            );
             break;
         }
 
@@ -93,16 +208,16 @@
       case "image":
         if (ctrlKeyIsDown) {
           for (const i of tilemapEditorState.selectedLayer.data.toReversed()) {
-            const image = getImageByRef(i);
+            const image = projectState.images.getImage(i.ref.id);
 
-            if(image === undefined) {
+            if (image === undefined) {
               throw new Error("Image not found");
             }
 
             if (
               isPointInRect(
                 { x, y },
-                { x: i.x, y: i.y, width: image.width, height: image.height }
+                { x: i.x, y: i.y, width: image.width, height: image.height },
               )
             ) {
               i.isSelected = true;
@@ -125,15 +240,12 @@
             break;
           }
 
-          tilemapEditorState.selectedLayer.data = [
-            ...tilemapEditorState.selectedLayer.data,
-            {
-              ...tilemapEditorState.selectedAsset.ref,
-              x,
-              y,
-              isSelected: false,
-            },
-          ];
+          tilemapEditorState.selectedLayer.data.push({
+            ...tilemapEditorState.selectedAsset,
+            x,
+            y,
+            isSelected: false,
+          });
         }
         break;
     }
@@ -160,13 +272,14 @@
     if (isMousDown) {
       switch (tilemapEditorState.type) {
         case "tile":
+          if (tilemapEditorState.fillToolIsActive) break;
+
           switch (tilemapEditorState.selectedTool) {
             case "paint":
               if (tilemapEditorState.selectedAsset !== null) {
-                tilemapEditorState.selectedLayer.data.set(
-                  `${row}:${col}`,
-                  tilemapEditorState.selectedAsset.ref as TileRef
-                );
+                tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, {
+                  ...tilemapEditorState.selectedAsset,
+                });
               }
               break;
             case "erase":
@@ -176,17 +289,14 @@
 
           break;
         case "area":
+          if (tilemapEditorState.fillToolIsActive) break;
+
           switch (tilemapEditorState.selectedTool) {
             case "paint":
               if (tilemapEditorState.selectedAsset !== null) {
-
-                console.dir(projectState.layers);
-                
-                tilemapEditorState.selectedLayer.data.set(
-                  `${row}:${col}`,
-                  tilemapEditorState.selectedAsset.ref
-                );
-
+                tilemapEditorState.selectedLayer.data.set(`${row}:${col}`, {
+                  ...tilemapEditorState.selectedAsset,
+                });
               }
               break;
             case "erase":
@@ -209,9 +319,64 @@
     }
   };
 
+  function floodFill(
+    layerID: string,
+    row: number,
+    col: number,
+  ): { row: number; col: number }[] | null {
+    const clickedTile = projectState.layers.getTileAt(row, col, layerID);
+    const BOUNDARY = 100;
+    const minRow = row - BOUNDARY;
+    const maxRow = row + BOUNDARY;
+    const minCol = col - BOUNDARY;
+    const maxCol = col + BOUNDARY;
+
+    const stack = [{ row, col }];
+
+    const visited = new Set();
+
+    visited.add(`${row}:${col}`);
+
+    const filledTiles: { row: number; col: number }[] = [];
+
+    while (stack.length > 0) {
+      const tile = stack.pop()!;
+
+      if (
+        tile.row < minRow ||
+        tile.row > maxRow ||
+        tile.col < minCol ||
+        tile.col > maxCol
+      ) {
+        return null;
+      }
+
+      const neighbours = getNeighbours({ row: tile.row, col: tile.col });
+
+      for (const n of neighbours) {
+        const visitedKey = `${n.row}:${n.col}`;
+
+        if (
+          !visited.has(visitedKey) &&
+          projectState.utils.isSameAsset(
+            clickedTile,
+            projectState.layers.getTileAt(n.row, n.col, layerID),
+          )
+        ) {
+          visited.add(`${n.row}:${n.col}`);
+          stack.push(n);
+        }
+      }
+
+      filledTiles.push(tile);
+    }
+
+    return filledTiles;
+  }
+
   function getWorldPos(
     ctx: CanvasRenderingContext2D,
-    pos: { x: number; y: number }
+    pos: { x: number; y: number },
   ) {
     const inv = ctx.getTransform().invertSelf();
 
@@ -225,27 +390,28 @@
     if (e.target !== canvasEl) return;
 
     const delta = Math.sign(e.deltaY);
-
-    const zoomFactor = 0.1;
+    const zoomFactor = 0.125;
 
     if (delta < 0) {
-      if (zoom <= 5.0) {
-        zoom += zoomFactor;
+      if (zoom < 4.0) {
+        zoom = roundToDecimal(zoom + zoomFactor, 3);
         zoomPos = getWorldPos(ctx, {
           x: mousePosCanvas.x,
           y: mousePosCanvas.y,
         });
+
         // Update current translation to account for zoompoint
         translation.x = mousePosCanvas.x - zoomPos.x * zoom;
         translation.y = mousePosCanvas.y - zoomPos.y * zoom;
       }
     } else {
-      if (zoom > 0.5) {
-        zoom -= zoomFactor;
+      if (zoom >= 0.5) {
+        zoom = roundToDecimal(zoom - zoomFactor, 3);
         zoomPos = getWorldPos(ctx, {
           x: mousePosCanvas.x,
           y: mousePosCanvas.y,
         });
+
         // Update current translation to account for zoompoint
         translation.x = mousePosCanvas.x - zoomPos.x * zoom;
         translation.y = mousePosCanvas.y - zoomPos.y * zoom;
@@ -262,7 +428,6 @@
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
-
     if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
 
     if (e.shiftKey) shiftKeyIsDown = true;
@@ -315,6 +480,12 @@
           tilemapEditorState.selectedLayer.data =
             tilemapEditorState.selectedLayer.data.filter((l) => !l.isSelected);
         break;
+      case "z":
+        ctrlKeyIsDown && HistoryStack.undo();
+        break;
+      case "y":
+        ctrlKeyIsDown && HistoryStack.redo();
+        break;
     }
   };
 
@@ -325,34 +496,56 @@
     ctx.translate(translation.x, translation.y);
     ctx.scale(zoom, zoom);
 
-    const { x0, x1, y0, y1 } = getWorldBounds(ctx);
-
-    const startX = Math.floor(x0 / tileSize) * tileSize;
-    const startY = Math.floor(y0 / tileSize) * tileSize;
-
-
-
-    for (const layer of projectState.layers) {
+    for (const layer of projectState.layers.get()) {
       if (layer.isVisible) {
         switch (layer.type) {
           case "tile":
-            for (const [key, tileRef] of layer.data) {
-
+            for (const [key, tileAsset] of layer.data) {
               const [ty, tx] = key.split(":").map(Number);
-              const tile = getTileByRef(tileRef);
+              const tile = projectState.tilesets.getTile(
+                tileAsset.ref.tileset.id,
+                tileAsset.ref.tile.id,
+              );
 
               ctx.drawImage(
                 tile.bitmap,
                 tx * tileSize,
                 ty * tileSize,
                 tileSize,
-                tileSize
+                tileSize,
               );
             }
             break;
+          case "auto-tile":
+            for (const [key, autoTileAsset] of layer.data) {
+              const [ty, tx] = key.split(":").map(Number);
+              const autoTile = projectState.autoTiles.getAutoTile(
+                autoTileAsset.ref.id,
+              );
+              const tileRule = autoTile.rules.find(
+                (tr) => tr.id === autoTileAsset.tileRule.ref.id,
+              );
+
+              if (tileRule?.tile) {
+                const tile = projectState.tilesets.getTile(
+                  tileRule.tile.ref.tileset.id,
+                  tileRule.tile.ref.tile.id,
+                );
+
+                ctx.drawImage(
+                  tile.bitmap,
+                  tx * tileSize,
+                  ty * tileSize,
+                  tileSize,
+                  tileSize,
+                );
+              }
+            }
+            break;
+
           case "image":
             for (const i of layer.data) {
-              const image = getImageByRef(i);
+              const image = projectState.images.getImage(i.ref.id);
 
               ctx.drawImage(image.bitmap, i.x, i.y, image.width, image.height);
 
@@ -363,9 +556,8 @@
             }
             break;
           case "area":
-            for (const [key, areaRef] of layer.data) {
-
-              const area = getAreaByRef(areaRef);
+            for (const [key, areaAsset] of layer.data) {
+              const area = projectState.areas.getArea(areaAsset.ref.id);
 
               const [ty, tx] = key.split(":").map(Number);
 
@@ -379,17 +571,24 @@
       }
     }
 
-        ctx.beginPath();
+    // Draw grid if not to zoomed out bc of performance
+    if (zoom >= 0.5) {
+      const { x0, x1, y0, y1 } = getWorldBounds(ctx);
 
-    ctx.strokeStyle = gridColor;
+      const startX = Math.floor(x0 / tileSize) * tileSize;
+      const startY = Math.floor(y0 / tileSize) * tileSize;
+      ctx.beginPath();
 
-    for (let y = startY; y <= y1; y += tileSize) {
-      for (let x = startX; x <= x1; x += tileSize) {
-        ctx.rect(x, y, tileSize, tileSize);
+      ctx.strokeStyle = gridColor;
+
+      for (let y = startY; y <= y1; y += tileSize) {
+        for (let x = startX; x <= x1; x += tileSize) {
+          ctx.rect(x, y, tileSize, tileSize);
+        }
       }
-    }
 
-    ctx.stroke();
+      ctx.stroke();
+    }
   }
 
   function getWorldBounds(ctx: CanvasRenderingContext2D) {
@@ -398,7 +597,7 @@
     const topLeft = new DOMPoint(0, 0).matrixTransform(m);
     const bottomRight = new DOMPoint(
       canvasEl.width,
-      canvasEl.height
+      canvasEl.height,
     ).matrixTransform(m);
 
     return {
@@ -426,18 +625,18 @@
   bind:this={canvasEl}
   onmousemove={handleMouseMove}
   onmousedown={handleMouseDown}
-  class:cursor-crosshair={["area", "tile"].includes(tilemapEditorState.type)}
+  class:cursor-crosshair={["area", "tile", "auto-tile"].includes(
+    tilemapEditorState.type,
+  )}
 ></canvas>
 
 <style lang="postcss">
-
- .cursor-crosshair {
+  .cursor-crosshair {
     cursor: crosshair;
- }
+  }
   canvas {
     background-color: var(--color-0);
     width: 100%;
     height: 100%;
-
   }
 </style>

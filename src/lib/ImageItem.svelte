@@ -23,9 +23,9 @@
 
     const handleSelectMenuItem = (item: SlMenuItem) => {
         if (item.value === "delete") {
-            const isUsedInLayer = projectState.layers.some((layer) => {
+            const isUsedInLayer = projectState.layers.get().some((layer) => {
                 if (layer.type === "image") {
-                    return layer.data.some((i) => i.id === image.id);
+                    return layer.data.some((i) => i.ref.id === image.id);
                 }
                 return false;
             });
@@ -39,7 +39,7 @@
                 return;
             }
 
-            projectState.images.splice(idx, 1);
+            projectState.images.delete(image.id);
 
         } else if (item.value === "view") {
             viewImageDialogIsOpen = true;
@@ -47,7 +47,7 @@
     };
 
     const selectImage = () => {
-        tilemapEditorState.selectedAsset = { ref: { id: image.id } };
+        tilemapEditorState.selectedAsset = {type: "image", ref: { id: image.id } };
     };
 
 </script>

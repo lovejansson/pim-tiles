@@ -13,7 +13,7 @@ let name = $state("New area");
 let color = $state("lime");
 
 const saveArea = () => {
-    projectState.areas.push({id: 10, name, color});
+    projectState.areas.push({id: crypto.randomUUID(), name, color});
     open = false;
 }
 

@@ -13,14 +13,7 @@
       const file = files[0];
       const bitmap = await createImageBitmap(file);
       const dataURL = await bitmapToDataURL(bitmap);
-      projectState.images.push({
-        id: Symbol(),
-        width: bitmap.width,
-        height: bitmap.height,
-        bitmap,
-        dataURL,
-        filename: file.name,
-      });
+      projectState.images.add(file.name, dataURL, bitmap, bitmap.width, bitmap.height);
     } catch (e) {
       console.error(e);
       guiState.notification = {
@@ -39,10 +32,10 @@
     <FilePicker accept="image/png, image/jpeg" onFile={loadImage} />
   </header>
 
-  {#if projectState.images.length > 0}
+  {#if projectState.images.get().length > 0}
       <ul>  
 
-      {#each projectState.images as image, idx}
+      {#each projectState.images.get() as image, idx}
         <li><ImageItem image={image} idx={idx}/></li>
       {/each}
         </ul>

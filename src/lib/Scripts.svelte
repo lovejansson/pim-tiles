@@ -3,11 +3,9 @@
   import ScriptTreeItem from "./ScriptTreeItem.svelte";
 
   const newScript = () => {
-      const numNamedNewScript = projectState.scripts.filter(s => s.name.match(/New script(\(\d\))?/)).length;
-      projectState.scripts.push({name: `New script${numNamedNewScript === 0 ? "" : "(" + numNamedNewScript + ")"}` , content: ['function x() {', '\tconsole.log("Hello world!");', '}'].join('\n')});
+      const numNamedNewScript = projectState.scripts.get().filter(s => s.name.match(/New script(\(\d\))?/)).length;
+      projectState.scripts.add(`New script${numNamedNewScript === 0 ? "" : "(" + numNamedNewScript + ")"}` , ['function x() {', '\tconsole.log("Hello world!");', '}'].join('\n'));
   }
-
-
 
 </script>
 
@@ -32,10 +30,10 @@
             
               Scripts
     
-    {#each projectState.scripts as _, idx} 
+    {#each projectState.scripts.get() as script, idx} 
   
     <sl-tree-item >
-        <ScriptTreeItem scriptIdx={idx}/>
+        <ScriptTreeItem script={script}/>
     </sl-tree-item>
 
     {/each}    

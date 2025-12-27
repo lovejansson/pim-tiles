@@ -13,10 +13,13 @@
 <section id="toolbar">
   <Layers />
   <sl-divider></sl-divider>
+  
   {#if guiState.tilemapEditorState.type === "tile"}
     <Tools />
     <Tilesets />
-    <sl-divider></sl-divider>
+  {:else if guiState.tilemapEditorState.type === "auto-tile"}
+    <Tools />
+
     <AutoTiles />
   {:else if guiState.tilemapEditorState.type === "area"}
     <Tools />

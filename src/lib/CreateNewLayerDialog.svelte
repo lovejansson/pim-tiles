@@ -7,26 +7,19 @@
   } from "@shoelace-style/shoelace";
   import { projectState } from "../state.svelte";
 
-  let { open = $bindable() } = $props();
+  type CreateLayerDialogProps = {open: boolean;}
+  let { open = $bindable() }: CreateLayerDialogProps = $props();
 
   const hide = () => {
     open = false;
   };
-  const show = () => (open = true);
+ 
 
   let name = $state("New layer");
-  let layerType: "tile" | "image" | "area" = $state("tile");
+  let layerType: "tile" | "image" | "area" | "auto-tile" = $state("tile");
 
   const saveLayer = () => {
-    let layer;
-    if (layerType === "image") {
-      layer = { id: Symbol(), name, type: "image" as const, data: [], isVisible: true };
-    } else if (layerType === "tile") {
-      layer = { id: Symbol(), name, type: "tile" as const, data: new Map(), isVisible: true };
-    } else {
-      layer = { id: Symbol(), name, type: "area" as const, data: new Map(), isVisible: true };
-    }
-    projectState.layers.push(layer);
+    projectState.layers.add(name, layerType);
     open = false;
   };
 </script>
@@ -35,7 +28,7 @@
   <sl-input
     onsl-change={(e: SlChangeEvent) => {
       if (e.target) {
-        name = (e.target as SlInput).value as "tile" | "area" | "image";
+        name = (e.target as SlInput).value as "tile" | "image" | "area" | "auto-tile";
       }
     }}
     label="Layer name"
@@ -59,8 +52,12 @@
       Image
     </sl-option>
     <sl-option value="area">
-      <sl-icon slot="prefix" library="pixelarticons" name="drop-area"></sl-icon>
+      <sl-icon slot="prefix" library="pixelarticons" name="section"></sl-icon>
       Area
+    </sl-option>
+    <sl-option value="auto-tile">
+      <sl-icon slot="prefix" library="pixelarticons" name="grid"></sl-icon>
+      Auto tile
     </sl-option>
   </sl-select>
 

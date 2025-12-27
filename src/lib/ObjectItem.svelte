@@ -1,11 +1,11 @@
 <script lang="ts">
   import {  SlMenuItem } from "@shoelace-style/shoelace";
-  import { getImageByRef, guiState } from "../state.svelte";
+  import {  guiState, projectState } from "../state.svelte";
   import ContextMenu from "./ui/ContextMenu.svelte";
-  import type { ImageLayerState, Image, IdRef, Point } from "../types";
+  import type { ImageLayerState, Image, Point, ImageAsset } from "../types";
 
   type ObjectItemProps = {
-    object: (IdRef & Point & {isSelected: boolean});
+    object: (ImageAsset & Point & {isSelected: boolean});
   }
 
     const tilemapEditorState = $derived.by(
@@ -17,8 +17,8 @@
     );
 
     let { object }: ObjectItemProps = $props();
-    const image = $derived.by((): Image => {
-      const image = getImageByRef(object);
+      const image = $derived.by((): Image => {
+      const image = projectState.images.getImage(object.ref.id);
       return image;
     });
 
@@ -26,10 +26,9 @@
         if(item.value === "delete") {
             tilemapEditorState.selectedLayer.data = tilemapEditorState.selectedLayer.data.filter(i => !i.isSelected);
         } 
-        
     }
 
-    const selectImage = (e:MouseEvent) => {
+    const selectImage = (e: MouseEvent) => {
       object.isSelected =   !object.isSelected;
       e.stopPropagation();
     }
