@@ -5,17 +5,24 @@
         type TileAsset,
         TileRequirement,
         type TileConnections,
+        type TileRef,
+        type Tileset,
+        type Tile,
     } from "../types";
 
     type RuleTileButtonProps = {
-        ruleTile: TileRule;
-        selectedTile: TileAsset | null;
-        onDelete: () => void;
+        tileset: Tileset;
+        tile: Tile;
+        ruleTile?: TileRule;
+        onDelete: (tile: TileRef) => void;
+        onAdd: (tile: TileRef) => void;
     };
     let {
+        tileset,
+        tile,
         ruleTile = $bindable(),
-        selectedTile,
         onDelete,
+        onAdd,
     }: RuleTileButtonProps = $props();
 
     const getNextReq = (connection: TileRequirement) => {
@@ -29,69 +36,73 @@
         }
     };
 
-    const entries = $derived(
-        Object.entries(ruleTile.connections) as [
-            keyof TileConnections,
-            TileRequirement,
-        ][],
+    const create16EmptyRules = (): (Omit<TileRule, "tile"> & {
+        tile: null;
+    })[] => {
+        return Array(16)
+            .fill(null)
+            .map(
+                (_) =>
+                    ({
+                        id: crypto.randomUUID(),
+                        tile: null,
+                        connections: {
+                            n: TileRequirement.OPTIONAL,
+                            ne: TileRequirement.OPTIONAL,
+                            e: TileRequirement.OPTIONAL,
+                            se: TileRequirement.OPTIONAL,
+                            s: TileRequirement.OPTIONAL,
+                            sw: TileRequirement.OPTIONAL,
+                            w: TileRequirement.OPTIONAL,
+                            nw: TileRequirement.OPTIONAL,
+                        },
+                    }) as Omit<TileRule, "tile"> & { tile: null },
+            );
+    };
+
+    const ruleTileConnections = $derived(
+        Object.entries(
+            ruleTile !== undefined
+                ? ruleTile.connections
+                : create16EmptyRules(),
+        ) as [keyof TileConnections, TileRequirement][],
     );
 </script>
 
 <div id="wrapper">
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div id="btns-directions">
-        {#each entries as [direction, connectionReq]}
-            <sl-button
-                style={`grid-area: ${direction};`}
-                onclick={() =>
-                    (ruleTile.connections[direction] =
-                        getNextReq(connectionReq))}
-                onkeydown={(e: KeyboardEvent) => {
-                    if (e.key === "Enter") {
-                        ruleTile.connections[direction] =
-                            getNextReq(connectionReq);
-                    }
-                }}
+    <img class="img-tile" src={tile.dataURL} alt="PaintType.TILE" />
+    <!-- 
+        {#if ruleTileConnections && ruleTile}
+            {#each ruleTileConnections as [direction, connectionReq]}
+                <sl-button
+                    style={`grid-area: ${direction};`}
+                    onclick={() =>
+                        (ruleTile.connections[direction] =
+                            getNextReq(connectionReq))}
+                    onkeydown={(e: KeyboardEvent) => {
+                        if (e.key === "Enter") {
+                            ruleTile.connections[direction] =
+                                getNextReq(connectionReq);
+                        }
+                    }}
+                    size="small"
+                    class={connectionReq}
+                >
+                </sl-button>
+            {/each}
+        {:else}
+        
+        {/if}
+    </div> -->
+
+        <sl-button
+                style={`grid-area: c`}
                 size="small"
-                class={connectionReq}
+                id="btn-center"
             >
             </sl-button>
-        {/each}
-    </div>
-
-    {#if ruleTile.tile !== null}
-        <img
-            class="PaintType.TILE"
-            src={projectState.tilesets.getTile(
-                ruleTile.tile.ref.tileset.id,
-                ruleTile.tile.ref.tile.id,
-            ).dataURL}
-            alt="PaintType.TILE"
-        />
-    {:else}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <sl-button
-            onkeydown={(e: KeyboardEvent) => {
-                if (e.key === "Enter" && selectedTile !== null)
-                    ruleTile.tile = { ...selectedTile };
-            }}
-            onclick={() => {
-                if (selectedTile !== null) {
-                    ruleTile.tile = { ...selectedTile };
-                }
-            }}
-            class="tile-placeholder tile"
-        ></sl-button>
-    {/if}
-
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <sl-icon-button
-        onclick={onDelete}
-        onkeydown={(e: KeyboardEvent) => e.key === "Enter" && onDelete()}
-        library="pixelarticons"
-        name="close"
-    >
-    </sl-icon-button>
+            
 </div>
 
 <style>
@@ -99,14 +110,30 @@
         display: flex;
         gap: 1rem;
         align-items: center;
+        position: relative;
     }
 
     #btns-directions {
+        position: absolute;
         display: grid;
         grid-template-areas:
             "nw n ne"
-            "e . w"
+            "e c w"
             "sw s se";
+    }
+
+    #btn-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        /* transform: translate(-50%, -50%); */
+    }
+
+    img {
+        position: relative;
+        width: 64px;
+        height: 64px;
+        image-rendering: pixelated;
     }
 
     .tile,

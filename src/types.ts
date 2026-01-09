@@ -6,7 +6,7 @@ type ProjectState = {
     tileSize: number,
     layers: Layer[],
     tilesets: Tileset[],
-    scripts: Script[],
+    // scripts: Script[],
     images: Image[],
     autoTiles: AutoTile[],
     areas: Area[],
@@ -18,11 +18,11 @@ type Area = {
     name: string;
 }
 
-type Script = {
-    id: string;
-    name: string;
-    content: string;
-}
+// type Script = {
+//     id: string;
+//     name: string;
+//     content: string;
+// }
 
 type Tile = {
     id: string;
@@ -141,7 +141,7 @@ type TileConnections = {
 type TileRule = {
     id: string;
     connections: TileConnections,
-    tile: TileAsset | null;
+    tile: TileAsset;
 }
 
 type TileRef = {
@@ -250,6 +250,6 @@ export {
     type AreaHistoryEntryItem, type AutoTileHistoryEntryItem, type TileHistoryEntryItem, type ImageHistoryEntryItem,
     PaintType, Tool, TileRequirement, type HistoryEntry, type TileHistoryEntry, type AreaHistoryEntry, type ImageHistoryEntry,
     type TilemapEditorState, type AssetRef, type Area, type AreaAsset, type TileAsset, type ImageAsset, type AutoTileAsset, type TileLayerState, type AutoTileLayerState, type AreaLayerState, type ImageLayerState,
-    type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer, type Script, type TileLayer, type ImageLayer,
+    type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer,  type TileLayer, type ImageLayer,
     type Image, type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type TileConnections
 };

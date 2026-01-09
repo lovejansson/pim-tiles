@@ -1,19 +1,11 @@
 # Todo
 
-UNDO / REDO
-
-* Implement history api 
-
 * The user can select from all tiles and click on the corners / center to edit the rule for that tile 
 
-* Make sure paint with auto tile works
+* Finnish auto tile feature
+
+* remove transparent parts from tiles when creating images / or make it posible to select multiple at ones (seems normal for tilemap editors)
  
-SCRIPTING
-
-* expose project state api in scripting env
-
-* execute scripts 
-
 FILE 
 
 * Implement Save in localstorage
@@ -22,6 +14,12 @@ FILE
 * Implement export of JSON 
 
 
-* Pan add drag of tilemap
+SCRIPTING
 
+* expose project state api in scripting env
+* execute scripts 
+
+Extra 
+
+* Pan add drag of tilemap
 * Add attributes to objects

@@ -33,7 +33,6 @@ export const guiState: GUIState = $state({
   selectedTile: null,
   history: [],
   historyIdx: 0,
-
 });
 
 class ProjectStateError extends Error {
@@ -44,11 +43,25 @@ class ProjectStateError extends Error {
   }
 }
 
-function createProjectState() {
-  const generateId = () => {
+type ProjectStateChangeEvent = { prev: HistoryEntry, next: HistoryEntry };
+
+class ProjectStateEventEmitter extends EventTarget {
+
+  emit(event: ProjectStateChangeEvent) {
+    this.dispatchEvent(
+      new CustomEvent("project-state-change", { detail: event })
+    );
+  }
+}
+
+
+const projectStateChangeEvents = new ProjectStateEventEmitter();
+
+export const projectState = (() => {
+
+  function generateId() {
     return crypto.randomUUID();
   }
-
 
   const projectState: ProjectState = $state({
     projectName: "My project",
@@ -78,7 +91,7 @@ function createProjectState() {
 
     tilesets: [],
     images: [],
-    scripts: [{ id: "id", name: "script1.js", content: "woop" }],
+    // scripts: [{ id: "id", name: "script1.js", content: "woop" }],
     autoTiles: [],
     areas: [],
   });
@@ -157,7 +170,6 @@ function createProjectState() {
         const idx = projectState.areas.findIndex(a => a.id === id);
         if (idx === -1) throw new ProjectStateError("Area not found", "not-found");
         projectState.areas[idx] = { ...projectState.areas[idx], name, color };
-
       },
       delete(id: string) {
         const idx = projectState.areas.findIndex(a => a.id === id);
@@ -316,28 +328,28 @@ function createProjectState() {
 
     },
 
-    scripts: {
-      get() {
-        return projectState.scripts;
-      },
-      getScript(id: string) {
-        const script = projectState.scripts.find(s => s.id === id);
-        if (script === undefined) throw new ProjectStateError("Script not found", "not-found");
-        return script;
-      },
-      add(name: string, content: string) {
-        projectState.scripts.push({
-          id: generateId(),
-          name: name,
-          content: content,
-        });
-      },
-      delete(id: string) {
-        const idx = projectState.scripts.findIndex(s => s.id === id);
-        if (idx === -1) throw new ProjectStateError("Script not found", "not-found");
-        projectState.scripts.splice(idx, 1);
-      }
-    },
+    // scripts: {
+    //   get() {
+    //     return projectState.scripts;
+    //   },
+    //   getScript(id: string) {
+    //     const script = projectState.scripts.find(s => s.id === id);
+    //     if (script === undefined) throw new ProjectStateError("Script not found", "not-found");
+    //     return script;
+    //   },
+    //   add(name: string, content: string) {
+    //     projectState.scripts.push({
+    //       id: generateId(),
+    //       name: name,
+    //       content: content,
+    //     });
+    //   },
+    //   delete(id: string) {
+    //     const idx = projectState.scripts.findIndex(s => s.id === id);
+    //     if (idx === -1) throw new ProjectStateError("Script not found", "not-found");
+    //     projectState.scripts.splice(idx, 1);
+    //   }
+    // },
 
     layers: {
       get() {
@@ -391,24 +403,157 @@ function createProjectState() {
 
         const layer = this.getLayer(layerID);
 
+        // TODO: can this be done better with typescript generics?
         if (layer.type === PaintType.IMAGE) throw new ProjectStateError("paintTile not supported for image layers", "not-supported");
         if (layer.type !== paint.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
 
-        // TODO: can this be done better with typescript generics?
+        const curr = layer.data.get(`${row}:${col}`) || null;
+
+        // Don't do anything if the same tile is being painted again
+        if (api.utils.isSameAsset(curr, paint)) {
+          return;
+        }
+
         layer.data.set(`${row}:${col}`, { ...paint } as any);
+
+        projectStateChangeEvents.emit({
+          prev: { type: paint.type, layer: { id: layerID }, items: [{ data: curr ? { ...curr } as any : null, pos: { row, col } }] },
+          next: { type: paint.type, layer: { id: layerID }, items: [{ data: { ...paint } as any, pos: { row, col } }] }
+        });
+
+      },
+
+      applyPaintTileChange(row: number, col: number, layerID: string, paint: PaintedTile | PaintedArea | PaintedAutoTile | null) {
+
+        const layer = this.getLayer(layerID);
+
+        // TODO: can this be done better with typescript generics?
+        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("applyPaintTileChange not supported for image layers", "not-supported");
+
+
+        if (paint === null) {
+          layer.data.delete(`${row}:${col}`);
+        } else {
+          if (layer.type !== paint.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
+          layer.data.set(`${row}:${col}`, { ...paint } as any);
+        }
+
       },
 
       eraseTile(row: number, col: number, layerID: string) {
         const layer = this.getLayer(layerID);
         if (layer.type === PaintType.IMAGE) throw new ProjectStateError("eraseTile not supported for image layers", "not-supported");
+
+        const curr = layer.data.get(`${row}:${col}`) || null;
+
+        // Don't do anything if the tile is already erased
+        if (api.utils.isSameAsset(curr, null)) {
+          return;
+        }
+
         layer.data.delete(`${row}:${col}`);
+
+        projectStateChangeEvents.emit({
+          prev: { type: layer.type, layer: { id: layerID }, items: [{ data: curr ? { ...curr } as any : null, pos: { row, col } }] },
+          next: { type: layer.type, layer: { id: layerID }, items: [{ data: null, pos: { row, col } }] }
+        });
+
       },
 
-      // restore an image at a specifi
+      floodFill(
+        layerID: string,
+        row: number,
+        col: number,
+        paint: PaintedTile | PaintedArea | PaintedAutoTile | null
+      ) {
+
+        const layer = this.getLayer(layerID);
+
+        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("eraseTile not supported for image layers", "not-supported");
+        if (paint !== null && layer.type !== paint.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
+
+        const clickedTile = this.getTileAt(row, col, layerID);
+        const BOUNDARY = 100;
+        const minRow = row - BOUNDARY;
+        const maxRow = row + BOUNDARY;
+        const minCol = col - BOUNDARY;
+        const maxCol = col + BOUNDARY;
+
+        const stack = [{ row, col }];
+
+        const visited = new Set();
+
+        visited.add(`${row}:${col}`);
+
+        const filledTiles: { row: number; col: number }[] = [];
+
+        while (stack.length > 0) {
+          const tile = stack.pop()!;
+
+          if (
+            tile.row < minRow ||
+            tile.row > maxRow ||
+            tile.col < minCol ||
+            tile.col > maxCol
+          ) {
+            throw new ProjectStateError("Flood fill exceeded boundary limits", "boundary-exceeded");
+          }
+
+          const neighbours = getNeighbours({ row: tile.row, col: tile.col });
+
+          for (const n of neighbours) {
+            const visitedKey = `${n.row}:${n.col}`;
+
+            if (
+              !visited.has(visitedKey) &&
+              api.utils.isSameAsset(
+                clickedTile,
+                this.getTileAt(n.row, n.col, layerID),
+              )
+            ) {
+              visited.add(`${n.row}:${n.col}`);
+              stack.push(n);
+            }
+          }
+
+          filledTiles.push(tile);
+        }
+
+        const prevTiles = filledTiles.map(ft => {
+          const curr = layer.data.get(`${ft.row}:${ft.col}`) || null;
+          return { data: curr ? { ...curr } as any : null, pos: { row: ft.row, col: ft.col } };
+        });
+
+        const nextItems = filledTiles.map(ft => {
+          return { data: paint !== null ? { ...paint } as any : null, pos: { row: ft.row, col: ft.col } };
+        });
+
+
+        for (const ft of filledTiles) {
+
+          if (paint === null) {
+            layer.data.delete(`${ft.row}:${ft.col}`);
+          } else {
+            layer.data.set(`${ft.row}:${ft.col}`, { ...paint } as any);
+          }
+        }
+
+
+        projectStateChangeEvents.emit({
+          prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
+          next: { type: layer.type, layer: { id: layerID }, items: nextItems }
+        });
+
+      },
+
 
       paintImage(x: number, y: number, layerID: string, asset: ImageAsset): void {
+
         const layer = this.getLayer(layerID);
+
         if (layer.type !== PaintType.IMAGE) throw new ProjectStateError("paintImage only supported for image layers", "not-supported");
+
+        const curr = layer.data.find(i => i.x === x && i.y === y) || null;
 
         layer.data.push({ ...asset, x, y, isSelected: false, id: generateId() });
       },
@@ -532,16 +677,32 @@ function createProjectState() {
   }
 
   return api;
-}
+})();
 
-export const projectState = createProjectState();
 
 export const HistoryStack = (() => {
+
+  // History management 
+  // Each action consists of two entries, the previous state and the next state after the action
+  // When undoing, we decrement the currIdx and repaint the previous state and then move back one more to point to the previous action
+  // When redoing, we increment the currIdx by two to point to the next action and repaint that state
+  // The stack listens to project state change events to build the history via the projectStateChangeEvents emitter
 
   const history: HistoryEntry[] = [];
   let currIdx = 0;
 
-  const restore = () => {
+  projectStateChangeEvents.addEventListener("project-state-change", (e) => {
+
+    if (currIdx !== history.length - 1) {
+      history.splice(currIdx + 1);
+    }
+
+    history.push((e as CustomEvent<ProjectStateChangeEvent>).detail.prev);
+    history.push((e as CustomEvent<ProjectStateChangeEvent>).detail.next);
+    currIdx = history.length - 1;
+  });
+
+  const repaint = () => {
 
     const entry = history[currIdx];
     if (!entry) return;
@@ -550,19 +711,12 @@ export const HistoryStack = (() => {
 
     if (layer.type !== entry.type) throw new Error("type mismatch between layer and entry");
 
-    
-
     switch (entry.type) {
       case PaintType.TILE:
       case PaintType.AUTO_TILE:
       case PaintType.AREA:
         for (const i of entry.items) {
-          if (i.data) {
-            
-            projectState.layers.paintTile(i.pos.row, i.pos.col, entry.layer.id, { ...i.data });
-          } else {
-            projectState.layers.eraseTile(i.pos.row, i.pos.col, entry.layer.id);
-          }
+          projectState.layers.applyPaintTileChange(i.pos.row, i.pos.col, entry.layer.id, i.data);
         }
         break;
       case PaintType.IMAGE:
@@ -580,27 +734,17 @@ export const HistoryStack = (() => {
   return {
 
     undo() {
-      console.log("UNDO")
       if (currIdx === 0) return;
-      currIdx--;
-      restore();
+      currIdx--; // First repaint what was previously done
+      repaint();
+      currIdx--; // Move to the previous state
     },
 
     redo() {
-       console.log("REDo")
       if (currIdx === history.length - 1) return;
-      currIdx++;
-      restore();
+      currIdx += 2; // Advance by two to redo the next action 
+      repaint();
     },
-
-    push(entry: HistoryEntry) {
-            console.log("BUSH")
-      if (currIdx !== history.length - 1) {
-        history.splice(currIdx + 1);
-      }
-      history.push(entry);
-      currIdx = history.length - 1;
-    }
   };
 
 })();

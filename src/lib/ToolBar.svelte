@@ -30,8 +30,8 @@
     <sl-divider></sl-divider>
     <Images />
   {/if}
-  <sl-divider></sl-divider>
-  <Scripts />
+  <!-- <sl-divider></sl-divider>
+  <Scripts /> -->
 </section>
 
 <style lang="postcss">

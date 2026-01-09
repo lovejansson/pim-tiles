@@ -1,13 +1,8 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { guiState, projectState, HistoryStack } from "../state.svelte";
-  import { getNeighbours, isPointInRect, roundToDecimal } from "../utils";
-  import {
-    PaintType,
-    Tool,
-    type AreaHistoryEntryItem,
-    type TileHistoryEntryItem,
-  } from "../types";
+  import { isPointInRect, roundToDecimal } from "../utils";
+  import { PaintType, Tool } from "../types";
 
   const { tileSize } = $derived(projectState);
   const { gridColor, tilemapEditorState } = $derived(guiState);
@@ -59,33 +54,21 @@
               break;
             }
 
-            const historyItems = projectState.layers.paintWithAutoTile(
+            projectState.layers.paintWithAutoTile(
               row,
               col,
               tilemapEditorState.selectedAsset.ref.id,
               tilemapEditorState.selectedLayer.id,
             );
 
-            HistoryStack.push({
-              type: PaintType.AUTO_TILE,
-              layer: { id: tilemapEditorState.selectedLayer.id },
-              items: historyItems,
-            });
-
             break;
           }
           case Tool.ERASE: {
-            const historyItems = projectState.layers.eraseAutoTile(
+            projectState.layers.eraseAutoTile(
               row,
               col,
               tilemapEditorState.selectedLayer.id,
             );
-
-            HistoryStack.push({
-              type: PaintType.AUTO_TILE,
-              layer: { id: tilemapEditorState.selectedLayer.id },
-              items: historyItems,
-            });
 
             break;
           }
@@ -105,41 +88,12 @@
             }
 
             if (tilemapEditorState.fillToolIsActive) {
-              const filledTiles = floodFill(
+              projectState.layers.floodFill(
                 tilemapEditorState.selectedLayer.id,
                 row,
                 col,
+                tilemapEditorState.selectedAsset,
               );
-              if (filledTiles !== null) {
-                const historyItems: TileHistoryEntryItem[] = [];
-                for (const tile of filledTiles) {
-                  projectState.layers.paintTile(
-                    tile.row,
-                    tile.col,
-                    tilemapEditorState.selectedLayer.id,
-                    tilemapEditorState.selectedAsset,
-                  );
-                  historyItems.push({
-                    pos: {
-                      row: tile.row,
-                      col: tile.col,
-                    },
-                    data: { ...tilemapEditorState.selectedAsset },
-                  });
-                }
-
-                HistoryStack.push({
-                  type: PaintType.TILE,
-                  layer: { id: tilemapEditorState.selectedLayer.id },
-                  items: historyItems,
-                });
-              } else {
-                guiState.notification = {
-                  variant: "neutral",
-                  title: "Fill error",
-                  msg: "You can't fill a non enclosed area",
-                };
-              }
             } else {
               projectState.layers.paintTile(
                 row,
@@ -147,67 +101,23 @@
                 tilemapEditorState.selectedLayer.id,
                 tilemapEditorState.selectedAsset,
               );
-
-              HistoryStack.push({
-                type: PaintType.TILE,
-                layer: { id: tilemapEditorState.selectedLayer.id },
-                items: [
-                  {
-                    pos: { row, col },
-                    data: { ...tilemapEditorState.selectedAsset },
-                  },
-                ],
-              });
             }
 
             break;
           case Tool.ERASE:
             if (tilemapEditorState.fillToolIsActive) {
-              const filledTiles = floodFill(
+              projectState.layers.floodFill(
                 tilemapEditorState.selectedLayer.id,
                 row,
                 col,
+                null,
               );
-              if (filledTiles !== null) {
-                const historyItems: TileHistoryEntryItem[] = [];
-                for (const tile of filledTiles) {
-                  projectState.layers.eraseTile(
-                    tile.row,
-                    tile.col,
-                    tilemapEditorState.selectedLayer.id,
-                  );
-                  historyItems.push({
-                    pos: {
-                      row: tile.row,
-                      col: tile.col,
-                    },
-                    data: null,
-                  });
-                }
-                HistoryStack.push({
-                  type: PaintType.TILE,
-                  layer: { id: tilemapEditorState.selectedLayer.id },
-                  items: historyItems,
-                });
-              } else {
-                guiState.notification = {
-                  variant: "neutral",
-                  title: "Fill error",
-                  msg: "You can't fill a non enclosed area",
-                };
-              }
             } else {
               projectState.layers.eraseTile(
                 row,
                 col,
                 tilemapEditorState.selectedLayer.id,
               );
-
-              HistoryStack.push({
-                type: PaintType.TILE,
-                layer: { id: tilemapEditorState.selectedLayer.id },
-                items: [{ pos: { row, col }, data: null }],
-              });
             }
             break;
         }
@@ -226,40 +136,12 @@
             }
 
             if (tilemapEditorState.fillToolIsActive) {
-              const filledTiles = floodFill(
+              projectState.layers.floodFill(
                 tilemapEditorState.selectedLayer.id,
                 row,
                 col,
+                tilemapEditorState.selectedAsset,
               );
-              if (filledTiles !== null) {
-                const historyItems: AreaHistoryEntryItem[] = [];
-                for (const tile of filledTiles) {
-                  historyItems.push({
-                    pos: {
-                      row: tile.row,
-                      col: tile.col,
-                    },
-                    data: { ...tilemapEditorState.selectedAsset },
-                  });
-                  projectState.layers.paintTile(
-                    tile.row,
-                    tile.col,
-                    tilemapEditorState.selectedLayer.id,
-                    tilemapEditorState.selectedAsset,
-                  );
-                }
-                HistoryStack.push({
-                  type: PaintType.AREA,
-                  layer: { id: tilemapEditorState.selectedLayer.id },
-                  items: historyItems,
-                });
-              } else {
-                guiState.notification = {
-                  variant: "neutral",
-                  title: "Fill error",
-                  msg: "You can't fill a non enclosed area",
-                };
-              }
             } else {
               projectState.layers.paintTile(
                 row,
@@ -267,71 +149,23 @@
                 tilemapEditorState.selectedLayer.id,
                 tilemapEditorState.selectedAsset,
               );
-              HistoryStack.push({
-                type: PaintType.AREA,
-                layer: { id: tilemapEditorState.selectedLayer.id },
-                items: [
-                  {
-                    pos: {
-                      row: row,
-                      col: col,
-                    },
-                    data: {
-                      ...tilemapEditorState.selectedAsset,
-                    },
-                  },
-                ],
-              });
             }
 
             break;
           case Tool.ERASE:
             if (tilemapEditorState.fillToolIsActive) {
-              const filledTiles = floodFill(
+              projectState.layers.floodFill(
                 tilemapEditorState.selectedLayer.id,
                 row,
                 col,
+                null,
               );
-              if (filledTiles !== null) {
-                const historyItems: AreaHistoryEntryItem[] = [];
-                for (const tile of filledTiles) {
-                  projectState.layers.eraseTile(
-                    tile.row,
-                    tile.col,
-                    tilemapEditorState.selectedLayer.id,
-                  );
-                  historyItems.push({
-                    pos: {
-                      row: tile.row,
-                      col: tile.col,
-                    },
-                    data: null,
-                  });
-                }
-                HistoryStack.push({
-                  type: PaintType.AREA,
-                  layer: { id: tilemapEditorState.selectedLayer.id },
-                  items: historyItems,
-                });
-              } else {
-                guiState.notification = {
-                  variant: "neutral",
-                  title: "Fill error",
-                  msg: "You can't fill a non enclosed area",
-                };
-              }
             } else {
               projectState.layers.eraseTile(
                 row,
                 col,
                 tilemapEditorState.selectedLayer.id,
               );
-
-              HistoryStack.push({
-                type: PaintType.AREA,
-                layer: { id: tilemapEditorState.selectedLayer.id },
-                items: [{ pos: { row, col }, data: null }],
-              });
             }
             break;
         }
@@ -366,29 +200,12 @@
           if (tilemapEditorState.selectedAsset === null) {
             break;
           }
-          // image x and y is 
-          const id = projectState.layers.paintImage(
+          projectState.layers.paintImage(
             x,
             y,
             tilemapEditorState.selectedLayer.id,
             tilemapEditorState.selectedAsset,
           );
-
-          HistoryStack.push({
-            type: PaintType.IMAGE,
-            layer: { id: tilemapEditorState.selectedLayer.id },
-            items: [
-              {
-                pos: {x, y},
-                data: {
-                  x,
-                  y,
-                  ...tilemapEditorState.selectedAsset,
-                  isSelected: false,
-                },
-              },
-            ],
-          });
         }
         break;
     }
@@ -420,67 +237,20 @@
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                const currTile = projectState.layers.getTileAt(
+                projectState.layers.paintTile(
                   row,
                   col,
                   tilemapEditorState.selectedLayer.id,
+                  tilemapEditorState.selectedAsset,
                 );
-
-                if (
-                  !projectState.utils.isSameAsset(
-                    currTile,
-                    tilemapEditorState.selectedAsset,
-                  )
-                ) {
-                  projectState.layers.paintTile(
-                    row,
-                    col,
-                    tilemapEditorState.selectedLayer.id,
-                    tilemapEditorState.selectedAsset,
-                  );
-
-                  HistoryStack.push({
-                    type: PaintType.TILE,
-                    layer: { id: tilemapEditorState.selectedLayer.id },
-                    items: [
-                      {
-                        pos: { row, col },
-                        data: { ...tilemapEditorState.selectedAsset },
-                      },
-                    ],
-                  });
-                }
               }
               break;
             case Tool.ERASE:
-              const currTile = projectState.layers.getTileAt(
+              projectState.layers.eraseTile(
                 row,
                 col,
                 tilemapEditorState.selectedLayer.id,
               );
-
-              if (
-                !projectState.utils.isSameAsset(
-                  currTile,
-                  tilemapEditorState.selectedAsset,
-                )
-              ) {
-                projectState.layers.eraseTile(
-                  row,
-                  col,
-                  tilemapEditorState.selectedLayer.id,
-                );
-                HistoryStack.push({
-                  type: PaintType.TILE,
-                  layer: { id: tilemapEditorState.selectedLayer.id },
-                  items: [
-                    {
-                      pos: { row, col },
-                      data: null,
-                    },
-                  ],
-                });
-              }
               break;
           }
 
@@ -491,67 +261,21 @@
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                const currTile = projectState.layers.getTileAt(
+                projectState.layers.paintTile(
                   row,
                   col,
                   tilemapEditorState.selectedLayer.id,
+                  tilemapEditorState.selectedAsset,
                 );
-
-                if (
-                  !projectState.utils.isSameAsset(
-                    currTile,
-                    tilemapEditorState.selectedAsset,
-                  )
-                ) {
-                  projectState.layers.paintTile(
-                    row,
-                    col,
-                    tilemapEditorState.selectedLayer.id,
-                    tilemapEditorState.selectedAsset,
-                  );
-
-                  HistoryStack.push({
-                    type: PaintType.AREA,
-                    layer: { id: tilemapEditorState.selectedLayer.id },
-                    items: [
-                      {
-                        pos: { row, col },
-                        data: { ...tilemapEditorState.selectedAsset },
-                      },
-                    ],
-                  });
-                }
               }
               break;
             case Tool.ERASE:
-              const currTile = projectState.layers.getTileAt(
+              projectState.layers.eraseTile(
                 row,
                 col,
                 tilemapEditorState.selectedLayer.id,
               );
 
-              if (
-                !projectState.utils.isSameAsset(
-                  currTile,
-                  tilemapEditorState.selectedAsset,
-                )
-              ) {
-                projectState.layers.eraseTile(
-                  row,
-                  col,
-                  tilemapEditorState.selectedLayer.id,
-                );
-                HistoryStack.push({
-                  type: PaintType.AREA,
-                  layer: { id: tilemapEditorState.selectedLayer.id },
-                  items: [
-                    {
-                      pos: { row, col },
-                      data: null,
-                    },
-                  ],
-                });
-              }
               break;
           }
           break;
@@ -570,61 +294,6 @@
     }
   };
 
-  function floodFill(
-    layerID: string,
-    row: number,
-    col: number,
-  ): { row: number; col: number }[] | null {
-    const clickedTile = projectState.layers.getTileAt(row, col, layerID);
-    const BOUNDARY = 100;
-    const minRow = row - BOUNDARY;
-    const maxRow = row + BOUNDARY;
-    const minCol = col - BOUNDARY;
-    const maxCol = col + BOUNDARY;
-
-    const stack = [{ row, col }];
-
-    const visited = new Set();
-
-    visited.add(`${row}:${col}`);
-
-    const filledTiles: { row: number; col: number }[] = [];
-
-    while (stack.length > 0) {
-      const tile = stack.pop()!;
-
-      if (
-        tile.row < minRow ||
-        tile.row > maxRow ||
-        tile.col < minCol ||
-        tile.col > maxCol
-      ) {
-        return null;
-      }
-
-      const neighbours = getNeighbours({ row: tile.row, col: tile.col });
-
-      for (const n of neighbours) {
-        const visitedKey = `${n.row}:${n.col}`;
-
-        if (
-          !visited.has(visitedKey) &&
-          projectState.utils.isSameAsset(
-            clickedTile,
-            projectState.layers.getTileAt(n.row, n.col, layerID),
-          )
-        ) {
-          visited.add(`${n.row}:${n.col}`);
-          stack.push(n);
-        }
-      }
-
-      filledTiles.push(tile);
-    }
-
-    return filledTiles;
-  }
-
   function getWorldPos(
     ctx: CanvasRenderingContext2D,
     pos: { x: number; y: number },
@@ -641,7 +310,7 @@
     if (e.target !== canvasEl) return;
 
     const delta = Math.sign(e.deltaY);
-    const zoomFactor = 0.125;
+    const zoomFactor = 0.25;
 
     if (delta < 0) {
       if (zoom < 4.0) {
@@ -884,7 +553,6 @@
   bind:this={canvasEl}
   onmousemove={handleMouseMove}
   onmousedown={handleMouseDown}
-
 ></canvas>
 
 <style lang="postcss">
