@@ -6,12 +6,11 @@
   import Images from "./Images.svelte";
   import Layers from "./Layers.svelte";
   import Objects from "./Objects.svelte";
-  import Scripts from "./Scripts.svelte";
   import Tilesets from "./Tilesets.svelte";
   import Tools from "./Tools.svelte";
 </script>
 
-<section id="toolbar">
+<section>
   <Layers />
   <sl-divider></sl-divider>
   
@@ -30,18 +29,17 @@
     <sl-divider></sl-divider>
     <Images />
   {/if}
-  <!-- <sl-divider></sl-divider>
-  <Scripts /> -->
 </section>
 
 <style lang="postcss">
-  #toolbar {
+  section {
     padding: 2rem 1rem;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-width: 400px;
   }
 
   sl-divider {

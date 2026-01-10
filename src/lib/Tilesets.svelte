@@ -31,16 +31,11 @@
   const loadTileset = async (files: FileList) => {
     try {
       const file = files[0];
+      const name = file.name.split(".")[0];
       const bitmap = await createImageBitmap(file);
       const tiles = await splitIntoTiles(bitmap, projectState.tileSize);
-      const numNamedNewTileset = projectState.tilesets
-        .get()
-        .filter((t) => t.name.match(/New tileset(\(\d\))?/)).length;
 
-      projectState.tilesets.add(
-        `New tileset${numNamedNewTileset === 0 ? "" : "(" + numNamedNewTileset + ")"}`,
-        tiles,
-      );
+      projectState.tilesets.add(name, tiles);
       selectedTilesetIdx = projectState.tilesets.get().length - 1;
     } catch (e) {
       console.error(e);

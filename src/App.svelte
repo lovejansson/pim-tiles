@@ -1,8 +1,8 @@
 <script lang="ts">
   import Menu from "./lib/Menu.svelte";
+  import TilemapEditor from "./lib/TilemapEditor.svelte";
   import Toast from "./lib/Toast.svelte";
   import ToolBar from "./lib/ToolBar.svelte";
-  import WorkSpace from "./lib/WorkSpace.svelte";
 </script>
 
 <Toast />
@@ -10,8 +10,9 @@
   <Menu />
 </div>
 <div id="content">
+  <TilemapEditor />
   <ToolBar />
-  <WorkSpace />
+
 </div>
 
 <style>

@@ -423,6 +423,25 @@
 
     ctx.translate(translation.x, translation.y);
     ctx.scale(zoom, zoom);
+    
+    // Draw grid if not to zoomed out bc of performance
+    if (zoom >= 0.5) {
+      const { x0, x1, y0, y1 } = getWorldBounds(ctx);
+
+      const startX = Math.floor(x0 / tileSize) * tileSize;
+      const startY = Math.floor(y0 / tileSize) * tileSize;
+      ctx.beginPath();
+
+      ctx.strokeStyle = gridColor;
+
+      for (let y = startY; y <= y1; y += tileSize) {
+        for (let x = startX; x <= x1; x += tileSize) {
+          ctx.rect(x, y, tileSize, tileSize);
+        }
+      }
+
+      ctx.stroke();
+    }
 
     for (const layer of projectState.layers.get()) {
       if (layer.isVisible) {
@@ -487,11 +506,16 @@
             for (const [key, areaAsset] of layer.data) {
               const area = projectState.areas.getArea(areaAsset.ref.id);
 
-              const [ty, tx] = key.split(":").map(Number);
+              const [row, col] = key.split(":").map(Number);
 
               ctx.strokeStyle = area.color;
 
-              ctx.strokeRect(tx * tileSize, ty * tileSize, tileSize, tileSize);
+              ctx.strokeRect(
+                col * tileSize,
+                row * tileSize,
+                tileSize,
+                tileSize,
+              );
             }
 
             break;
@@ -499,24 +523,6 @@
       }
     }
 
-    // Draw grid if not to zoomed out bc of performance
-    if (zoom >= 0.5) {
-      const { x0, x1, y0, y1 } = getWorldBounds(ctx);
-
-      const startX = Math.floor(x0 / tileSize) * tileSize;
-      const startY = Math.floor(y0 / tileSize) * tileSize;
-      ctx.beginPath();
-
-      ctx.strokeStyle = gridColor;
-
-      for (let y = startY; y <= y1; y += tileSize) {
-        for (let x = startX; x <= x1; x += tileSize) {
-          ctx.rect(x, y, tileSize, tileSize);
-        }
-      }
-
-      ctx.stroke();
-    }
   }
 
   function getWorldBounds(ctx: CanvasRenderingContext2D) {
@@ -549,16 +555,23 @@
   onmouseup={handleMouseUp}
 />
 
-<canvas
-  bind:this={canvasEl}
-  onmousemove={handleMouseMove}
-  onmousedown={handleMouseDown}
-></canvas>
+<section>
+  <canvas
+    bind:this={canvasEl}
+    onmousemove={handleMouseMove}
+    onmousedown={handleMouseDown}
+  ></canvas>
+</section>
 
 <style lang="postcss">
+  section {
+    flex: 1;
+  }
+
   canvas {
     cursor: crosshair;
   }
+
   canvas {
     background-color: var(--color-0);
     width: 100%;

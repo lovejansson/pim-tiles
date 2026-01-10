@@ -5,6 +5,7 @@ import {
   type PaintedTile,
   type PaintedAutoTile,
   type AutoTileHistoryEntryItem,
+  type TileAsset,
 } from "./types";
 import { getNeighbours } from "./utils";
 
@@ -91,7 +92,6 @@ export const projectState = (() => {
 
     tilesets: [],
     images: [],
-    // scripts: [{ id: "id", name: "script1.js", content: "woop" }],
     autoTiles: [],
     areas: [],
   });
@@ -238,11 +238,12 @@ export const projectState = (() => {
         if (autoTile === undefined) throw new ProjectStateError("Autotile not found", "not-found");
         return autoTile;
       },
-      add(name: string, rules: TileRule[]) {
+      add(name: string, rules: TileRule[], defaultTile: TileAsset) {
         projectState.autoTiles.push({
           id: generateId(),
           name: name,
           rules: rules,
+          defaultTile
         });
       },
       update(id: string, autoTile: Omit<AutoTile, "id">) {
@@ -277,6 +278,10 @@ export const projectState = (() => {
         const sw = api.layers.getTileAt(row + 1, col - 1, layerID);
         const w = api.layers.getTileAt(row, col - 1, layerID);
         const nw = api.layers.getTileAt(row + 1, col - 1, layerID);
+
+        const bitmask = 1010101010;
+
+
 
         const connections = {
           n: n !== null && n.type === PaintType.AUTO_TILE && n.ref.id === autoTile.id,
@@ -327,30 +332,6 @@ export const projectState = (() => {
       }
 
     },
-
-    // scripts: {
-    //   get() {
-    //     return projectState.scripts;
-    //   },
-    //   getScript(id: string) {
-    //     const script = projectState.scripts.find(s => s.id === id);
-    //     if (script === undefined) throw new ProjectStateError("Script not found", "not-found");
-    //     return script;
-    //   },
-    //   add(name: string, content: string) {
-    //     projectState.scripts.push({
-    //       id: generateId(),
-    //       name: name,
-    //       content: content,
-    //     });
-    //   },
-    //   delete(id: string) {
-    //     const idx = projectState.scripts.findIndex(s => s.id === id);
-    //     if (idx === -1) throw new ProjectStateError("Script not found", "not-found");
-    //     projectState.scripts.splice(idx, 1);
-    //   }
-    // },
-
     layers: {
       get() {
         return projectState.layers;

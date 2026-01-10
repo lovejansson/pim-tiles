@@ -1,25 +1,24 @@
 # Todo
 
-* The user can select from all tiles and click on the corners / center to edit the rule for that tile 
-
 * Finnish auto tile feature
+
+* Add auto tile paints to history stack
 
 * remove transparent parts from tiles when creating images / or make it posible to select multiple at ones (seems normal for tilemap editors)
  
 FILE 
 
-* Implement Save in localstorage
 * Implement Save
 * Implement Save AS
 * Implement export of JSON 
+* Implement sync with local storage
 
 
-SCRIPTING
-
-* expose project state api in scripting env
-* execute scripts 
-
-Extra 
+* Maybe add extras for generating a maze 
 
 * Pan add drag of tilemap
-* Add attributes to objects
+
+* Decide how to add attributes to objects and tiles, what is the need here, sprite fusion has attributes per tile and per tile instance
+
+
+

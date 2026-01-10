@@ -6,7 +6,6 @@ type ProjectState = {
     tileSize: number,
     layers: Layer[],
     tilesets: Tileset[],
-    // scripts: Script[],
     images: Image[],
     autoTiles: AutoTile[],
     areas: Area[],
@@ -17,12 +16,6 @@ type Area = {
     color: string;
     name: string;
 }
-
-// type Script = {
-//     id: string;
-//     name: string;
-//     content: string;
-// }
 
 type Tile = {
     id: string;
@@ -116,15 +109,16 @@ type AutoTileLayer = LayerT<PaintType.AUTO_TILE>;
 type Layer = TileLayer | AreaLayer | ImageLayer | AutoTileLayer;
 
 enum TileRequirement {
-    REQUIRED,
-    EXCLUDED,
-    OPTIONAL
+    REQUIRED = "required",
+    EXCLUDED = "excluded",
+    OPTIONAL = "optional"
 }
 
 type AutoTile = {
     id: string;
     name: string;
     rules: TileRule[];
+    defaultTile: TileAsset;
 }
 
 type TileConnections = {
@@ -142,6 +136,7 @@ type TileRule = {
     id: string;
     connections: TileConnections,
     tile: TileAsset;
+    
 }
 
 type TileRef = {

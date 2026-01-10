@@ -1,8 +1,9 @@
 <script lang="ts">
     import { SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
-    import { projectState } from "../state.svelte";
+    import { guiState, projectState } from "../state.svelte";
     import {
         type TileRule,
+        type TileAsset,
         type AutoTile,
         PaintType,
         TileRequirement,
@@ -11,34 +12,85 @@
     import RuleTileButton from "./RuleTileButton.svelte";
 
     type AutoTileDialogProps = {
-        idx?: number;
         autoTile?: AutoTile;
         open: boolean;
     };
 
-    let { open = $bindable(), autoTile, idx }: AutoTileDialogProps = $props();
+    let { open = $bindable(), autoTile }: AutoTileDialogProps = $props();
 
     const hide = () => {
+        resetState();
         open = false;
+   
     };
+
+    let selectedTile: TileAsset | null = $state(null);
+
+    let defaultTile: TileAsset| null = $state(autoTile?.defaultTile ?? null);
 
     let name = $state(autoTile?.name ?? "New auto tile");
 
-    let rules: TileRule[] = $state(autoTile?.rules ?? []);
+    let hasAddedTileRulesByTemplate = $state(false);
 
-    const save = () => {
-        if (autoTile !== undefined && idx !== undefined) {
-            projectState.autoTiles.update(autoTile.id, { name, rules });
-        } else {
-            projectState.autoTiles.add(name, rules);
-        }
+    let rules: (Omit<TileRule, "tile"> & { tile: TileAsset | null })[] = $state(
+        autoTile?.rules ?? [],
+    );
 
+    let isValid = $derived.by(() => {
+        if (name === "") return false;
+
+        if (rules.length === 0) return false;
+
+        if (rules.find((r) => r.tile === null)) return false;
+
+        if(defaultTile === null) return false;
+
+        return true;
+    });
+
+    const resetState = () => {
         name = autoTile?.name ?? "New auto tile";
         rules = autoTile?.rules ?? [];
+        hasAddedTileRulesByTemplate = false;
+    };
+
+    const save = (e: MouseEvent | KeyboardEvent) => {
+        if (e.type === "keydown" && (e as KeyboardEvent).key !== "Enter")
+            return;
+
+        if (rules.find((r) => r.tile === null)) {
+            guiState.notification = {
+                variant: "danger",
+                title: "Invalid auto tile",
+                msg: "All rules must have a tile assigned.",
+            };
+            return;
+        }
+
+        if(defaultTile === null) {
+            guiState.notification = {
+                variant: "danger",
+                title: "Invalid auto tile",
+                msg: "Auto tile must have a default tile.",
+            };
+            return;
+        }
+
+        if (autoTile !== undefined) {
+            projectState.autoTiles.update(autoTile.id, {
+                name,
+                rules: rules as TileRule[],
+                defaultTile
+            });
+        } else {
+            projectState.autoTiles.add(name, rules as TileRule[],  defaultTile);
+        }
+
+        resetState();
         open = false;
     };
 
-    const addRuleTile = (ref: TileRef) => {
+    const newRule = () => {
         rules.push({
             id: crypto.randomUUID(),
             connections: {
@@ -51,20 +103,100 @@
                 w: TileRequirement.OPTIONAL,
                 nw: TileRequirement.OPTIONAL,
             },
-            tile: { type: PaintType.TILE, ref },
+            tile: null,
         });
     };
 
-    const deleteRuleTile = (ref: TileRef) => {
-        const idx = rules.findIndex(
-            (r) =>
-                r.tile.ref.tile.id === ref.tile.id &&
-                r.tile.ref.tileset.id === ref.tileset.id,
-        );
+    const deleteRule = (idx: number) => {
+        rules.splice(idx, 1);
+    };
 
-        if (idx !== -1) {
-            rules.splice(idx, 1);
+    const createRoadTileRules = () => {
+
+        for (let i = 1; i < 16; ++i) {
+
+            // nesw
+            // 1000 = 8
+            // 0100 = 4
+            // 0010 = 2
+            // 0001 = 1 
+            // Check connectivity by anding bits
+
+            rules.push({
+                id: crypto.randomUUID(),
+                connections: {
+                    n:
+                        (i & 8) === 8
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    ne: TileRequirement.EXCLUDED,
+                    e:
+                        (i & 4) === 4
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    se: TileRequirement.EXCLUDED,
+                    s:
+                        (i & 2) === 2
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    sw: TileRequirement.EXCLUDED,
+                    w:
+                        (i & 1) === 1
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    nw: TileRequirement.EXCLUDED,
+                },
+                tile: null,
+            });
         }
+
+        hasAddedTileRulesByTemplate = true;
+    };
+
+    const createGroundTileRules = () => {
+
+        for (let i = 1; i < 16; ++i) {
+
+            // nesw
+            // 1000 = 8
+            // 0100 = 4
+            // 0010 = 2
+            // 0001 = 1 
+            // Check connectivity by anding bits
+            
+            // en eller flera center
+            // top, bottom, left right, diagonals
+
+            
+            rules.push({
+                id: crypto.randomUUID(),
+                connections: {
+                    n:
+                        (i & 8) === 8
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    ne: TileRequirement.EXCLUDED,
+                    e:
+                        (i & 4) === 4
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    se: TileRequirement.EXCLUDED,
+                    s:
+                        (i & 2) === 2
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    sw: TileRequirement.EXCLUDED,
+                    w:
+                        (i & 1) === 1
+                            ? TileRequirement.REQUIRED
+                            : TileRequirement.EXCLUDED,
+                    nw: TileRequirement.EXCLUDED,
+                },
+                tile: null,
+            });
+        }
+
+        hasAddedTileRulesByTemplate = true;
     };
 </script>
 
@@ -82,6 +214,84 @@
                 value={name}
             >
             </sl-input>
+
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <sl-button
+                onclick={newRule}
+                onkeydown={(e: KeyboardEvent) => {
+                    if (e.key === "Enter") newRule();
+                }}
+            >
+                Add rule
+                <sl-icon label="Add rule" library="pixelarticons" name="plus"
+                ></sl-icon></sl-button
+            >
+            <div>
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <sl-button
+                disabled={hasAddedTileRulesByTemplate}
+                onclick={createRoadTileRules}
+                onkeydown={createRoadTileRules}
+            >
+            Add Roads NESW (16)
+        </sl-button>
+
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <sl-button
+                disabled={hasAddedTileRulesByTemplate}
+                onclick={createGroundTileRules}
+                onkeydown={createGroundTileRules}
+            >
+            Add Ground (9)
+        </sl-button></div>
+
+
+            <section id="section-help">
+                <ul class="edges">
+                    {#each [TileRequirement.REQUIRED, TileRequirement.EXCLUDED, TileRequirement.OPTIONAL] as edge}
+                        <li class="edge">
+                            <div class={`${edge} edge-mark`}></div>
+                            <p>{edge.toLocaleString()}</p>
+                        </li>
+                    {/each}
+                </ul>
+            </section>
+
+                {#if defaultTile !== null}
+            <img
+                class="tile"
+                src={projectState.tilesets.getTile(
+                    defaultTile.ref.tileset.id,
+                    defaultTile.ref.tile.id,
+                ).dataURL}
+                alt="tile"
+            />
+        {:else}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <sl-button
+                onkeydown={(e: KeyboardEvent) => {
+                    if (e.key === "Enter" && selectedTile !== null)
+                        defaultTile = { ...selectedTile };
+                }}
+                onclick={() => {
+                    if (selectedTile !== null) {
+                        defaultTile = { ...selectedTile };
+                    }
+                }}
+                class="tile-placeholder"
+                aria-label="Place tile here"
+            ></sl-button>
+        {/if}
+
+            <ul id="rules">
+                {#each rules as rule, idx}
+                    <RuleTileButton
+                        onDelete={() => deleteRule(idx)}
+                        {selectedTile}
+                        bind:ruleTile={rules[idx]}
+                    />
+                {/each}
+            </ul>
         </section>
 
         {#if projectState.tilesets.get().length > 0}
@@ -93,20 +303,29 @@
                     <sl-tab-panel name={tileset.name}>
                         <ul class="tiles">
                             {#each tileset.tiles as tile, tileIdx}
-                                <li>
-                                    <RuleTileButton
-                                        {tileset}
-                                        {tile}
-                                        ruleTile={rules.find(
-                                            (r) =>
-                                                r.tile.ref.tile.id ===
-                                                    tile.id &&
-                                                r.tile.ref.tileset.id ===
-                                                    tileset.id,
-                                        )}
-                                        onAdd={addRuleTile}
-                                        onDelete={deleteRuleTile}
-                                    />
+                                <li
+                                    class:selected={selectedTile &&
+                                        selectedTile.ref.tileset.id ===
+                                            tileset.id &&
+                                        selectedTile.ref.tile.id === tile.id}
+                                >
+                                    <button
+                                        onclick={() =>
+                                            (selectedTile = {
+                                                type: PaintType.TILE,
+                                                ref: {
+                                                    tile: { id: tile.id },
+                                                    tileset: { id: tileset.id },
+                                                },
+                                            })}
+                                        class="btn-tile"
+                                    >
+                                        <img
+                                            class="img-tile"
+                                            src={tile.dataURL}
+                                            alt="tile"
+                                        /></button
+                                    >
                                 </li>
                             {/each}
                         </ul>
@@ -119,6 +338,7 @@
                 <sl-tab-panel name={"empty"}>
                     <div id="div-empty">
                         <sl-icon library="pixelarticons" name="chess"></sl-icon>
+                        <p>Load a tileset in main toolbar.</p>
                     </div>
                 </sl-tab-panel>
             </sl-tab-group>
@@ -126,26 +346,72 @@
     </div>
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-button
-        disabled={!name.trim().length || rules.length === 0}
+        disabled={!isValid}
         slot="footer"
         variant="primary"
         onclick={save}
-        onkeydown={(e: KeyboardEvent) => {
-            if (e.key === "Enter") save();
-        }}
+        onkeydown={save}
     >
         Save
     </sl-button>
 </sl-dialog>
 
 <style>
+    .edges {
+        display: flex;
+        gap: 1rem;
+    }
+    .edge {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    .edge-mark {
+        width: 1em;
+        height: 1em;
+        border: 1px solid var(--color-0);
+    }
+
+    .excluded {
+        background-color: var(--sl-color-rose-600);
+    }
+
+    .optional {
+        background: var(--color-1);
+    }
+
+    .required {
+        background-color: rgb(106, 231, 106);
+    }
+
+    
+    .tile,
+    .tile::part(base) {
+        height: 100%;
+        width: auto;
+        aspect-ratio: 1/1;
+        image-rendering: pixelated;
+        width: 64px;
+    }
+
+
+    .tile-placeholder {
+    
+        aspect-ratio: 1/1;
+        image-rendering: pixelated;
+           width: 64px;
+           height: auto;
+    }
     sl-dialog {
         --width: 50%;
         height: 50%;
     }
     #content-wrapper {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: stretch;
+
+        height: 60dvh;
         width: 100%;
         gap: 1rem;
     }
@@ -160,6 +426,7 @@
 
     #tilesets {
         padding: 1rem;
+        flex: 1;
     }
 
     #div-empty {
@@ -168,6 +435,13 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: 1rem;
+    }
+    #rules {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        overflow-y: auto;
     }
 
     .tiles {
@@ -177,6 +451,27 @@
         width: 100%;
 
         gap: 1px;
+    }
+
+    .btn-tile {
+        aspect-ratio: 1/1;
+        width: 100%;
+        height: 100%;
+        border: none;
+        background-color: none;
+        padding: 0;
+        cursor: pointer;
+    }
+
+    .img-tile {
+        aspect-ratio: 1/1;
+        width: 100%;
+        height: 100%;
+        image-rendering: pixelated;
+    }
+
+    .selected {
+        outline: 1px solid lime !important;
     }
 
     sl-tab {
@@ -193,5 +488,7 @@
         background-color: var(--color-4);
         --padding: 0;
         height: 100%;
+
+        /* height: 240px; */
     }
 </style>
