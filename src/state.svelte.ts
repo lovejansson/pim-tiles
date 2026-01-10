@@ -1,5 +1,5 @@
 import {
-  type ProjectState, type GUIState, type TileLayer, type AssetRef, type ImageAsset, type AutoTile, type HistoryEntry, type Tile, type TileRule, type Layer,
+  type ProjectState, type GUIState, type TileLayer, type AssetRef, type AutoTile, type HistoryEntry, type Tile, type TileRule, type Layer,
   PaintType, TileRequirement, Tool,
   type PaintedArea,
   type PaintedTile,
@@ -71,11 +71,6 @@ export const projectState = (() => {
       DEFAULT_LAYER,
       {
         id: generateId(),
-        name: "stuff",
-        data: [], isVisible: true, type: PaintType.IMAGE
-      },
-      {
-        id: generateId(),
         name: "zones",
         data: new Map(),
         isVisible: false,
@@ -91,7 +86,6 @@ export const projectState = (() => {
     ],
 
     tilesets: [],
-    images: [],
     autoTiles: [],
     areas: [],
   });
@@ -191,44 +185,6 @@ export const projectState = (() => {
       }
     },
 
-    images: {
-      get() {
-        return projectState.images;
-      },
-      getImage(id: string) {
-        const image = projectState.images.find(i => i.id === id);
-        if (image === undefined) throw new ProjectStateError("Image not found", "not-found");
-        return image;
-      },
-      add(filename: string, dataURL: string, bitmap: ImageBitmap, width: number, height: number) {
-        projectState.images.push({
-          id: generateId(),
-          filename: filename,
-          dataURL: dataURL,
-          bitmap: bitmap,
-          width: width,
-          height: height,
-        });
-      },
-      delete(id: string) {
-        const idx = projectState.images.findIndex(i => i.id === id);
-        if (idx === -1) throw new ProjectStateError("Image not found", "not-found");
-
-        const image = projectState.images[idx];
-
-        const isUsed = projectState.layers.find(l => {
-          if (l.type === PaintType.IMAGE) {
-            if (l.data.values().find(a => a.type === PaintType.IMAGE && a.ref.id === image.id)) return true;
-          }
-          return false;
-        }) !== undefined;
-
-
-        if (isUsed) throw new ProjectStateError("Image is referenced in project", "asset-in-use");
-        projectState.images.splice(idx, 1);
-      }
-    },
-
     autoTiles: {
       get() {
         return projectState.autoTiles;
@@ -278,10 +234,6 @@ export const projectState = (() => {
         const sw = api.layers.getTileAt(row + 1, col - 1, layerID);
         const w = api.layers.getTileAt(row, col - 1, layerID);
         const nw = api.layers.getTileAt(row + 1, col - 1, layerID);
-
-        const bitmask = 1010101010;
-
-
 
         const connections = {
           n: n !== null && n.type === PaintType.AUTO_TILE && n.ref.id === autoTile.id,
@@ -349,9 +301,6 @@ export const projectState = (() => {
           case PaintType.TILE:
             projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
             break;
-          case PaintType.IMAGE:
-            projectState.layers.push({ id: generateId(), name, type, data: [], isVisible: false });
-            break;
           case PaintType.AUTO_TILE:
             projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
             break;
@@ -375,8 +324,6 @@ export const projectState = (() => {
       getTileAt(row: number, col: number, layerID: string): AssetRef | null {
         const layer = this.getLayer(layerID);
 
-        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("getTileAt not supported for image layers", "not-supported");
-
         return layer.data.get(`${row}:${col}`) || null;
       },
 
@@ -385,7 +332,7 @@ export const projectState = (() => {
         const layer = this.getLayer(layerID);
 
         // TODO: can this be done better with typescript generics?
-        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("paintTile not supported for image layers", "not-supported");
+
         if (layer.type !== paint.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
 
         const curr = layer.data.get(`${row}:${col}`) || null;
@@ -409,8 +356,6 @@ export const projectState = (() => {
         const layer = this.getLayer(layerID);
 
         // TODO: can this be done better with typescript generics?
-        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("applyPaintTileChange not supported for image layers", "not-supported");
-
 
         if (paint === null) {
           layer.data.delete(`${row}:${col}`);
@@ -423,7 +368,6 @@ export const projectState = (() => {
 
       eraseTile(row: number, col: number, layerID: string) {
         const layer = this.getLayer(layerID);
-        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("eraseTile not supported for image layers", "not-supported");
 
         const curr = layer.data.get(`${row}:${col}`) || null;
 
@@ -450,7 +394,6 @@ export const projectState = (() => {
 
         const layer = this.getLayer(layerID);
 
-        if (layer.type === PaintType.IMAGE) throw new ProjectStateError("eraseTile not supported for image layers", "not-supported");
         if (paint !== null && layer.type !== paint.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
 
         const clickedTile = this.getTileAt(row, col, layerID);
@@ -524,33 +467,6 @@ export const projectState = (() => {
           prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
           next: { type: layer.type, layer: { id: layerID }, items: nextItems }
         });
-
-      },
-
-
-      paintImage(x: number, y: number, layerID: string, asset: ImageAsset): void {
-
-        const layer = this.getLayer(layerID);
-
-        if (layer.type !== PaintType.IMAGE) throw new ProjectStateError("paintImage only supported for image layers", "not-supported");
-
-        const curr = layer.data.find(i => i.x === x && i.y === y) || null;
-
-        layer.data.push({ ...asset, x, y, isSelected: false, id: generateId() });
-      },
-
-      eraseImage(x: number, y: number, layerID: string) {
-        const layer = this.getLayer(layerID);
-
-        if (layer.type !== PaintType.IMAGE) throw new ProjectStateError("eraseImage only supported for image layers", "not-supported");
-
-        // TODO: bug if image are placed on top of eachother
-
-        const idx = layer.data.findIndex(i => i.x === x && i.y === y);
-
-        if (idx === -1) throw new ProjectStateError("Image not found", "not-found");
-
-        layer.data.splice(idx, 1);
 
       },
 
@@ -650,8 +566,6 @@ export const projectState = (() => {
             return a.ref.id === (b as typeof a).ref.id;
           case PaintType.AREA:
             return a.ref.id === (b as typeof a).ref.id;
-          case PaintType.IMAGE:
-            return a.ref.id === (b as typeof a).ref.id;
         }
       }
     }
@@ -692,24 +606,10 @@ export const HistoryStack = (() => {
 
     if (layer.type !== entry.type) throw new Error("type mismatch between layer and entry");
 
-    switch (entry.type) {
-      case PaintType.TILE:
-      case PaintType.AUTO_TILE:
-      case PaintType.AREA:
-        for (const i of entry.items) {
-          projectState.layers.applyPaintTileChange(i.pos.row, i.pos.col, entry.layer.id, i.data);
-        }
-        break;
-      case PaintType.IMAGE:
-        for (const i of entry.items) {
-          if (i.data) {
-            projectState.layers.paintImage(i.pos.x, i.pos.y, entry.layer.id, { ...i.data });
-          } else {
-            projectState.layers.eraseImage(i.pos.x, i.pos.y, entry.layer.id);
-          }
-        }
-        break;
+    for (const i of entry.items) {
+      projectState.layers.applyPaintTileChange(i.pos.row, i.pos.col, entry.layer.id, i.data);
     }
+
   };
 
   return {

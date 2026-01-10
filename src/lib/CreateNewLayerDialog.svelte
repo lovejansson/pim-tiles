@@ -17,7 +17,7 @@
  
 
   let name = $state("New layer");
-  let layerType: PaintType.TILE | PaintType.IMAGE | PaintType.AREA | PaintType.AUTO_TILE = $state(PaintType.TILE);
+  let layerType: PaintType.TILE | PaintType.AREA | PaintType.AUTO_TILE = $state(PaintType.TILE);
 
   const saveLayer = () => {
     projectState.layers.add(name, layerType);
@@ -41,22 +41,19 @@
     onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
     value={layerType}
     onsl-change={(e: SlChangeEvent) => {
-      layerType = +(e.target as SlSelect).value as PaintType.TILE | PaintType.AREA | PaintType.IMAGE;
+      layerType = +(e.target as SlSelect).value as PaintType.TILE | PaintType.AREA;
     }}
   >
-    <sl-option value=PaintType.TILE>
+    <sl-option value={PaintType.TILE}>
       <sl-icon slot="prefix" library="pixelarticons" name="chess"></sl-icon>
       Tile
     </sl-option>
-    <sl-option value=PaintType.IMAGE>
-      <sl-icon slot="prefix" library="pixelarticons" name=PaintType.IMAGE></sl-icon>
-      Image
-    </sl-option>
-    <sl-option value=PaintType.AREA>
+
+    <sl-option value={PaintType.AREA}>
       <sl-icon slot="prefix" library="pixelarticons" name="section"></sl-icon>
       Area
     </sl-option>
-    <sl-option value=PaintType.AUTO_TILE>
+    <sl-option value={PaintType.AUTO_TILE}>
       <sl-icon slot="prefix" library="pixelarticons" name="grid"></sl-icon>
       Auto tile
     </sl-option>

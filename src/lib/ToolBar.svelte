@@ -3,15 +3,14 @@
     import { PaintType } from "../types";
   import Areas from "./Areas.svelte";
   import AutoTiles from "./AutoTiles.svelte";
-  import Images from "./Images.svelte";
   import Layers from "./Layers.svelte";
-  import Objects from "./Objects.svelte";
   import Tilesets from "./Tilesets.svelte";
   import Tools from "./Tools.svelte";
 </script>
 
 <section>
   <Layers />
+
   <sl-divider></sl-divider>
   
   {#if guiState.tilemapEditorState.type === PaintType.TILE}
@@ -19,16 +18,11 @@
     <Tilesets />
   {:else if guiState.tilemapEditorState.type === PaintType.AUTO_TILE}
     <Tools />
-
     <AutoTiles />
   {:else if guiState.tilemapEditorState.type === PaintType.AREA}
     <Tools />
     <Areas />
-  {:else if guiState.tilemapEditorState.type === PaintType.IMAGE}
-    <Objects />
-    <sl-divider></sl-divider>
-    <Images />
-  {/if}
+    {/if}
 </section>
 
 <style lang="postcss">

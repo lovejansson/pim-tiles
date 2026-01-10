@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { guiState, projectState, HistoryStack } from "../state.svelte";
-  import { isPointInRect, roundToDecimal } from "../utils";
+  import { roundToDecimal } from "../utils";
   import { PaintType, Tool } from "../types";
 
   const { tileSize } = $derived(projectState);
@@ -169,45 +169,6 @@
             }
             break;
         }
-
-        break;
-      case PaintType.IMAGE:
-        if (ctrlKeyIsDown) {
-          for (const i of tilemapEditorState.selectedLayer.data.toReversed()) {
-            const image = projectState.images.getImage(i.ref.id);
-
-            if (image === undefined) {
-              throw new Error("Image not found");
-            }
-
-            if (
-              isPointInRect(
-                { x, y },
-                { x: i.x, y: i.y, width: image.width, height: image.height },
-              )
-            ) {
-              i.isSelected = true;
-              break;
-            }
-          }
-        } else if (
-          tilemapEditorState.selectedLayer.data.find((i) => i.isSelected)
-        ) {
-          for (const i of tilemapEditorState.selectedLayer.data) {
-            i.isSelected = false;
-          }
-        } else {
-          if (tilemapEditorState.selectedAsset === null) {
-            break;
-          }
-          projectState.layers.paintImage(
-            x,
-            y,
-            tilemapEditorState.selectedLayer.id,
-            tilemapEditorState.selectedAsset,
-          );
-        }
-        break;
     }
   };
 
@@ -217,6 +178,7 @@
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!canvasEl) return;
+
     const rect = canvasEl.getBoundingClientRect();
 
     const canvasX = e.clientX - rect.left;
@@ -278,17 +240,6 @@
 
               break;
           }
-          break;
-        case PaintType.IMAGE:
-          if (ctrlKeyIsDown) {
-            for (const i of tilemapEditorState.selectedLayer.data) {
-              if (i.isSelected) {
-                i.x += e.movementX * (1 / zoom);
-                i.y += e.movementY * (1 / zoom);
-              }
-            }
-          }
-
           break;
       }
     }
@@ -354,60 +305,6 @@
     if (e.ctrlKey || e.metaKey) ctrlKeyIsDown = true;
 
     switch (e.key.toLowerCase()) {
-      case "arrowup":
-      case "w":
-        translation.y += tileSize;
-        break;
-      case "arrowdown":
-      case "s":
-        translation.y -= tileSize;
-        break;
-      case "arrowleft":
-      case "a":
-        translation.x += tileSize;
-        break;
-      case "arrowright":
-      case "d":
-        translation.x -= tileSize;
-        break;
-      case "+":
-        if (zoom <= 5.0) {
-          zoom += 0.1;
-          zoomPos = getWorldPos(ctx, {
-            x: mousePosCanvas.x,
-            y: mousePosCanvas.y,
-          });
-          // Update current translation to account for zoompoint
-          translation.x = mousePosCanvas.x - zoomPos.x * zoom;
-          translation.y = mousePosCanvas.y - zoomPos.y * zoom;
-        }
-        break;
-      case "-":
-        if (zoom > 0.5) {
-          zoom -= 0.1;
-          zoomPos = getWorldPos(ctx, {
-            x: mousePosCanvas.x,
-            y: mousePosCanvas.y,
-          });
-          // Update current translation to account for zoompoint
-          translation.x = mousePosCanvas.x - zoomPos.x * zoom;
-          translation.y = mousePosCanvas.y - zoomPos.y * zoom;
-        }
-        break;
-      case "del":
-      case "backspace":
-        if (tilemapEditorState.type === PaintType.IMAGE) {
-          for (const i of tilemapEditorState.selectedLayer.data.filter(
-            (i) => i.isSelected,
-          )) {
-            projectState.layers.eraseImage(
-              i.x,
-              i.y,
-              tilemapEditorState.selectedLayer.id,
-            );
-          }
-        }
-        break;
       case "z":
         ctrlKeyIsDown && HistoryStack.undo();
         break;
@@ -423,7 +320,7 @@
 
     ctx.translate(translation.x, translation.y);
     ctx.scale(zoom, zoom);
-    
+
     // Draw grid if not to zoomed out bc of performance
     if (zoom >= 0.5) {
       const { x0, x1, y0, y1 } = getWorldBounds(ctx);
@@ -489,19 +386,6 @@
               }
             }
             break;
-
-          case PaintType.IMAGE:
-            for (const i of layer.data) {
-              const image = projectState.images.getImage(i.ref.id);
-
-              ctx.drawImage(image.bitmap, i.x, i.y, image.width, image.height);
-
-              if (i.isSelected) {
-                ctx.strokeStyle = "lime";
-                ctx.strokeRect(i.x, i.y, image.width, image.height);
-              }
-            }
-            break;
           case PaintType.AREA:
             for (const [key, areaAsset] of layer.data) {
               const area = projectState.areas.getArea(areaAsset.ref.id);
@@ -522,7 +406,6 @@
         }
       }
     }
-
   }
 
   function getWorldBounds(ctx: CanvasRenderingContext2D) {

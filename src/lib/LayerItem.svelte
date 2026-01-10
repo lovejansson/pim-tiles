@@ -57,13 +57,6 @@
           fillToolIsActive: false,
         };
         break;
-      case PaintType.IMAGE:
-        guiState.tilemapEditorState = {
-          type: PaintType.IMAGE,
-          selectedLayer: layer,
-          selectedAsset: null,
-        };
-        break;
       case PaintType.AREA:
         guiState.tilemapEditorState = {
           type: PaintType.AREA,
@@ -98,10 +91,6 @@
     {:else if layer.type === PaintType.AUTO_TILE}
       <sl-tooltip content="Auto tile layer layer">
         <sl-icon library="pixelarticons" name="grid"></sl-icon>
-      </sl-tooltip>
-    {:else if layer.type === PaintType.IMAGE}
-      <sl-tooltip content="Image layer">
-        <sl-icon library="pixelarticons" name="PaintType.IMAGE"></sl-icon>
       </sl-tooltip>
     {:else}
       <sl-tooltip content="Area layer">
