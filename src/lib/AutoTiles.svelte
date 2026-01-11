@@ -42,15 +42,16 @@
 </section>
 
 <style>
-    header {
-        display: flex;
-        justify-content: space-between;
-    }
+     header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
     #auto-tiles {
         display: flex;
         flex-direction: column;
-
-        width: 320px !important;
+        width: 100%;
         height: 100%;
     }
 

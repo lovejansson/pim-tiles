@@ -21,12 +21,11 @@
     const hide = () => {
         resetState();
         open = false;
-   
     };
 
     let selectedTile: TileAsset | null = $state(null);
 
-    let defaultTile: TileAsset| null = $state(autoTile?.defaultTile ?? null);
+    let defaultTile: TileAsset | null = $state(autoTile?.defaultTile ?? null);
 
     let name = $state(autoTile?.name ?? "New auto tile");
 
@@ -43,7 +42,7 @@
 
         if (rules.find((r) => r.tile === null)) return false;
 
-        if(defaultTile === null) return false;
+        if (defaultTile === null) return false;
 
         return true;
     });
@@ -55,6 +54,7 @@
     };
 
     const save = (e: MouseEvent | KeyboardEvent) => {
+        console.log(rules)
         if (e.type === "keydown" && (e as KeyboardEvent).key !== "Enter")
             return;
 
@@ -67,7 +67,7 @@
             return;
         }
 
-        if(defaultTile === null) {
+        if (defaultTile === null) {
             guiState.notification = {
                 variant: "danger",
                 title: "Invalid auto tile",
@@ -80,10 +80,10 @@
             projectState.autoTiles.update(autoTile.id, {
                 name,
                 rules: rules as TileRule[],
-                defaultTile
+                defaultTile,
             });
         } else {
-            projectState.autoTiles.add(name, rules as TileRule[],  defaultTile);
+            projectState.autoTiles.add(name, rules as TileRule[], defaultTile);
         }
 
         resetState();
@@ -112,14 +112,12 @@
     };
 
     const createRoadTileRules = () => {
-
         for (let i = 1; i < 16; ++i) {
-
             // nesw
             // 1000 = 8
             // 0100 = 4
             // 0010 = 2
-            // 0001 = 1 
+            // 0001 = 1
             // Check connectivity by anding bits
 
             rules.push({
@@ -154,43 +152,31 @@
     };
 
     const createGroundTileRules = () => {
-
-        for (let i = 1; i < 16; ++i) {
-
-            // nesw
-            // 1000 = 8
-            // 0100 = 4
-            // 0010 = 2
-            // 0001 = 1 
-            // Check connectivity by anding bits
-            
-            // en eller flera center
-            // top, bottom, left right, diagonals
-
-            
+        // The numbers represent the bitmasks that I want
+        for (const n of [3, 6, 7, 9, 11, 12, 13, 14, 15]) {
             rules.push({
                 id: crypto.randomUUID(),
                 connections: {
                     n:
-                        (i & 8) === 8
+                        (n & 8) === 8
                             ? TileRequirement.REQUIRED
                             : TileRequirement.EXCLUDED,
-                    ne: TileRequirement.EXCLUDED,
+                    ne: TileRequirement.OPTIONAL,
                     e:
-                        (i & 4) === 4
+                        (n & 4) === 4
                             ? TileRequirement.REQUIRED
                             : TileRequirement.EXCLUDED,
-                    se: TileRequirement.EXCLUDED,
+                    se: TileRequirement.OPTIONAL,
                     s:
-                        (i & 2) === 2
+                        (n & 2) === 2
                             ? TileRequirement.REQUIRED
                             : TileRequirement.EXCLUDED,
-                    sw: TileRequirement.EXCLUDED,
+                    sw: TileRequirement.OPTIONAL,
                     w:
-                        (i & 1) === 1
+                        (n & 1) === 1
                             ? TileRequirement.REQUIRED
                             : TileRequirement.EXCLUDED,
-                    nw: TileRequirement.EXCLUDED,
+                    nw: TileRequirement.OPTIONAL,
                 },
                 tile: null,
             });
@@ -227,24 +213,24 @@
                 ></sl-icon></sl-button
             >
             <div>
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <sl-button
-                disabled={hasAddedTileRulesByTemplate}
-                onclick={createRoadTileRules}
-                onkeydown={createRoadTileRules}
-            >
-            Add Roads NESW (16)
-        </sl-button>
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <sl-button
+                    disabled={hasAddedTileRulesByTemplate}
+                    onclick={createRoadTileRules}
+                    onkeydown={createRoadTileRules}
+                >
+                    Add Roads NESW (16)
+                </sl-button>
 
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <sl-button
-                disabled={hasAddedTileRulesByTemplate}
-                onclick={createGroundTileRules}
-                onkeydown={createGroundTileRules}
-            >
-            Add Ground (9)
-        </sl-button></div>
-
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <sl-button
+                    disabled={hasAddedTileRulesByTemplate}
+                    onclick={createGroundTileRules}
+                    onkeydown={createGroundTileRules}
+                >
+                    Add Ground (9)
+                </sl-button>
+            </div>
 
             <section id="section-help">
                 <ul class="edges">
@@ -257,16 +243,6 @@
                 </ul>
             </section>
 
-                {#if defaultTile !== null}
-            <img
-                class="tile"
-                src={projectState.tilesets.getTile(
-                    defaultTile.ref.tileset.id,
-                    defaultTile.ref.tile.id,
-                ).dataURL}
-                alt="tile"
-            />
-        {:else}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <sl-button
                 onkeydown={(e: KeyboardEvent) => {
@@ -278,10 +254,19 @@
                         defaultTile = { ...selectedTile };
                     }
                 }}
-                class="tile-placeholder"
+                class="default-tile"
                 aria-label="Place tile here"
-            ></sl-button>
-        {/if}
+            >
+                {#if defaultTile !== null}
+                    <img
+                        src={projectState.tilesets.getTile(
+                            defaultTile.ref.tileset.id,
+                            defaultTile.ref.tile.id,
+                        ).dataURL}
+                        alt="tile"
+                    />
+                {/if}
+            </sl-button>
 
             <ul id="rules">
                 {#each rules as rule, idx}
@@ -384,24 +369,22 @@
         background-color: rgb(106, 231, 106);
     }
 
-    
-    .tile,
-    .tile::part(base) {
+    .default-tile::part(base) {
+    height: calc(32px * 3 + 0.5rem);
+    width:calc(32px * 3  + 0.5rem);;
+    aspect-ratio: 1/1;
+    }
+
+    .default-tile::part(label) {
+        padding: 0;
+    }
+
+    .default-tile img {
         height: 100%;
-        width: auto;
-        aspect-ratio: 1/1;
+        width: 100%;
         image-rendering: pixelated;
-        width: 64px;
     }
 
-
-    .tile-placeholder {
-    
-        aspect-ratio: 1/1;
-        image-rendering: pixelated;
-           width: 64px;
-           height: auto;
-    }
     sl-dialog {
         --width: 50%;
         height: 50%;

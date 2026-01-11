@@ -1,10 +1,8 @@
 # Todo
 
-* Finnish auto tile feature
+* Add flood fill for auto tile 
 
-* Add auto tile paints to history stack
-
-* remove transparent parts from tiles when creating images / or make it posible to select multiple at ones (seems normal for tilemap editors)
+* Change tile paint to not be a list of tiles but a grid of the tileset that the user can select multiple tiles from to paints with
  
 FILE 
 
@@ -14,11 +12,10 @@ FILE
 * Implement sync with local storage
 
 
-* Maybe add extras for generating a maze 
+* Maybe add extras for generating a maze and other pattern like stuff
 
 * Pan add drag of tilemap
 
 * Decide how to add attributes to objects and tiles, what is the need here, sprite fusion has attributes per tile and per tile instance
 
-
-
+* Errors from updates of project state, don't want to throw in the console

@@ -54,7 +54,7 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 <sl-dropdown>
-  <sl-button variant="primary" slot="trigger">Project</sl-button>
+  <sl-button size="small" variant="primary" slot="trigger">Project</sl-button>
   <sl-menu onsl-select={handleMenuSelect}>
     <p>{projectState.projectName}</p>
     <sl-menu-item value="create"
@@ -104,7 +104,7 @@
     <sl-menu-item value="settings"
       >Settings <sl-icon slot="suffix" name="gear"></sl-icon></sl-menu-item
     >
-    <p><small>&copy PimTiles 2025</small></p>
+    <p><small>&copy Pimpixels 2026</small></p>
   </sl-menu>
 </sl-dropdown>
 

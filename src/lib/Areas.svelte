@@ -49,7 +49,7 @@
     display: flex;
     flex-direction: column;
 
-    width: 320px !important;
+      width: 100%;
     height: 100%;
   }
 

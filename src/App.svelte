@@ -10,22 +10,21 @@
   <Menu />
 </div>
 <div id="content">
-  <TilemapEditor />
+    <TilemapEditor />
   <ToolBar />
+
 
 </div>
 
 <style>
   #menu {
-    padding: 1rem;
-    padding-bottom: 0;
+    padding: 0.5rem 1rem;
   }
 
   #content {
-    margin-top: 1rem;
     display: flex;
-    flex-grow: 1;
     justify-content: flex-start;
     overflow-y: auto;
+    flex-grow: 1;
   }
 </style>

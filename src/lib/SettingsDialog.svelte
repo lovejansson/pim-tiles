@@ -1,11 +1,9 @@
 <script lang="ts">
   import {
-    SlCheckbox,
     SlInput,
     type SlChangeEvent,
-    type SlHideEvent,
   } from "@shoelace-style/shoelace";
-  import { projectState, guiState } from "../state.svelte";
+  import { projectState } from "../state.svelte";
   import ConfirmDialog from "./ui/ConfirmDialog.svelte";
 
   let { open = $bindable() } = $props();
@@ -13,7 +11,6 @@
   const hide = () => {
     open = false;
   };
-  const show = () => (open = true);
 
   let tileSize = $state(projectState.tileSize);
   let confirmTileSizeDialogIsOpen = $state(false);
@@ -55,28 +52,7 @@
   >
     <span slot="suffix">px</span>
   </sl-input>
-  <sl-color-picker
-    onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
-    swatches="#000000; #FFFFFF; #2ada64; #bb46eb; #FFD700; #00BFFF;
-    "
-    value={guiState.gridColor}
-    onsl-change={(e: SlChangeEvent) => {
-      if (e.target) {
-        guiState.gridColor = (e.target as SlInput).value;
-      }
-      e.stopPropagation();
-    }}
-    label="Grid color"
-  ></sl-color-picker>
 
-  <sl-checkbox
-    onsl-change={(e: SlChangeEvent) => {
-      if (e.target) {
-        guiState.showGrid = (e.target as SlCheckbox).checked;
-      }
-    }}
-    checked={guiState.showGrid}>Show grid</sl-checkbox
-  >
 </sl-dialog>
 
 <ConfirmDialog
@@ -96,7 +72,5 @@
     font-size: small;
   }
 
-  sl-color-picker {
-    width: fit-content;
-  }
+
 </style>

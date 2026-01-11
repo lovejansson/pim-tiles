@@ -65,31 +65,30 @@
         {/each}
     </div>
 
-    {#if ruleTile.tile !== null}
-        <img
-            class="tile"
-            src={projectState.tilesets.getTile(
-                ruleTile.tile.ref.tileset.id,
-                ruleTile.tile.ref.tile.id,
-            ).dataURL}
-            alt="tile"
-        />
-    {:else}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <sl-button
-            onkeydown={(e: KeyboardEvent) => {
-                if (e.key === "Enter" && selectedTile !== null)
-                    ruleTile.tile = { ...selectedTile };
-            }}
-            onclick={() => {
-                if (selectedTile !== null) {
-                    ruleTile.tile = { ...selectedTile };
-                }
-            }}
-            class="tile-placeholder tile"
-            aria-label="Place tile here"
-        ></sl-button>
-    {/if}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <sl-button
+        onkeydown={(e: KeyboardEvent) => {
+            if (e.key === "Enter" && selectedTile !== null)
+                ruleTile.tile = { ...selectedTile };
+        }}
+        onclick={() => {
+            if (selectedTile !== null) {
+                ruleTile.tile = { ...selectedTile };
+            }
+        }}
+        class="tile"
+        aria-label="Place tile here"
+    >
+        {#if ruleTile.tile !== null}
+            <img
+                src={projectState.tilesets.getTile(
+                    ruleTile.tile.ref.tileset.id,
+                    ruleTile.tile.ref.tile.id,
+                ).dataURL}
+                alt="tile"
+            />
+        {/if}</sl-button
+    >
 
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <sl-icon-button
@@ -112,22 +111,27 @@
         display: grid;
         grid-template-areas:
             "nw n ne"
-            "e . w"
+            "w . e"
             "sw s se";
         gap: 0.25rem;
     }
 
-    .tile,
     .tile::part(base) {
-        height: 100%;
-        width: auto;
+        height: calc(32px * 3 + 0.5rem);
+        width:calc(32px *  + 0.5rem);;
         aspect-ratio: 1/1;
+    }
+
+    .tile::part(label) {
+        padding: 0;
+    }
+
+    .tile img {
+        height: 100%;
+        width: 100%;
         image-rendering: pixelated;
     }
 
-    sl-button {
-        --padding: 0;
-    }
 
     .btn-dir::part(base) {
         width: 32px;

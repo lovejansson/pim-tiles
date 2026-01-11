@@ -67,10 +67,7 @@ type LayerData<T extends PaintType> = T extends PaintType.AUTO_TILE ? Map<string
     : T extends PaintType.TILE ? Map<string, PaintedAssetT<T>>
     : never;
 
-type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE ? AssetRefT<T> & { tileRule: IdRef }
-    : T extends PaintType.AREA ? AssetRefT<T>
-    : T extends PaintType.TILE ? AssetRefT<T>
-    : never;
+type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE ? AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> } : AssetRefT<T>;
 
 type LayerT<T extends PaintType> = {
     id: string;
@@ -174,6 +171,8 @@ type GUIState = {
     selectedWorkspaceTab: string;
     history: HistoryEntry[];
     historyIdx: number;
+    mouseTile: {row: number, col: number},
+    mouseTileDelta: {row: number, col: number}
 }
 
 type Notification = {
@@ -182,10 +181,7 @@ type Notification = {
     msg: string;
 }
 
-type HistoryEntryData<T extends PaintType> = T extends PaintType.AUTO_TILE ? (AssetRefT<PaintType.AUTO_TILE> & { tileRule: IdRef })
-    : T extends PaintType.AREA ? (AssetRefT<PaintType.AREA>)
-    : T extends PaintType.TILE ? (AssetRefT<PaintType.TILE>)
-    : never;
+type HistoryEntryData<T extends PaintType> = T extends PaintType.AUTO_TILE ? (AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> }) : AssetRefT<PaintType.TILE>;
 
 type HistoryEntryItem<T extends PaintType> = {
     data: HistoryEntryData<T> | null,
@@ -216,6 +212,6 @@ export {
     type AreaHistoryEntryItem, type AutoTileHistoryEntryItem, type TileHistoryEntryItem,
     PaintType, Tool, TileRequirement, type HistoryEntry, type TileHistoryEntry, type AreaHistoryEntry,
     type TilemapEditorState, type AssetRef, type Area, type AreaAsset, type TileAsset, type AutoTileAsset, type TileLayerState, type AutoTileLayerState, type AreaLayerState,
-    type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer, type TileLayer, 
+    type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer, type TileLayer,
     type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type TileConnections
 };

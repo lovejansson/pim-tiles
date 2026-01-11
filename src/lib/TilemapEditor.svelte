@@ -15,6 +15,8 @@
   let zoomPos = $state({ x: 0, y: 0 });
   let mousePosCanvas = $state({ x: 0, y: 0 });
 
+  let mouseTileStart = $state({ row: 0, col: 0 });
+
   let canvasEl!: HTMLCanvasElement;
   let ctx!: CanvasRenderingContext2D;
 
@@ -40,6 +42,9 @@
 
     const col = Math.floor(x / tileSize);
     const row = Math.floor(y / tileSize);
+
+    mouseTileStart.row = row;
+    mouseTileStart.col = col;
 
     switch (tilemapEditorState.type) {
       case PaintType.AUTO_TILE:
@@ -191,7 +196,15 @@
     const col = Math.floor(x / tileSize);
     const row = Math.floor(y / tileSize);
 
+    guiState.mouseTile.row = row;
+    guiState.mouseTile.col = col;
+
+    // console.log(row, col);
+
     if (isMousDown) {
+      guiState.mouseTileDelta.row = Math.abs(row - mouseTileStart.row);
+      guiState.mouseTileDelta.col = Math.abs(col - mouseTileStart.col);
+
       switch (tilemapEditorState.type) {
         case PaintType.TILE:
           if (tilemapEditorState.fillToolIsActive) break;
@@ -216,6 +229,37 @@
               break;
           }
 
+          break;
+        case PaintType.AUTO_TILE:
+          switch (tilemapEditorState.selectedTool) {
+            case Tool.PAINT: {
+              if (tilemapEditorState.selectedAsset === null) {
+                guiState.notification = {
+                  variant: "neutral",
+                  title: "No asset",
+                  msg: "Select an auto tile!",
+                };
+                break;
+              }
+
+              projectState.layers.paintWithAutoTile(
+                row,
+                col,
+                tilemapEditorState.selectedAsset.ref.id,
+                tilemapEditorState.selectedLayer.id,
+              );
+              break;
+            }
+            case Tool.ERASE: {
+              projectState.layers.eraseAutoTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer.id,
+              );
+
+              break;
+            }
+          }
           break;
         case PaintType.AREA:
           if (tilemapEditorState.fillToolIsActive) break;
@@ -321,24 +365,7 @@
     ctx.translate(translation.x, translation.y);
     ctx.scale(zoom, zoom);
 
-    // Draw grid if not to zoomed out bc of performance
-    if (zoom >= 0.5) {
-      const { x0, x1, y0, y1 } = getWorldBounds(ctx);
 
-      const startX = Math.floor(x0 / tileSize) * tileSize;
-      const startY = Math.floor(y0 / tileSize) * tileSize;
-      ctx.beginPath();
-
-      ctx.strokeStyle = gridColor;
-
-      for (let y = startY; y <= y1; y += tileSize) {
-        for (let x = startX; x <= x1; x += tileSize) {
-          ctx.rect(x, y, tileSize, tileSize);
-        }
-      }
-
-      ctx.stroke();
-    }
 
     for (const layer of projectState.layers.get()) {
       if (layer.isVisible) {
@@ -362,28 +389,19 @@
             break;
           case PaintType.AUTO_TILE:
             for (const [key, autoTileAsset] of layer.data) {
-              const [ty, tx] = key.split(":").map(Number);
-              const autoTile = projectState.autoTiles.getAutoTile(
-                autoTileAsset.ref.id,
-              );
-              const tileRule = autoTile.rules.find(
-                (tr) => tr.id === autoTileAsset.tileRule.id,
+              const [row, col] = key.split(":").map(Number);
+              const tile = projectState.tilesets.getTile(
+                autoTileAsset.tile.ref.tileset.id,
+                autoTileAsset.tile.ref.tile.id,
               );
 
-              if (tileRule?.tile) {
-                const tile = projectState.tilesets.getTile(
-                  tileRule.tile.ref.tileset.id,
-                  tileRule.tile.ref.tile.id,
-                );
-
-                ctx.drawImage(
-                  tile.bitmap,
-                  tx * tileSize,
-                  ty * tileSize,
-                  tileSize,
-                  tileSize,
-                );
-              }
+              ctx.drawImage(
+                tile.bitmap,
+                col * tileSize,
+                row * tileSize,
+                tileSize,
+                tileSize,
+              );
             }
             break;
           case PaintType.AREA:
@@ -405,6 +423,25 @@
             break;
         }
       }
+    }
+
+        // Draw grid if not to zoomed out bc of performance
+    if (zoom >= 0.5 && guiState.showGrid) {
+      const { x0, x1, y0, y1 } = getWorldBounds(ctx);
+
+      const startX = Math.floor(x0 / tileSize) * tileSize;
+      const startY = Math.floor(y0 / tileSize) * tileSize;
+      ctx.beginPath();
+
+      ctx.strokeStyle = gridColor;
+
+      for (let y = startY; y <= y1; y += tileSize) {
+        for (let x = startX; x <= x1; x += tileSize) {
+          ctx.rect(x, y, tileSize, tileSize);
+        }
+      }
+
+      ctx.stroke();
     }
   }
 
@@ -438,7 +475,7 @@
   onmouseup={handleMouseUp}
 />
 
-<section>
+<section id="tilemap-editor">
   <canvas
     bind:this={canvasEl}
     onmousemove={handleMouseMove}
@@ -447,18 +484,16 @@
 </section>
 
 <style lang="postcss">
-  section {
+  #tilemap-editor {
     flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   canvas {
     cursor: crosshair;
-  }
-
-  canvas {
+    flex: 1;
     background-color: var(--color-0);
-    width: 100%;
-    height: 100%;
     image-rendering: pixelated;
   }
 </style>

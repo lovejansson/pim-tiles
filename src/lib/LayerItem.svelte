@@ -89,7 +89,7 @@
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
       </sl-tooltip>
     {:else if layer.type === PaintType.AUTO_TILE}
-      <sl-tooltip content="Auto tile layer layer">
+      <sl-tooltip content="Autotile layer">
         <sl-icon library="pixelarticons" name="grid"></sl-icon>
       </sl-tooltip>
     {:else}
