@@ -100,9 +100,7 @@
                 tilemapEditorState.selectedAsset,
               );
             } else {
-              projectState.layers.paintTile(
-                row,
-                col,
+              projectState.layers.paintTiles(
                 tilemapEditorState.selectedLayer.id,
                 tilemapEditorState.selectedAsset,
               );
@@ -182,6 +180,8 @@
   };
 
   const handleMouseMove = (e: MouseEvent) => {
+
+
     if (!canvasEl) return;
 
     const rect = canvasEl.getBoundingClientRect();
@@ -199,7 +199,6 @@
     guiState.mouseTile.row = row;
     guiState.mouseTile.col = col;
 
-    // console.log(row, col);
 
     if (isMousDown) {
       guiState.mouseTileDelta.row = Math.abs(row - mouseTileStart.row);
@@ -405,13 +404,15 @@
             }
             break;
           case PaintType.AREA:
+                    ctx.lineWidth = 2;
+
             for (const [key, areaAsset] of layer.data) {
               const area = projectState.areas.getArea(areaAsset.ref.id);
 
               const [row, col] = key.split(":").map(Number);
 
               ctx.strokeStyle = area.color;
-
+      
               ctx.strokeRect(
                 col * tileSize,
                 row * tileSize,
@@ -424,8 +425,10 @@
         }
       }
     }
+    ctx.lineWidth = 1;
 
-        // Draw grid if not to zoomed out bc of performance
+
+    // Draw grid if not to zoomed out bc of performance
     if (zoom >= 0.5 && guiState.showGrid) {
       const { x0, x1, y0, y1 } = getWorldBounds(ctx);
 

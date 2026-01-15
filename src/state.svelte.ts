@@ -8,6 +8,8 @@ import {
   type TileAsset,
   type AutoTileAsset,
   type PaintedAsset,
+  type TileHistoryEntryItem,
+  type Cell,
 } from "./types";
 import { getNeighbours } from "./utils";
 
@@ -31,9 +33,6 @@ export const guiState: GUIState = $state({
   notification: null,
   gridColor: "#000",
   showGrid: true,
-  workspaceTabs: [{ value: -1, label: "tilemap" }],
-  selectedWorkspaceTab: "tilemap",
-  selectedTile: null,
   history: [],
   historyIdx: 0,
   mouseTile: { row: 0, col: 0, },
@@ -347,7 +346,7 @@ export const projectState = (() => {
         return layer.data.get(`${row}:${col}`) || null;
       },
 
-      paintTile(row: number, col: number, layerID: string, paint: PaintedTile | PaintedArea | PaintedAutoTile) {
+      paintTile(row: number, col: number, layerID: string, paint: PaintedAsset) {
 
         const layer = this.getLayer(layerID);
 
@@ -367,6 +366,36 @@ export const projectState = (() => {
         projectStateChangeEvents.emit({
           prev: { type: paint.type, layer: { id: layerID }, items: [{ data: curr ? { ...curr } as any : null, pos: { row, col } }] },
           next: { type: paint.type, layer: { id: layerID }, items: [{ data: { ...paint } as any, pos: { row, col } }] }
+        });
+
+      },
+
+      paintTiles(layerID: string, paint: ({ asset: TileAsset, cell: Cell })[]) {
+
+        const layer = this.getLayer(layerID);
+
+        const prevTiles = [];
+        const nextTiles = [];
+
+        for (const p of paint) {
+          if (layer.type !== p.asset.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
+          const curr = layer.data.get(`${p.cell.row}:${p.cell.col}`) || null;
+
+          // Don't do anything if the same tile is being painted again
+          if (api.utils.isSameAsset(curr, p.asset)) {
+            return;
+          }
+
+          layer.data.set(`${p.cell.row}:${p.cell.col}`, { ...p.asset } as any);
+
+          prevTiles.push({ data: curr ? { ...curr } as any : null, pos: { row: p.cell.row, col: p.cell.col } });
+          nextTiles.push({ data: p.asset !== null ? { ...p.asset } as any : null, pos: { row: p.cell.row, col: p.cell.col } });
+
+        }
+
+        projectStateChangeEvents.emit({
+          prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
+          next: { type: layer.type, layer: { id: layerID }, items: nextTiles }
         });
 
       },

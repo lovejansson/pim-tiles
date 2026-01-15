@@ -142,7 +142,7 @@ type TileLayerState = {
     type: PaintType.TILE;
     selectedTool: Tool;
     selectedLayer: TileLayer;
-    selectedAsset: TileAsset | null;
+    selectedAsset: {asset: TileAsset, cell: Cell}[] | null;
     fillToolIsActive: boolean;
 }
 
@@ -167,8 +167,6 @@ type GUIState = {
     tilemapEditorState: TilemapEditorState;
     showGrid: boolean;
     gridColor: string;
-    workspaceTabs: { value: number | string, label: string }[];
-    selectedWorkspaceTab: string;
     history: HistoryEntry[];
     historyIdx: number;
     mouseTile: {row: number, col: number},
@@ -213,5 +211,5 @@ export {
     PaintType, Tool, TileRequirement, type HistoryEntry, type TileHistoryEntry, type AreaHistoryEntry,
     type TilemapEditorState, type AssetRef, type Area, type AreaAsset, type TileAsset, type AutoTileAsset, type TileLayerState, type AutoTileLayerState, type AreaLayerState,
     type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer, type TileLayer,
-    type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type TileConnections
+    type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type TileConnections, type Cell
 };

@@ -8,23 +8,7 @@
   import { splitIntoTiles } from "../utils";
   import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
-
-  const tilemapEditorState = $derived.by(
-    (): TileLayerState | AutoTileLayerState => {
-      if (guiState.tilemapEditorState.type === PaintType.TILE)
-        return guiState.tilemapEditorState;
-      if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
-        return guiState.tilemapEditorState;
-
-      throw new Error("Invalid UI state");
-    },
-  );
-
-  const selectedTileRef = $derived(
-    tilemapEditorState.selectedAsset?.type === PaintType.TILE
-      ? tilemapEditorState.selectedAsset.ref
-      : null,
-  );
+    import TilesCanvas from "./TilesCanvas.svelte";
 
   let selectedTilesetIdx = $state(0);
 
@@ -35,7 +19,10 @@
       const bitmap = await createImageBitmap(file);
       const tiles = await splitIntoTiles(bitmap, projectState.tileSize);
 
-      projectState.tilesets.add(name, tiles);
+      const numSameName = projectState.tilesets.get().reduce((count,t) => t.name === name ? count += 1 : count, 0);
+
+      projectState.tilesets.add(numSameName > 0 ? `${name} (${numSameName})` : name, tiles);
+      
       selectedTilesetIdx = projectState.tilesets.get().length - 1;
     } catch (e) {
       console.error(e);
@@ -47,12 +34,6 @@
     }
   };
 
-  const selectTile = (tilesetId: string, tileId: string) => {
-    tilemapEditorState.selectedAsset = {
-      type: PaintType.TILE,
-      ref: { tileset: { id: tilesetId }, tile: { id: tileId } },
-    };
-  };
 </script>
 
 <section id="tilesets">
@@ -68,26 +49,7 @@
           <TilesetTab {tileset} /></sl-tab
         >
         <sl-tab-panel name={tileset.name}>
-          <ul class="tiles">
-            {#each tileset.tiles as tile}
-              <li
-                class:selected={selectedTileRef &&
-                  selectedTileRef.tileset.id === tileset.id &&
-                  selectedTileRef.tile.id === tile.id}
-              >
-                <button
-                  class="tile"
-                  onkeydown={(e) => {
-                    if (e.key.toLowerCase() === "enter")
-                      selectTile(tileset.id, tile.id);
-                  }}
-                  onclick={() => selectTile(tileset.id, tile.id)}
-                >
-                  <img src={tile.dataURL} alt="tile" />
-                </button>
-              </li>
-            {/each}
-          </ul>
+          <TilesCanvas tileset={tileset}/>
         </sl-tab-panel>
       {/each}
     </sl-tab-group>
@@ -110,32 +72,6 @@
     align-items: center;
   }
 
-  .tiles {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-    gap: 1px;
-  }
-
-  .tile {
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    padding: 0;
-    background: none;
-    border: none;
-  }
-
-  .tile img {
-    aspect-ratio: 1/1;
-    image-rendering: pixelated;
-    width: 100%;
-    height: 100%;
-  }
-
-  .selected {
-    outline: 1px solid lime;
-  }
-
   sl-tab {
     padding: 0;
   }
@@ -156,6 +92,6 @@
   sl-tab-panel {
     background-color: var(--color-4);
     --padding: 0;
-    height: 240px;
+    height: 400px;
   }
 </style>

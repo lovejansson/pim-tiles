@@ -2,7 +2,6 @@
 
 * Add flood fill for auto tile 
 
-* Change tile paint to not be a list of tiles but a grid of the tileset that the user can select multiple tiles from to paints with
  
 FILE 
 
@@ -19,3 +18,14 @@ FILE
 * Decide how to add attributes to objects and tiles, what is the need here, sprite fusion has attributes per tile and per tile instance
 
 * Errors from updates of project state, don't want to throw in the console
+
+
+
+* Change tile paint to not be a list of tiles but a grid of the tileset that the user can select multiple tiles from to paints with
+
+
+- Change tileset tiles area to allow for multiple selection of tiles
+- Can select area -> determine which tiles are included here and update selected state
+- Update mouse move/mouse down of tilemap editor so that it paints all the selected tiles
+
+- Update cursor GUI to use the selected assets as a cursor image so that user can see the tiles

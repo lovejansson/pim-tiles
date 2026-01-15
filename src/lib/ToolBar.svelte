@@ -62,9 +62,6 @@
 </section>
 
 <style lang="postcss">
-
-
-
   #toolbar {
     padding: 2rem 1rem;
     overflow-y: auto;
@@ -72,8 +69,7 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    max-width: 400px;
-    flex: 1;
+    width: 500px;
   }
 
     #grid-settings {
@@ -81,6 +77,7 @@
     flex-direction: row;
     align-items: center;
     gap: 1rem;
+    margin-top: auto;
 
   }
 
