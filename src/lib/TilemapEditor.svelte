@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { guiState, projectState, HistoryStack } from "../state.svelte";
   import { roundToDecimal } from "../utils";
   import { PaintType, Tool } from "../types";
@@ -9,6 +9,7 @@
 
   let shiftKeyIsDown = $state(false);
   let ctrlKeyIsDown = $state(false);
+  let spaceKeyIsDown = $state(false);
   let isMousDown = $state(false);
   let translation = $state({ x: 0, y: 0 });
   let zoom = $state(1);
@@ -19,15 +20,28 @@
 
   let canvasEl!: HTMLCanvasElement;
   let ctx!: CanvasRenderingContext2D;
+  let requestedAnimationFrameID = $state(0);
 
-  onMount(async () => {
+  onMount(() => {
+    if (!canvasEl) return;
     ctx = canvasEl.getContext("2d")!;
-    await tick();
-    canvasEl.width = canvasEl.clientWidth;
-    canvasEl.height = canvasEl.clientHeight;
-    ctx.imageSmoothingEnabled = false;
 
-    update(0);
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width === 0) return;
+      canvasEl.width = entry.contentRect.width;
+      canvasEl.height = entry.contentRect.height;
+      ctx.imageSmoothingEnabled = false;
+      update();
+      ro.disconnect();
+    });
+
+    ro.observe(canvasEl);
+
+    return () => ro.disconnect();
+  });
+
+  onDestroy(() => {
+    cancelAnimationFrame(requestedAnimationFrameID);
   });
 
   const handleMouseDown = (e: MouseEvent) => {
@@ -46,25 +60,20 @@
     mouseTileStart.row = row;
     mouseTileStart.col = col;
 
+    if (spaceKeyIsDown) return;
+
     switch (tilemapEditorState.type) {
       case PaintType.AUTO_TILE:
         switch (tilemapEditorState.selectedTool) {
           case Tool.PAINT: {
-            if (tilemapEditorState.selectedAsset === null) {
-              guiState.notification = {
-                variant: "neutral",
-                title: "No asset",
-                msg: "Select an auto tile!",
-              };
-              break;
+            if (tilemapEditorState.selectedAsset !== null) {
+              projectState.layers.paintWithAutoTile(
+                row,
+                col,
+                tilemapEditorState.selectedAsset.ref.id,
+                tilemapEditorState.selectedLayer.id,
+              );
             }
-
-            projectState.layers.paintWithAutoTile(
-              row,
-              col,
-              tilemapEditorState.selectedAsset.ref.id,
-              tilemapEditorState.selectedLayer.id,
-            );
 
             break;
           }
@@ -82,28 +91,25 @@
       case PaintType.TILE:
         switch (tilemapEditorState.selectedTool) {
           case Tool.PAINT:
-            if (tilemapEditorState.selectedAsset === null) {
-              guiState.notification = {
-                variant: "neutral",
-                title: "No asset",
-                msg: "Select a tile!",
-              };
-
-              break;
-            }
-
-            if (tilemapEditorState.fillToolIsActive) {
-              projectState.layers.floodFill(
-                tilemapEditorState.selectedLayer.id,
-                row,
-                col,
-                tilemapEditorState.selectedAsset,
-              );
-            } else {
-              projectState.layers.paintTiles(
-                tilemapEditorState.selectedLayer.id,
-                tilemapEditorState.selectedAsset,
-              );
+            if (tilemapEditorState.selectedAsset !== null) {
+              if (
+                tilemapEditorState.fillToolIsActive &&
+                tilemapEditorState.selectedAsset.length === 1
+              ) {
+                projectState.layers.floodFill(
+                  tilemapEditorState.selectedLayer.id,
+                  row,
+                  col,
+                  tilemapEditorState.selectedAsset[0].asset,
+                );
+              } else {
+                projectState.layers.paintTiles(
+                  row,
+                  col,
+                  tilemapEditorState.selectedLayer.id,
+                  tilemapEditorState.selectedAsset,
+                );
+              }
             }
 
             break;
@@ -129,31 +135,23 @@
       case PaintType.AREA:
         switch (tilemapEditorState.selectedTool) {
           case Tool.PAINT:
-            if (tilemapEditorState.selectedAsset === null) {
-              guiState.notification = {
-                variant: "neutral",
-                title: "Select area",
-                msg: "No area selected!",
-              };
-              break;
+            if (tilemapEditorState.selectedAsset !== null) {
+              if (tilemapEditorState.fillToolIsActive) {
+                projectState.layers.floodFill(
+                  tilemapEditorState.selectedLayer.id,
+                  row,
+                  col,
+                  tilemapEditorState.selectedAsset,
+                );
+              } else {
+                projectState.layers.paintTile(
+                  row,
+                  col,
+                  tilemapEditorState.selectedLayer.id,
+                  tilemapEditorState.selectedAsset,
+                );
+              }
             }
-
-            if (tilemapEditorState.fillToolIsActive) {
-              projectState.layers.floodFill(
-                tilemapEditorState.selectedLayer.id,
-                row,
-                col,
-                tilemapEditorState.selectedAsset,
-              );
-            } else {
-              projectState.layers.paintTile(
-                row,
-                col,
-                tilemapEditorState.selectedLayer.id,
-                tilemapEditorState.selectedAsset,
-              );
-            }
-
             break;
           case Tool.ERASE:
             if (tilemapEditorState.fillToolIsActive) {
@@ -180,17 +178,12 @@
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-
-
     if (!canvasEl) return;
 
     const rect = canvasEl.getBoundingClientRect();
 
     const canvasX = e.clientX - rect.left;
     const canvasY = e.clientY - rect.top;
-
-    mousePosCanvas.x = canvasX;
-    mousePosCanvas.y = canvasY;
 
     const { x, y } = getWorldPos(ctx, { x: canvasX, y: canvasY });
     const col = Math.floor(x / tileSize);
@@ -199,8 +192,19 @@
     guiState.mouseTile.row = row;
     guiState.mouseTile.col = col;
 
+    const deltaX = canvasX - mousePosCanvas.x;
+    const deltaY = canvasY - mousePosCanvas.y;
+
+    mousePosCanvas.x = canvasX;
+    mousePosCanvas.y = canvasY;
 
     if (isMousDown) {
+      if (spaceKeyIsDown) {
+        translation.x += deltaX;
+        translation.y += deltaY;
+        return;
+      }
+
       guiState.mouseTileDelta.row = Math.abs(row - mouseTileStart.row);
       guiState.mouseTileDelta.col = Math.abs(col - mouseTileStart.col);
 
@@ -211,7 +215,7 @@
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                projectState.layers.paintTile(
+                projectState.layers.paintTiles(
                   row,
                   col,
                   tilemapEditorState.selectedLayer.id,
@@ -232,21 +236,14 @@
         case PaintType.AUTO_TILE:
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT: {
-              if (tilemapEditorState.selectedAsset === null) {
-                guiState.notification = {
-                  variant: "neutral",
-                  title: "No asset",
-                  msg: "Select an auto tile!",
-                };
-                break;
+              if (tilemapEditorState.selectedAsset !== null) {
+                projectState.layers.paintWithAutoTile(
+                  row,
+                  col,
+                  tilemapEditorState.selectedAsset.ref.id,
+                  tilemapEditorState.selectedLayer.id,
+                );
               }
-
-              projectState.layers.paintWithAutoTile(
-                row,
-                col,
-                tilemapEditorState.selectedAsset.ref.id,
-                tilemapEditorState.selectedLayer.id,
-              );
               break;
             }
             case Tool.ERASE: {
@@ -339,6 +336,7 @@
     if (e.key.toLowerCase() === "shift") shiftKeyIsDown = false;
     if (e.key.toLowerCase() === "meta" || e.key.toLowerCase() === "control")
       ctrlKeyIsDown = false;
+    if (e.key === " ") spaceKeyIsDown = false;
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -346,6 +344,7 @@
 
     if (e.shiftKey) shiftKeyIsDown = true;
     if (e.ctrlKey || e.metaKey) ctrlKeyIsDown = true;
+    if (e.key === " ") spaceKeyIsDown = true;
 
     switch (e.key.toLowerCase()) {
       case "z":
@@ -359,15 +358,13 @@
 
   function draw(ctx: CanvasRenderingContext2D) {
     ctx.resetTransform();
-    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     ctx.translate(translation.x, translation.y);
     ctx.scale(zoom, zoom);
 
-
-
     for (const layer of projectState.layers.get()) {
-      if (layer.isVisible) {
+      if (guiState.visibleLayers[layer.id]) {
         switch (layer.type) {
           case PaintType.TILE:
             for (const [key, tileAsset] of layer.data) {
@@ -404,7 +401,7 @@
             }
             break;
           case PaintType.AREA:
-                    ctx.lineWidth = 2;
+            ctx.lineWidth = 2;
 
             for (const [key, areaAsset] of layer.data) {
               const area = projectState.areas.getArea(areaAsset.ref.id);
@@ -412,7 +409,7 @@
               const [row, col] = key.split(":").map(Number);
 
               ctx.strokeStyle = area.color;
-      
+
               ctx.strokeRect(
                 col * tileSize,
                 row * tileSize,
@@ -426,7 +423,6 @@
       }
     }
     ctx.lineWidth = 1;
-
 
     // Draw grid if not to zoomed out bc of performance
     if (zoom >= 0.5 && guiState.showGrid) {
@@ -453,8 +449,8 @@
 
     const topLeft = new DOMPoint(0, 0).matrixTransform(m);
     const bottomRight = new DOMPoint(
-      canvasEl.width,
-      canvasEl.height,
+      ctx.canvas.width,
+      ctx.canvas.height,
     ).matrixTransform(m);
 
     return {
@@ -465,9 +461,9 @@
     };
   }
 
-  function update(elasped: number) {
+  function update() {
     draw(ctx);
-    requestAnimationFrame((elapsed) => update(elapsed));
+    requestedAnimationFrameID = requestAnimationFrame(update);
   }
 </script>
 
@@ -483,6 +479,8 @@
     bind:this={canvasEl}
     onmousemove={handleMouseMove}
     onmousedown={handleMouseDown}
+    class:crosshair={!spaceKeyIsDown}
+    class:grab={spaceKeyIsDown}
   ></canvas>
 </section>
 
@@ -493,8 +491,15 @@
     flex-direction: column;
   }
 
-  canvas {
+  .crosshair {
     cursor: crosshair;
+  }
+
+  .grab {
+    cursor: grab;
+  }
+
+  canvas {
     flex: 1;
     background-color: var(--color-0);
     image-rendering: pixelated;

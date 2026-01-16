@@ -44,7 +44,7 @@
 >
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <sl-button
-    id="PaintType.AREA"
+    id="area"
     variant="text"
     class:selected={tilemapEditorState.selectedAsset?.ref.id === area.id}
     onclick={selectArea}
@@ -74,5 +74,9 @@
 
   .selected::part(base) {
     border: 1px solid var(--color-0);
+  }
+
+  #area {
+    width: 100%;
   }
 </style>

@@ -74,7 +74,6 @@ type LayerT<T extends PaintType> = {
     type: T;
     name: string;
     data: LayerData<T>,
-    isVisible: boolean;
 }
 
 type PaintedTile = PaintedAssetT<PaintType.TILE>;
@@ -137,12 +136,13 @@ type AssetRef = TileAsset | AutoTileAsset | AreaAsset;
 
 type TilemapEditorState = TileLayerState | AutoTileLayerState | AreaLayerState;
 
+type SelectedTiles = {asset: TileAsset, cell: Cell}[];
 
 type TileLayerState = {
     type: PaintType.TILE;
     selectedTool: Tool;
     selectedLayer: TileLayer;
-    selectedAsset: {asset: TileAsset, cell: Cell}[] | null;
+    selectedAsset: SelectedTiles | null;
     fillToolIsActive: boolean;
 }
 
@@ -169,8 +169,17 @@ type GUIState = {
     gridColor: string;
     history: HistoryEntry[];
     historyIdx: number;
-    mouseTile: {row: number, col: number},
-    mouseTileDelta: {row: number, col: number}
+    mouseTile: {row: number, col: number};
+    mouseTileDelta: {row: number, col: number};
+    visibleLayers: {[key: string]: boolean};
+}
+
+type ProjectJSON = {
+    tilemap: string;
+    name: string;
+    tileSize: number;
+    areas: {name: string, tiles: Point[]}[];
+    attributes: (Point & {attributes: {[key:string]: any}})[];
 }
 
 type Notification = {
@@ -205,7 +214,7 @@ type AreaHistoryEntry = HistoryEntryT<PaintType.AREA>;
 type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry;
 
 
-export {
+export { type SelectedTiles, type ProjectJSON,
     type PaintedTile, type PaintedArea, type PaintedAutoTile, type PaintedAsset, type LayerT, type PaintedAssetT,
     type AreaHistoryEntryItem, type AutoTileHistoryEntryItem, type TileHistoryEntryItem,
     PaintType, Tool, TileRequirement, type HistoryEntry, type TileHistoryEntry, type AreaHistoryEntry,

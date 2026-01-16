@@ -1,13 +1,29 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import type { Cell, Tile, Tileset } from "../types";
+    import {
+        PaintType,
+        type Cell,
+        type SelectedTiles,
+        type Tile,
+        type Tileset,
+    } from "../types";
     import { guiState, projectState } from "../state.svelte";
+    import { roundToDecimal } from "../utils";
 
     type TilesCanvasProps = {
         tileset: Tileset;
+        multipleSelection?: boolean;
+        onSelect: (selectedTiles: SelectedTiles) => void;
     };
 
-    let { tileset }: TilesCanvasProps = $props();
+    type Selection = {
+        row: number;
+        col: number;
+        rows: number;
+        cols: number;
+    };
+
+    let { tileset, onSelect, multipleSelection }: TilesCanvasProps = $props();
 
     let tiles: (Tile & Cell)[] = $state(
         tileset.tiles.map((t, i) => ({
@@ -17,16 +33,12 @@
         })),
     );
 
-    let selection: null | {
-        row: number;
-        col: number;
-        rows: number;
-        cols: number;
-    } = $state(null);
+    let selection: Selection | null = $state(null);
 
     let canvasEl!: HTMLCanvasElement;
     let ctx!: CanvasRenderingContext2D;
 
+    let spaceKeyIsDown = $state(false);
     let isMousDown = $state(false);
     let translation = $state({ x: 0, y: 0 });
     let zoom = $state(1);
@@ -42,16 +54,48 @@
             canvasEl.width = entry.contentRect.width;
             canvasEl.height = entry.contentRect.height;
             ctx.imageSmoothingEnabled = false;
-
+            update();
             ro.disconnect();
         });
 
         ro.observe(canvasEl);
 
-        update(0);
-
-        return () => ro.disconnect();
+        return () => {
+            ro.disconnect();
+        };
     });
+
+    const updateSelectedTiles = (selection: Selection) => {
+        const selectedTiles: SelectedTiles = [];
+
+        for (let r = selection.row; r < selection.row + selection.rows; ++r) {
+            for (
+                let c = selection.col;
+                c < selection.col + selection.cols;
+                ++c
+            ) {
+                const tile = tiles.find((t) => t.row === r && t.col === c);
+
+                if (tile !== undefined) {
+                    selectedTiles.push({
+                        asset: {
+                            type: PaintType.TILE,
+                            ref: {
+                                tile: { id: tile.id },
+                                tileset: { id: tileset.id },
+                            },
+                        },
+                        cell: {
+                            row: tile.row - selection.row,
+                            col: tile.col - selection.col,
+                        },
+                    });
+                }
+            }
+        }
+
+        onSelect(selectedTiles);
+    };
 
     const handleMouseDown = (e: MouseEvent) => {
         isMousDown = true;
@@ -69,12 +113,13 @@
         const row = Math.floor(y / tileSize);
 
         selection = { row, col, rows: 1, cols: 1 };
+
+        updateSelectedTiles(selection);
     };
 
     const handleMouseUp = () => {
         if (isMousDown) {
             isMousDown = false;
-    
         }
     };
 
@@ -86,21 +131,32 @@
         const canvasX = e.clientX - rect.left;
         const canvasY = e.clientY - rect.top;
 
+        const deltaX = canvasX - mousePosCanvas.x;
+        const deltaY = canvasY - mousePosCanvas.y;
+
         mousePosCanvas.x = canvasX;
         mousePosCanvas.y = canvasY;
 
-        const { x, y } = getWorldPos(ctx, { x: canvasX, y: canvasY });
+        if (isMousDown) {
+            if (spaceKeyIsDown) {
+                translation.x += deltaX;
+                translation.y += deltaY;
+                return;
+            }
 
+            if (multipleSelection) {
+                const { x, y } = getWorldPos(ctx, { x: canvasX, y: canvasY });
 
-        if(isMousDown && selection !== null) {
+                if (selection !== null) {
+                    const col = Math.ceil(x / tileSize);
+                    const row = Math.ceil(y / tileSize);
 
-            const col = Math.ceil(x / tileSize);
-            const row = Math.ceil(y / tileSize);
+                    selection.rows = row - selection.row;
+                    selection.cols = col - selection.col;
 
-            selection.rows = row - selection.row;
-            selection.cols = col - selection.col;
-
-
+                    updateSelectedTiles(selection);
+                }
+            }
         }
     };
 
@@ -108,10 +164,10 @@
         if (e.target !== canvasEl) return;
 
         const delta = Math.sign(e.deltaY);
-        const zoomFactor = 0.25;
+        const zoomFactor = 0.375;
 
         if (delta < 0) {
-            if (zoom < 4.0) {
+            if (zoom < 6.0) {
                 zoom = roundToDecimal(zoom + zoomFactor, 3);
                 zoomPos = getWorldPos(ctx, {
                     x: mousePosCanvas.x,
@@ -139,6 +195,16 @@
         e.stopPropagation();
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+        if (e.key === " ") spaceKeyIsDown = false;
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
+
+        if (e.key === " ") spaceKeyIsDown = true;
+    };
+
     function getWorldPos(
         ctx: CanvasRenderingContext2D,
         pos: { x: number; y: number },
@@ -152,9 +218,8 @@
     }
 
     function draw(ctx: CanvasRenderingContext2D) {
-        if (!canvasEl || !ctx) return;
         ctx.resetTransform();
-        ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         ctx.translate(translation.x, translation.y);
         ctx.scale(zoom, zoom);
@@ -196,7 +261,7 @@
             ctx.strokeRect(
                 selection.col * tileSize,
                 selection.row * tileSize,
-                selection.cols   * tileSize ,
+                selection.cols * tileSize,
                 selection.rows * tileSize,
             );
         }
@@ -207,8 +272,8 @@
 
         const topLeft = new DOMPoint(0, 0).matrixTransform(m);
         const bottomRight = new DOMPoint(
-            canvasEl.width,
-            canvasEl.height,
+            ctx.canvas.width,
+            ctx.canvas.height,
         ).matrixTransform(m);
 
         return {
@@ -219,26 +284,36 @@
         };
     }
 
-    function update(elasped: number) {
+    function update() {
         draw(ctx);
-        requestAnimationFrame((elapsed) => update(elapsed));
-    }
-
-    function roundToDecimal(num: number, decimalPlaces: number) {
-        const factor = Math.pow(10, decimalPlaces);
-        return Math.round(num * factor) / factor;
+        requestAnimationFrame(update);
     }
 </script>
 
-<svelte:window onwheel={handleWheel} onmouseup={handleMouseUp} />
+<svelte:window
+    onwheel={handleWheel}
+    onmouseup={handleMouseUp}
+    onkeydown={handleKeyDown}
+    onkeyup={handleKeyUp}
+/>
 
 <canvas
     bind:this={canvasEl}
     onmousemove={handleMouseMove}
     onmousedown={handleMouseDown}
+    class:crosshair={!spaceKeyIsDown}
+    class:grab={spaceKeyIsDown}
 ></canvas>
 
 <style>
+    .crosshair {
+        cursor: crosshair;
+    }
+
+    .grab {
+        cursor: grab;
+    }
+
     canvas {
         width: 100%;
         height: 100%;

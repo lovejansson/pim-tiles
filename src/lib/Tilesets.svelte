@@ -1,14 +1,10 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
-  import {
-    PaintType,
-    type AutoTileLayerState,
-    type TileLayerState,
-  } from "../types";
   import { splitIntoTiles } from "../utils";
   import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
-    import TilesCanvas from "./TilesCanvas.svelte";
+  import TilesCanvas from "./TilesCanvas.svelte";
+    import type { SelectedTiles } from "../types";
 
   let selectedTilesetIdx = $state(0);
 
@@ -19,10 +15,15 @@
       const bitmap = await createImageBitmap(file);
       const tiles = await splitIntoTiles(bitmap, projectState.tileSize);
 
-      const numSameName = projectState.tilesets.get().reduce((count,t) => t.name === name ? count += 1 : count, 0);
+      const numSameName = projectState.tilesets
+        .get()
+        .reduce((count, t) => (t.name === name ? (count += 1) : count), 0);
 
-      projectState.tilesets.add(numSameName > 0 ? `${name} (${numSameName})` : name, tiles);
-      
+      projectState.tilesets.add(
+        numSameName > 0 ? `${name} (${numSameName})` : name,
+        tiles,
+      );
+
       selectedTilesetIdx = projectState.tilesets.get().length - 1;
     } catch (e) {
       console.error(e);
@@ -34,6 +35,9 @@
     }
   };
 
+  const handleOnSelectTiles = (selectedTiles: SelectedTiles) => {
+    guiState.tilemapEditorState.selectedAsset = selectedTiles;
+  }
 </script>
 
 <section id="tilesets">
@@ -49,7 +53,11 @@
           <TilesetTab {tileset} /></sl-tab
         >
         <sl-tab-panel name={tileset.name}>
-          <TilesCanvas tileset={tileset}/>
+          <TilesCanvas
+            {tileset}
+            multipleSelection
+            onSelect={handleOnSelectTiles}
+          />
         </sl-tab-panel>
       {/each}
     </sl-tab-group>

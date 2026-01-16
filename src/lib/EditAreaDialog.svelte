@@ -1,7 +1,6 @@
 <script lang="ts">
     import {
         SlInput,
-        SlSelect,
         type SlChangeEvent,
         type SlHideEvent,
     } from "@shoelace-style/shoelace";

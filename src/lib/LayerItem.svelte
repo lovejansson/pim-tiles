@@ -1,15 +1,14 @@
 <script lang="ts">
   import { guiState, projectState } from "../state.svelte";
-  import { PaintType, Tool, type Layer } from "../types";
+  import { PaintType, type Layer } from "../types";
   import ContextMenu from "./ui/ContextMenu.svelte";
   import EditableText from "./ui/EditableText.svelte";
 
   type LayerItemProps = {
     layer: Layer;
-    idx: number;
   };
 
-  let { layer, idx }: LayerItemProps = $props();
+  let { layer }: LayerItemProps = $props();
 
   let isEditingName = $state(false);
 
@@ -28,7 +27,7 @@
         guiState.tilemapEditorState.selectedLayer.id === layer.id;
 
       if (layerIsSelected) {
-        selectLayer(layer, idx);
+        selectLayer();
       }
 
       projectState.layers.delete(layer.id);
@@ -37,40 +36,16 @@
     }
   };
 
-  const selectLayer = (layer: Layer, idx: number) => {
-    switch (layer.type) {
-      case PaintType.TILE:
-        guiState.tilemapEditorState = {
-          type: PaintType.TILE,
-          selectedLayer: layer,
-          selectedTool: Tool.PAINT,
-          selectedAsset: null,
-          fillToolIsActive: false,
-        };
-        break;
-      case PaintType.AUTO_TILE:
-        guiState.tilemapEditorState = {
-          type: PaintType.AUTO_TILE,
-          selectedLayer: layer,
-          selectedTool: Tool.PAINT,
-          selectedAsset: null,
-          fillToolIsActive: false,
-        };
-        break;
-      case PaintType.AREA:
-        guiState.tilemapEditorState = {
-          type: PaintType.AREA,
-          selectedLayer: layer,
-          selectedTool: Tool.PAINT,
-          selectedAsset: null,
-          fillToolIsActive: false,
-        };
+  const selectLayer = () => {
+    if (guiState.tilemapEditorState.selectedLayer.id !== layer.id) {
+      guiState.tilemapEditorState.selectedLayer = layer;
+      guiState.tilemapEditorState.selectedAsset = null;
+      guiState.tilemapEditorState.type = layer.type;
     }
   };
 
   const toggleVisibility = () => {
-    projectState.layers.get()[idx].isVisible =
-      !projectState.layers.get()[idx].isVisible;
+    guiState.visibleLayers[layer.id] = !guiState.visibleLayers[layer.id];
   };
 </script>
 
@@ -83,7 +58,7 @@
   ]}
 >
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div id="layer" onclick={() => selectLayer(layer, idx)}>
+  <div id="layer" onclick={selectLayer}>
     {#if layer.type === PaintType.TILE}
       <sl-tooltip content="Tile layer">
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
@@ -109,7 +84,7 @@
         toggleVisibility();
       }}
       library="pixelarticons"
-      name={layer.isVisible ? "eye" : "eye-closed"}
+      name={guiState.visibleLayers[layer.id] ? "eye" : "eye-closed"}
     >
     </sl-icon-button>
   </div>

@@ -1,24 +1,21 @@
 import {
   type ProjectState, type GUIState, type TileLayer, type AssetRef, type AutoTile, type HistoryEntry, type Tile, type TileRule, type Layer,
   PaintType, TileRequirement, Tool,
-  type PaintedArea,
-  type PaintedTile,
   type PaintedAutoTile,
   type AutoTileHistoryEntryItem,
   type TileAsset,
-  type AutoTileAsset,
   type PaintedAsset,
-  type TileHistoryEntryItem,
   type Cell,
+  type Point,
+  type ProjectJSON,
 } from "./types";
-import { getNeighbours } from "./utils";
+import { getNeighbours, createOffScreenCanvas, download } from "./utils";
 
 
 const DEFAULT_LAYER: TileLayer = {
   id: crypto.randomUUID(),
   name: "bg",
   data: new Map(),
-  isVisible: false,
   type: PaintType.TILE,
 };
 
@@ -36,7 +33,8 @@ export const guiState: GUIState = $state({
   history: [],
   historyIdx: 0,
   mouseTile: { row: 0, col: 0, },
-  mouseTileDelta: { row: 0, col: 0 }
+  mouseTileDelta: { row: 0, col: 0 },
+  visibleLayers: {}
 });
 
 class ProjectStateError extends Error {
@@ -76,21 +74,19 @@ export const projectState = (() => {
         id: generateId(),
         name: "zones",
         data: new Map(),
-        isVisible: false,
         type: PaintType.AREA,
       },
       {
         id: generateId(),
         name: "grass",
         data: new Map(),
-        isVisible: false,
+
         type: PaintType.AUTO_TILE,
       },
       {
         id: generateId(),
         name: "Road",
         data: new Map(),
-        isVisible: false,
         type: PaintType.AUTO_TILE,
       },
     ],
@@ -99,7 +95,6 @@ export const projectState = (() => {
     autoTiles: [],
     areas: [],
   });
-
 
   const api = {
 
@@ -318,13 +313,13 @@ export const projectState = (() => {
       add(name: string, type: PaintType) {
         switch (type) {
           case PaintType.TILE:
-            projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
+            projectState.layers.push({ id: generateId(), name, type, data: new Map() });
             break;
           case PaintType.AUTO_TILE:
-            projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
+            projectState.layers.push({ id: generateId(), name, type, data: new Map() });
             break;
           case PaintType.AREA:
-            projectState.layers.push({ id: generateId(), name, type, data: new Map(), isVisible: false });
+            projectState.layers.push({ id: generateId(), name, type, data: new Map() });
             break;
         }
       },
@@ -370,7 +365,7 @@ export const projectState = (() => {
 
       },
 
-      paintTiles(layerID: string, paint: ({ asset: TileAsset, cell: Cell })[]) {
+      paintTiles(row: number, col: number, layerID: string, paint: ({ asset: TileAsset, cell: Cell })[]) {
 
         const layer = this.getLayer(layerID);
 
@@ -379,17 +374,17 @@ export const projectState = (() => {
 
         for (const p of paint) {
           if (layer.type !== p.asset.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
-          const curr = layer.data.get(`${p.cell.row}:${p.cell.col}`) || null;
+          const curr = layer.data.get(`${row + p.cell.row}:${col + p.cell.col}`) || null;
 
           // Don't do anything if the same tile is being painted again
           if (api.utils.isSameAsset(curr, p.asset)) {
             return;
           }
 
-          layer.data.set(`${p.cell.row}:${p.cell.col}`, { ...p.asset } as any);
+          layer.data.set(`${row + p.cell.row}:${col + p.cell.col}`, { ...p.asset } as any);
 
-          prevTiles.push({ data: curr ? { ...curr } as any : null, pos: { row: p.cell.row, col: p.cell.col } });
-          nextTiles.push({ data: p.asset !== null ? { ...p.asset } as any : null, pos: { row: p.cell.row, col: p.cell.col } });
+          prevTiles.push({ data: curr ? { ...curr } as any : null, pos: { row: row + p.cell.row, col: col + p.cell.col } });
+          nextTiles.push({ data: p.asset !== null ? { ...p.asset } as any : null, pos: { row: row + p.cell.row, col: col + p.cell.col } });
 
         }
 
@@ -499,6 +494,7 @@ export const projectState = (() => {
         const nextItems = filledTiles.map(ft => {
           return { data: paint !== null ? { ...paint } as any : null, pos: { row: ft.row, col: ft.col } };
         });
+
 
 
         for (const ft of filledTiles) {
@@ -618,6 +614,7 @@ export const projectState = (() => {
       }
 
     },
+
     utils: {
       isSameAsset(a: AssetRef | null, b: AssetRef | null): boolean {
 
@@ -635,6 +632,95 @@ export const projectState = (() => {
           case PaintType.AREA:
             return a.ref.id === (b as typeof a).ref.id;
         }
+      },
+      toJSON(): string {
+        const tileSize = projectState.tileSize;
+
+        const tilemapBounds: { x1: number, x2: number, y1: number, y2: number } = projectState.layers.reduce((acc, l) => {
+
+          for (const key of l.data.keys()) {
+
+            const [row, col] = key.split(":").map(Number);
+
+            acc.y1 = Math.min(row * tileSize, acc.y1);
+            acc.y2 = Math.max(row * tileSize, acc.y2);
+            acc.x1 = Math.min(col * tileSize, acc.x1);
+            acc.x2 = Math.max(col * tileSize, acc.x2);
+
+          }
+
+          return acc;
+
+        }, { x1: Infinity, x2: -Infinity, y1: Infinity, y2: -Infinity });
+
+        const ctx = createOffScreenCanvas(tilemapBounds.x2 - tilemapBounds.x1, tilemapBounds.y2 - tilemapBounds.y1);
+
+        for (const layer of api.layers.get()) {
+          if (guiState.visibleLayers[layer.id]) {
+            switch (layer.type) {
+              case PaintType.TILE:
+                for (const [key, tileAsset] of layer.data) {
+                  const [row, col] = key.split(":").map(Number);
+                  const tile = api.tilesets.getTile(
+                    tileAsset.ref.tileset.id,
+                    tileAsset.ref.tile.id,
+                  );
+
+                  ctx.drawImage(
+                    tile.bitmap,
+                    col * tileSize - tilemapBounds.x1,
+                    row * tileSize - tilemapBounds.y1,
+                    tileSize,
+                    tileSize,
+                  );
+                }
+                break;
+              case PaintType.AUTO_TILE:
+                for (const [key, autoTileAsset] of layer.data) {
+                  const [row, col] = key.split(":").map(Number);
+                  const tile = api.tilesets.getTile(
+                    autoTileAsset.tile.ref.tileset.id,
+                    autoTileAsset.tile.ref.tile.id,
+                  );
+
+                  ctx.drawImage(
+                    tile.bitmap,
+                    col * tileSize - tilemapBounds.x1,
+                    row * tileSize - tilemapBounds.y1,
+                    tileSize,
+                    tileSize,
+                  );
+                }
+                break;
+            }
+          }
+        }
+
+        const areas: { name: string, tiles: Point[] }[] = projectState.layers.filter(l => l.type === PaintType.AREA).reduce((acc, curr) => {
+          for (const [key, areaAsset] of curr.data) {
+            const area = api.areas.getArea(areaAsset.ref.id);
+
+            const [row, col] = key.split(":").map(Number);
+
+            const areaItem = acc.find(a => a.name === area.name);
+
+            if (areaItem !== undefined) {
+              areaItem.tiles.push({ x: col * projectState.tileSize - tilemapBounds.x1, y: row * projectState.tileSize - tilemapBounds.y1 })
+            } else {
+              acc.push({ name: area.name, tiles: [{ x: col * projectState.tileSize - tilemapBounds.x1, y: row * projectState.tileSize - tilemapBounds.y1 }] })
+            }
+
+          }
+
+          return acc;
+        }, [] as { name: string, tiles: Point[] }[]);
+
+        // TODO: add tileAttributes: [{x, y, attributes: {key: value, key: value, key: value}}]
+
+        const data: ProjectJSON = { tilemap: ctx.canvas.toDataURL(), areas, tileSize: projectState.tileSize, name: projectState.projectName, attributes: [] };
+
+        return JSON.stringify(data);
+
       }
     }
   }

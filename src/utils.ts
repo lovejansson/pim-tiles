@@ -12,17 +12,25 @@ function detectOS() {
     }
 }
 
+function createOffScreenCanvas(width: number, height: number) {
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = width;
+    canvas.height = height;
+    
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    if (ctx === null) throw new Error("ctx is null");
+
+    return ctx;
+}
+
 const splitIntoTiles = async (spritesheet: ImageBitmap, tileSize: number): Promise<Tile[]> => {
 
     try {
 
-        const canvas = document.createElement("canvas");
-        canvas.width = tileSize;
-        canvas.height = tileSize;
-
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-        if (ctx === null) throw new Error("ctx is null");
+        const ctx = createOffScreenCanvas(tileSize, tileSize);
 
         const tiles = [];
 
@@ -33,8 +41,9 @@ const splitIntoTiles = async (spritesheet: ImageBitmap, tileSize: number): Promi
 
                 const tileImageData = ctx.getImageData(0, 0, tileSize, tileSize);
                 const bitmap = await window.createImageBitmap(tileImageData);
-                const dataURL = canvas.toDataURL("image/png");
-                tiles.push({ id: crypto.randomUUID(), dataURL, bitmap });
+
+                const dataURL = ctx.canvas.toDataURL("image/png");
+                tiles.push({ id: crypto.randomUUID(), dataURL, bitmap, isTransparent: isTransparent(bitmap) });
                 ctx.clearRect(0, 0, tileSize, tileSize);
             }
         }
@@ -90,5 +99,30 @@ function getNeighbours(cell: { row: number, col: number }, includeDiagonalNeighb
     return neighbours;
 }
 
+function isTransparent(bitmap: ImageBitmap) {
+    const ctx = createOffScreenCanvas(bitmap.width, bitmap.height);
 
-export { splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS }
+    ctx.drawImage(bitmap, 0, 0);
+
+    const data = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
+
+
+    for (let i = 3; i < data.length; i += 4) {
+        if (data[i] !== 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function download(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "tilemap.json";
+  a.click();
+}
+
+
+export { splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas,download }

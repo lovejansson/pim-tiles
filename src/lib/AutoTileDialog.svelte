@@ -5,11 +5,11 @@
         type TileRule,
         type TileAsset,
         type AutoTile,
-        PaintType,
         TileRequirement,
-        type TileRef,
     } from "../types";
     import RuleTileButton from "./RuleTileButton.svelte";
+
+    import TilesCanvas from "./TilesCanvas.svelte";
 
     type AutoTileDialogProps = {
         autoTile?: AutoTile;
@@ -54,7 +54,7 @@
     };
 
     const save = (e: MouseEvent | KeyboardEvent) => {
-        console.log(rules)
+
         if (e.type === "keydown" && (e as KeyboardEvent).key !== "Enter")
             return;
 
@@ -286,34 +286,11 @@
                         >{tileset.name}</sl-tab
                     >
                     <sl-tab-panel name={tileset.name}>
-                        <ul class="tiles">
-                            {#each tileset.tiles as tile, tileIdx}
-                                <li
-                                    class:selected={selectedTile &&
-                                        selectedTile.ref.tileset.id ===
-                                            tileset.id &&
-                                        selectedTile.ref.tile.id === tile.id}
-                                >
-                                    <button
-                                        onclick={() =>
-                                            (selectedTile = {
-                                                type: PaintType.TILE,
-                                                ref: {
-                                                    tile: { id: tile.id },
-                                                    tileset: { id: tileset.id },
-                                                },
-                                            })}
-                                        class="btn-tile"
-                                    >
-                                        <img
-                                            class="img-tile"
-                                            src={tile.dataURL}
-                                            alt="tile"
-                                        /></button
-                                    >
-                                </li>
-                            {/each}
-                        </ul>
+                        <TilesCanvas
+                            {tileset}
+                            onSelect={(selectedTiles) =>
+                                (selectedTile = selectedTiles[0].asset)}
+                        />
                     </sl-tab-panel>
                 {/each}
             </sl-tab-group>
@@ -370,9 +347,9 @@
     }
 
     .default-tile::part(base) {
-    height: calc(32px * 3 + 0.5rem);
-    width:calc(32px * 3  + 0.5rem);;
-    aspect-ratio: 1/1;
+        height: calc(32px * 3 + 0.5rem);
+        width: calc(32px * 3 + 0.5rem);
+        aspect-ratio: 1/1;
     }
 
     .default-tile::part(label) {
@@ -386,9 +363,14 @@
     }
 
     sl-dialog {
-        --width: 50%;
+        --width: 60%;
         height: 50%;
     }
+
+    sl-dialog::part(body) {
+        outline: none;
+    }
+
     #content-wrapper {
         display: flex;
         flex-direction: row;

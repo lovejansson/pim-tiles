@@ -1,31 +1,26 @@
 # Todo
 
+* Add attribute for a Tile
+
 * Add flood fill for auto tile 
 
- 
 FILE 
 
 * Implement Save
 * Implement Save AS
-* Implement export of JSON 
 * Implement sync with local storage
 
-
-* Maybe add extras for generating a maze and other pattern like stuff
-
-* Pan add drag of tilemap
-
-* Decide how to add attributes to objects and tiles, what is the need here, sprite fusion has attributes per tile and per tile instance
+Imp
 
 * Errors from updates of project state, don't want to throw in the console
 
 
+FANCY STUFF 
 
-* Change tile paint to not be a list of tiles but a grid of the tileset that the user can select multiple tiles from to paints with
+* Add a image next to the cursor to show selected asset that the user is painting with -> not necessary, adds clutter I think
 
+* Generate maze
 
-- Change tileset tiles area to allow for multiple selection of tiles
-- Can select area -> determine which tiles are included here and update selected state
-- Update mouse move/mouse down of tilemap editor so that it paints all the selected tiles
+* Randomize placement of something within an area like trees
 
-- Update cursor GUI to use the selected assets as a cursor image so that user can see the tiles
+* Add tiles that can animate

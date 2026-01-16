@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { SlCheckbox, SlInput, type SlChangeEvent, type SlHideEvent } from "@shoelace-style/shoelace";
+  import {
+    SlCheckbox,
+    SlInput,
+    type SlChangeEvent,
+    type SlHideEvent,
+  } from "@shoelace-style/shoelace";
   import { guiState } from "../state.svelte";
   import { PaintType } from "../types";
   import Areas from "./Areas.svelte";
@@ -26,31 +31,31 @@
   {/if}
   <sl-divider></sl-divider>
   <section id="grid-settings">
-      <sl-color-picker
-    onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
-    swatches="#000000; #FFFFFF; #2ada64; #bb46eb; #FFD700; #00BFFF;
+    <sl-color-picker
+      onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
+      swatches="#000000; #FFFFFF; #2ada64; #bb46eb; #FFD700; #00BFFF;
     "
-    value={guiState.gridColor}
-    onsl-change={(e: SlChangeEvent) => {
-      if (e.target) {
-        guiState.gridColor = (e.target as SlInput).value;
-      }
-      e.stopPropagation();
-    }}
-    label="Grid color"
-    size="small"
-  ></sl-color-picker>
+      value={guiState.gridColor}
+      onsl-change={(e: SlChangeEvent) => {
+        if (e.target) {
+          guiState.gridColor = (e.target as SlInput).value;
+        }
+        e.stopPropagation();
+      }}
+      label="Grid color"
+      size="small"
+    ></sl-color-picker>
 
-  <sl-checkbox
-    onsl-change={(e: SlChangeEvent) => {
-      if (e.target) {
-        guiState.showGrid = (e.target as SlCheckbox).checked;
-      }
-    }}
-    checked={guiState.showGrid}>Show grid</sl-checkbox
-  >
+    <sl-checkbox
+      onsl-change={(e: SlChangeEvent) => {
+        if (e.target) {
+          guiState.showGrid = (e.target as SlCheckbox).checked;
+        }
+      }}
+      checked={guiState.showGrid}>Show grid</sl-checkbox
+    >
   </section>
-  <section  id="statusbar">
+  <section id="statusbar">
     <div class="stats-wrapper">
       <p>r{guiState.mouseTile.row} c{guiState.mouseTile.col}</p>
     </div>
@@ -70,15 +75,15 @@
     flex-direction: column;
     gap: 1rem;
     width: 500px;
+    align-items: stretch;
   }
 
-    #grid-settings {
+  #grid-settings {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 1rem;
     margin-top: auto;
-
   }
 
   #statusbar {

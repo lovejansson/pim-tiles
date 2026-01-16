@@ -19,7 +19,10 @@
         break;
       case "save-as":
         break;
-      case "export":
+      case "export-json":
+        const json = projectState.utils.toJSON();
+        console.log(json);
+        
         break;
       case "settings":
         settingsDialogIsOpen = true;
@@ -100,7 +103,7 @@
         S</span
       >
     </sl-menu-item>
-    <sl-menu-item value="export">Export JSON</sl-menu-item>
+    <sl-menu-item value="export-json">Export JSON</sl-menu-item>
     <sl-menu-item value="settings"
       >Settings <sl-icon slot="suffix" name="gear"></sl-icon></sl-menu-item
     >

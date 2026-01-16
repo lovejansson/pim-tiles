@@ -10,10 +10,8 @@
   <Menu />
 </div>
 <div id="content">
-    <TilemapEditor />
+  <TilemapEditor />
   <ToolBar />
-
-
 </div>
 
 <style>

@@ -57,7 +57,7 @@
           layer.id}
         animate:flip={{ duration: 100 }}
       >
-        <LayerItem {idx} {layer} />
+        <LayerItem {layer} />
       </li>
     {/each}
   </ul>
@@ -72,8 +72,6 @@
   #layers {
     display: flex;
     flex-direction: column;
-
-    width: 320px !important;
   }
 
   li {
