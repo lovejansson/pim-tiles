@@ -119,11 +119,13 @@ export const projectState = (() => {
 
         return tile;
       },
-      add(name: string, tiles: Tile[]) {
+      add(name: string, tiles: Tile[], width: number, height: number) {
         projectState.tilesets.push({
           id: generateId(),
-          name: name,
-          tiles: tiles,
+          name,
+          tiles,
+          width, 
+          height
         });
       },
       delete(id: string) {

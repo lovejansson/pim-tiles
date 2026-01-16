@@ -25,13 +25,6 @@
 
     let { tileset, onSelect, multipleSelection }: TilesCanvasProps = $props();
 
-    let tiles: (Tile & Cell)[] = $state(
-        tileset.tiles.map((t, i) => ({
-            row: Math.floor(i / 10),
-            col: i % 10,
-            ...t,
-        })),
-    );
 
     let selection: Selection | null = $state(null);
 
@@ -74,7 +67,7 @@
                 c < selection.col + selection.cols;
                 ++c
             ) {
-                const tile = tiles.find((t) => t.row === r && t.col === c);
+                const tile = tileset.tiles.find((t) => t.row === r && t.col === c);
 
                 if (tile !== undefined) {
                     selectedTiles.push({
@@ -112,9 +105,13 @@
         const col = Math.floor(x / tileSize);
         const row = Math.floor(y / tileSize);
 
-        selection = { row, col, rows: 1, cols: 1 };
+        if(!spaceKeyIsDown) {
+                selection = { row, col, rows: 1, cols: 1 };
 
-        updateSelectedTiles(selection);
+            updateSelectedTiles(selection);
+        }
+
+     
     };
 
     const handleMouseUp = () => {
@@ -226,7 +223,8 @@
 
         const tileSize = projectState.tileSize;
 
-        for (const tile of tiles) {
+        for (const tile of tileset.tiles) {
+        
             ctx.drawImage(
                 tile.bitmap,
                 tile.col * tileSize,

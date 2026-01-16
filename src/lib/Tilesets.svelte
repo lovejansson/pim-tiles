@@ -4,7 +4,7 @@
   import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
   import TilesCanvas from "./TilesCanvas.svelte";
-    import type { SelectedTiles } from "../types";
+  import type { SelectedTiles } from "../types";
 
   let selectedTilesetIdx = $state(0);
 
@@ -22,6 +22,8 @@
       projectState.tilesets.add(
         numSameName > 0 ? `${name} (${numSameName})` : name,
         tiles,
+        bitmap.width,
+        bitmap.height,
       );
 
       selectedTilesetIdx = projectState.tilesets.get().length - 1;
@@ -37,7 +39,7 @@
 
   const handleOnSelectTiles = (selectedTiles: SelectedTiles) => {
     guiState.tilemapEditorState.selectedAsset = selectedTiles;
-  }
+  };
 </script>
 
 <section id="tilesets">
@@ -47,7 +49,7 @@
   </header>
 
   {#if projectState.tilesets.get().length > 0}
-    <sl-tab-group>
+    <sl-tab-group on>
       {#each projectState.tilesets.get() as tileset}
         <sl-tab slot="nav" panel={tileset.name}>
           <TilesetTab {tileset} /></sl-tab
@@ -57,6 +59,7 @@
             {tileset}
             multipleSelection
             onSelect={handleOnSelectTiles}
+      
           />
         </sl-tab-panel>
       {/each}

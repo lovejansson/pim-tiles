@@ -20,12 +20,15 @@ type Tile = {
     id: string;
     dataURL: string;
     bitmap: ImageBitmap;
-};
+    
+} & Cell;
 
 type Tileset = {
     id: string;
     name: string;
     tiles: Tile[];
+    width: number;
+    height: number;
 };
 
 type Point = {

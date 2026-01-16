@@ -43,7 +43,7 @@ const splitIntoTiles = async (spritesheet: ImageBitmap, tileSize: number): Promi
                 const bitmap = await window.createImageBitmap(tileImageData);
 
                 const dataURL = ctx.canvas.toDataURL("image/png");
-                tiles.push({ id: crypto.randomUUID(), dataURL, bitmap, isTransparent: isTransparent(bitmap) });
+                tiles.push({ id: crypto.randomUUID(), dataURL, bitmap, row: r / tileSize, col: c / tileSize});
                 ctx.clearRect(0, 0, tileSize, tileSize);
             }
         }

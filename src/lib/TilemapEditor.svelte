@@ -404,6 +404,7 @@
             ctx.lineWidth = 2;
 
             for (const [key, areaAsset] of layer.data) {
+              
               const area = projectState.areas.getArea(areaAsset.ref.id);
 
               const [row, col] = key.split(":").map(Number);
