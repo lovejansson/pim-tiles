@@ -8,8 +8,10 @@ import {
   type Cell,
   type Point,
   type ProjectJSON,
+  type Tileset,
+  type PaintedTile,
 } from "./types";
-import { getNeighbours, createOffScreenCanvas, download } from "./utils";
+import { getNeighbours, createOffScreenCanvas, download, splitIntoTiles } from "./utils";
 
 
 const DEFAULT_LAYER: TileLayer = {
@@ -36,6 +38,14 @@ export const guiState: GUIState = $state({
   mouseTileDelta: { row: 0, col: 0 },
   visibleLayers: {}
 });
+
+export const selectedTiles: TileAsset[] = [];
+
+export function setSelectedTiles(selectedTiles: TileAsset[]) {
+  selectedTiles = selectedTiles;
+}
+
+
 
 class ProjectStateError extends Error {
   constructor(msg: string, public code: string) {
@@ -80,7 +90,6 @@ export const projectState = (() => {
         id: generateId(),
         name: "grass",
         data: new Map(),
-
         type: PaintType.AUTO_TILE,
       },
       {
@@ -90,7 +99,6 @@ export const projectState = (() => {
         type: PaintType.AUTO_TILE,
       },
     ],
-
     tilesets: [],
     autoTiles: [],
     areas: [],
@@ -110,23 +118,30 @@ export const projectState = (() => {
         if (tileset === undefined) throw new ProjectStateError("Tileset not found", "not-found");
         return tileset;
       },
-      getTile(tilesetId: string, tileId: string): Tile {
+      getTile(tilesetId: string, pos: Point): Tile {
         const tileset = projectState.tilesets.find(ts => ts.id === tilesetId);
         if (!tileset) throw new ProjectStateError("Tileset not found", "not-found");
 
-        const tile = tileset.tiles.find(t => t.id === tileId);
+        const tile = tileset.tiles.find(t => t.offsetPos.y === pos.y && t.offsetPos.x === pos.x);
         if (!tile) throw new ProjectStateError("Tile not found", "not-found");
 
         return tile;
       },
-      add(name: string, tiles: Tile[], width: number, height: number) {
-        projectState.tilesets.push({
+      async add(name: string, bitmap: ImageBitmap) {
+
+        const tileset: Tileset = {
           id: generateId(),
           name,
-          tiles,
-          width, 
-          height
-        });
+          tiles: [],
+          width: bitmap.width,
+          height: bitmap.height,
+          bitmap
+        }
+
+        tileset.tiles = await splitIntoTiles(tileset, projectState.tileSize);
+
+        projectState.tilesets.push(tileset);
+
       },
       delete(id: string) {
 
@@ -138,12 +153,12 @@ export const projectState = (() => {
 
         const isUsedInTileLayer = projectState.layers.find(l => {
           if (l.type === PaintType.TILE) {
-            if (l.data.values().find(a => a.type === PaintType.TILE && a.ref.tileset.id === tileset.id)) return true;
+            if (l.data.values().find(a => a.type === PaintType.TILE && a.ref.tile.tilesetID === tileset.id)) return true;
           }
           return false;
         }) !== undefined;
 
-        const isUsedInAutoTile = projectState.autoTiles.find(a => a.rules.find(r => r.tile?.ref.tileset.id === tileset.id) !== undefined) !== undefined;
+        const isUsedInAutoTile = projectState.autoTiles.find(a => a.rules.find(r => r.tile?.ref.tile.tilesetID === tileset.id) !== undefined) !== undefined;
 
         if (isUsedInTileLayer || isUsedInAutoTile) throw new ProjectStateError("Tileset is referenced in project", "asset-in-use");
 
@@ -367,26 +382,38 @@ export const projectState = (() => {
 
       },
 
-      paintTiles(row: number, col: number, layerID: string, paint: ({ asset: TileAsset, cell: Cell })[]) {
 
+      paintTiles(row: number, col: number, layerID: string, tiles: TileAsset[]) {
+  
         const layer = this.getLayer(layerID);
+
+        if (layer.type !== PaintType.TILE) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
+
+        const tileSize = projectState.tileSize;
 
         const prevTiles = [];
         const nextTiles = [];
 
-        for (const p of paint) {
-          if (layer.type !== p.asset.type) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
-          const curr = layer.data.get(`${row + p.cell.row}:${col + p.cell.col}`) || null;
+        // To get offsets from row, col 
+        const minX = Math.min(...tiles.map(t => t.ref.tile.offsetPos.x));
+        const minY = Math.min(...tiles.map(t => t.ref.tile.offsetPos.y));
+
+        for (const t of tiles) {
+
+          const r = row + Math.floor((t.ref.tile.offsetPos.y - minY) / tileSize);
+          const c = col + Math.floor((t.ref.tile.offsetPos.x - minX) / tileSize);
+
+          const curr = layer.data.get(`${r}:${c}`) || null;
 
           // Don't do anything if the same tile is being painted again
-          if (api.utils.isSameAsset(curr, p.asset)) {
+          if (api.utils.isSameAsset(curr, t)) {
             return;
           }
 
-          layer.data.set(`${row + p.cell.row}:${col + p.cell.col}`, { ...p.asset } as any);
+          layer.data.set(`${r}:${c}`, { ...t } as any);
 
-          prevTiles.push({ data: curr ? { ...curr } as any : null, pos: { row: row + p.cell.row, col: col + p.cell.col } });
-          nextTiles.push({ data: p.asset !== null ? { ...p.asset } as any : null, pos: { row: row + p.cell.row, col: col + p.cell.col } });
+          prevTiles.push({ data: curr ? { ...curr } as any : null, pos: { row: r, col: c } });
+          nextTiles.push({ data: t !== null ? { ...t } as any : null, pos: { row: r, col: c } });
 
         }
 
@@ -550,12 +577,10 @@ export const projectState = (() => {
 
             const tile = api.autoTiles.selectTile(n.row, n.col, autoTile, layerID);
 
-            if (!(tile.ref.tileset.id === currTile.tile.ref.tileset.id && tile.ref.tile.id === currTile.tile.ref.tile.id)) {
+            prevTiles.push({ pos: { row: n.row, col: n.col }, data: currTile as PaintedAutoTile });
+            paintedTiles.push({ pos: { row: n.row, col: n.col }, data: { type: PaintType.AUTO_TILE, ref: { id: autoTileID }, tile } });
+            layer.data.set(`${n.row}:${n.col}`, { type: PaintType.AUTO_TILE, ref: { id: autoTileID }, tile });
 
-              prevTiles.push({ pos: { row: n.row, col: n.col }, data: currTile as PaintedAutoTile });
-              paintedTiles.push({ pos: { row: n.row, col: n.col }, data: { type: PaintType.AUTO_TILE, ref: { id: autoTileID }, tile } });
-              layer.data.set(`${n.row}:${n.col}`, { type: PaintType.AUTO_TILE, ref: { id: autoTileID }, tile });
-            }
           }
         }
 
@@ -628,7 +653,7 @@ export const projectState = (() => {
 
         switch (a.type) {
           case PaintType.TILE:
-            return a.ref.tile.id === (b as typeof a).ref.tile.id && a.ref.tileset.id === (b as typeof a).ref.tileset.id;
+            return a.ref.tile.tilesetID === (b as typeof a).ref.tile.tilesetID && a.ref.tile.offsetPos.y === (b as typeof a).ref.tile.offsetPos.y && a.ref.tile.offsetPos.x === (b as typeof a).ref.tile.offsetPos.x;
           case PaintType.AUTO_TILE:
             return a.ref.id === (b as typeof a).ref.id;
           case PaintType.AREA:
@@ -662,16 +687,20 @@ export const projectState = (() => {
             switch (layer.type) {
               case PaintType.TILE:
                 for (const [key, tileAsset] of layer.data) {
-                  const [row, col] = key.split(":").map(Number);
-                  const tile = api.tilesets.getTile(
-                    tileAsset.ref.tileset.id,
-                    tileAsset.ref.tile.id,
+                  const tileset = api.tilesets.getTileset(
+                    tileAsset.ref.tile.tilesetID,
                   );
 
+                  const [row, col] = key.split(":").map(Number);
+
                   ctx.drawImage(
-                    tile.bitmap,
-                    col * tileSize - tilemapBounds.x1,
-                    row * tileSize - tilemapBounds.y1,
+                    tileset.bitmap,
+                    tileAsset.ref.tile.offsetPos.x,
+                    tileAsset.ref.tile.offsetPos.y,
+                    tileSize,
+                    tileSize,
+                    col * tileSize,
+                    row * tileSize,
                     tileSize,
                     tileSize,
                   );
@@ -680,15 +709,18 @@ export const projectState = (() => {
               case PaintType.AUTO_TILE:
                 for (const [key, autoTileAsset] of layer.data) {
                   const [row, col] = key.split(":").map(Number);
-                  const tile = api.tilesets.getTile(
-                    autoTileAsset.tile.ref.tileset.id,
-                    autoTileAsset.tile.ref.tile.id,
+                  const tileset = api.tilesets.getTileset(
+                    autoTileAsset.tile.ref.tile.tilesetID,
                   );
 
                   ctx.drawImage(
-                    tile.bitmap,
-                    col * tileSize - tilemapBounds.x1,
-                    row * tileSize - tilemapBounds.y1,
+                    tileset.bitmap,
+                    autoTileAsset.tile.ref.tile.offsetPos.x,
+                    autoTileAsset.tile.ref.tile.offsetPos.y,
+                    tileSize,
+                    tileSize,
+                    col * tileSize,
+                    row * tileSize,
                     tileSize,
                     tileSize,
                   );

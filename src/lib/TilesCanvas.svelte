@@ -2,9 +2,8 @@
     import { onMount } from "svelte";
     import {
         PaintType,
-        type Cell,
-        type SelectedTiles,
-        type Tile,
+        type Point,
+        type TileAsset,
         type Tileset,
     } from "../types";
     import { guiState, projectState } from "../state.svelte";
@@ -13,30 +12,35 @@
     type TilesCanvasProps = {
         tileset: Tileset;
         multipleSelection?: boolean;
-        onSelect: (selectedTiles: SelectedTiles) => void;
+        onSelect: (selectedTiles: TileAsset[]) => void;
     };
 
     type Selection = {
-        row: number;
-        col: number;
-        rows: number;
-        cols: number;
+        x1: number;
+        x2: number;
+        y1: number;
+        y2: number;
     };
 
     let { tileset, onSelect, multipleSelection }: TilesCanvasProps = $props();
 
+    let tileSize = $derived(projectState.tileSize);
 
     let selection: Selection | null = $state(null);
 
     let canvasEl!: HTMLCanvasElement;
     let ctx!: CanvasRenderingContext2D;
 
-    let spaceKeyIsDown = $state(false);
-    let isMousDown = $state(false);
-    let translation = $state({ x: 0, y: 0 });
-    let zoom = $state(1);
-    let zoomPos = $state({ x: 0, y: 0 });
-    let mousePosCanvas = $state({ x: 0, y: 0 });
+    let spaceKeyIsDown = $state(false); //  $state needed for UI
+
+    let translation = { x: 0, y: 0 };
+    let zoom = 1;
+    let zoomPos = { x: 0, y: 0 };
+
+    let mousePosCanvas = { x: 0, y: 0 };
+    let isMousDown = false;
+
+    let selectionStartPos: Point = { x: 0, y: 0 };
 
     onMount(() => {
         if (!canvasEl) return;
@@ -47,8 +51,8 @@
             canvasEl.width = entry.contentRect.width;
             canvasEl.height = entry.contentRect.height;
             ctx.imageSmoothingEnabled = false;
-            update();
             ro.disconnect();
+            update();
         });
 
         ro.observe(canvasEl);
@@ -58,73 +62,94 @@
         };
     });
 
-    const updateSelectedTiles = (selection: Selection) => {
-        const selectedTiles: SelectedTiles = [];
+    function update() {
+        draw(ctx);
+        requestAnimationFrame(update);
+    }
 
-        for (let r = selection.row; r < selection.row + selection.rows; ++r) {
-            for (
-                let c = selection.col;
-                c < selection.col + selection.cols;
-                ++c
-            ) {
-                const tile = tileset.tiles.find((t) => t.row === r && t.col === c);
+    const updateSelectedTiles = (selection: Selection) => {
+        const selectedTiles: TileAsset[] = [];
+
+        const minX = Math.min(selection.x1, selection.x2);
+        const maxX = Math.max(selection.x1, selection.x2);
+        const minY = Math.min(selection.y1, selection.y2);
+        const maxY = Math.max(selection.y1, selection.y2);
+
+        for (let y = minY; y < maxY; y += tileSize) {
+            for (let x = minX; x < maxX; x += tileSize) {
+                const tile = tileset.tiles.find(
+                    (t) => t.offsetPos.x === x && t.offsetPos.y === y,
+                );
 
                 if (tile !== undefined) {
                     selectedTiles.push({
-                        asset: {
-                            type: PaintType.TILE,
-                            ref: {
-                                tile: { id: tile.id },
-                                tileset: { id: tileset.id },
-                            },
-                        },
-                        cell: {
-                            row: tile.row - selection.row,
-                            col: tile.col - selection.col,
+                        type: PaintType.TILE,
+                        ref: {
+                            tile: tile,
                         },
                     });
                 }
             }
         }
-
+        console.log("MKFLSm");
         onSelect(selectedTiles);
     };
 
     const handleMouseDown = (e: MouseEvent) => {
         isMousDown = true;
 
-        const rect = canvasEl.getBoundingClientRect();
+        if (!spaceKeyIsDown) {
+            const rect = canvasEl.getBoundingClientRect();
 
-        const tileSize = projectState.tileSize;
+            const canvasX = e.clientX - rect.left;
+            const canvasY = e.clientY - rect.top;
 
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
+            const { x, y } = getWorldPos(ctx, { x: canvasX, y: canvasY });
 
-        const { x, y } = getWorldPos(ctx, { x: canvasX, y: canvasY });
+            selectionStartPos = { x, y };
 
-        const col = Math.floor(x / tileSize);
-        const row = Math.floor(y / tileSize);
-
-        if(!spaceKeyIsDown) {
-                selection = { row, col, rows: 1, cols: 1 };
-
-            updateSelectedTiles(selection);
+            selection = getSelectionRect({ x, y }, { x, y });
         }
-
-     
     };
 
-    const handleMouseUp = () => {
-        if (isMousDown) {
-            isMousDown = false;
+    function getSelectionRect(
+        startPos: { x: number; y: number },
+        mousePos: { x: number; y: number },
+    ) {
+        let rect: Selection = { x1: 0, y1: 0, x2: 0, y2: 0 };
+
+        if (startPos.x <= mousePos.x) {
+            rect.x1 = Math.floor(startPos.x / tileSize) * tileSize;
+            rect.x2 = Math.ceil(mousePos.x / tileSize) * tileSize;
+        } else {
+            rect.x1 = Math.ceil(startPos.x / tileSize) * tileSize;
+            rect.x2 = Math.floor(mousePos.x / tileSize) * tileSize;
+        }
+
+        if (startPos.y <= mousePos.y) {
+            rect.y1 = Math.floor(startPos.y / tileSize) * tileSize;
+            rect.y2 = Math.ceil(mousePos.y / tileSize) * tileSize;
+        } else {
+            rect.y1 = Math.ceil(startPos.y / tileSize) * tileSize;
+            rect.y2 = Math.floor(mousePos.y / tileSize) * tileSize;
+        }
+
+        return rect;
+    }
+
+    const handleMouseUp = (e: MouseEvent) => {
+        if (e.target !== canvasEl) return;
+        if (isMousDown) isMousDown = false;
+
+        if (selection) {
+            updateSelectedTiles(selection);
         }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-        if (!canvasEl) return;
+        if (e.target !== canvasEl) return;
 
         const rect = canvasEl.getBoundingClientRect();
-        const tileSize = projectState.tileSize;
         const canvasX = e.clientX - rect.left;
         const canvasY = e.clientY - rect.top;
 
@@ -141,18 +166,13 @@
                 return;
             }
 
-            if (multipleSelection) {
-                const { x, y } = getWorldPos(ctx, { x: canvasX, y: canvasY });
+            if (multipleSelection && selection !== null) {
+                const { x, y } = getWorldPos(ctx, {
+                    x: canvasX,
+                    y: canvasY,
+                });
 
-                if (selection !== null) {
-                    const col = Math.ceil(x / tileSize);
-                    const row = Math.ceil(y / tileSize);
-
-                    selection.rows = row - selection.row;
-                    selection.cols = col - selection.col;
-
-                    updateSelectedTiles(selection);
-                }
+                selection = getSelectionRect(selectionStartPos, { x, y });
             }
         }
     };
@@ -220,19 +240,7 @@
 
         ctx.translate(translation.x, translation.y);
         ctx.scale(zoom, zoom);
-
-        const tileSize = projectState.tileSize;
-
-        for (const tile of tileset.tiles) {
-        
-            ctx.drawImage(
-                tile.bitmap,
-                tile.col * tileSize,
-                tile.row * tileSize,
-                tileSize,
-                tileSize,
-            );
-        }
+        ctx.drawImage(tileset.bitmap, 0, 0);
 
         // Draw grid if not to zoomed out bc of performance
         if (zoom >= 0.5 && guiState.showGrid) {
@@ -257,10 +265,10 @@
         if (selection !== null) {
             ctx.strokeStyle = "aqua";
             ctx.strokeRect(
-                selection.col * tileSize,
-                selection.row * tileSize,
-                selection.cols * tileSize,
-                selection.rows * tileSize,
+                selection.x1,
+                selection.y1,
+                selection.x2 - selection.x1,
+                selection.y2 - selection.y1,
             );
         }
     }
@@ -280,11 +288,6 @@
             x1: bottomRight.x,
             y1: bottomRight.y,
         };
-    }
-
-    function update() {
-        draw(ctx);
-        requestAnimationFrame(update);
     }
 </script>
 

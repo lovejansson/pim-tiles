@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { guiState, projectState } from "../state.svelte";
-  import { splitIntoTiles } from "../utils";
+  import { guiState, projectState, setSelectedTiles } from "../state.svelte";
   import FilePicker from "./ui/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
   import TilesCanvas from "./TilesCanvas.svelte";
-  import type { SelectedTiles } from "../types";
+    import type { TileAsset } from "../types";
 
   let selectedTilesetIdx = $state(0);
 
@@ -13,7 +12,6 @@
       const file = files[0];
       const name = file.name.split(".")[0];
       const bitmap = await createImageBitmap(file);
-      const tiles = await splitIntoTiles(bitmap, projectState.tileSize);
 
       const numSameName = projectState.tilesets
         .get()
@@ -21,12 +19,11 @@
 
       projectState.tilesets.add(
         numSameName > 0 ? `${name} (${numSameName})` : name,
-        tiles,
-        bitmap.width,
-        bitmap.height,
+        bitmap,
       );
 
       selectedTilesetIdx = projectState.tilesets.get().length - 1;
+
     } catch (e) {
       console.error(e);
       guiState.notification = {
@@ -37,8 +34,9 @@
     }
   };
 
-  const handleOnSelectTiles = (selectedTiles: SelectedTiles) => {
+  const handleOnSelectTiles = (selectedTiles: TileAsset[]) => {
     guiState.tilemapEditorState.selectedAsset = selectedTiles;
+    
   };
 </script>
 
@@ -59,7 +57,7 @@
             {tileset}
             multipleSelection
             onSelect={handleOnSelectTiles}
-      
+            
           />
         </sl-tab-panel>
       {/each}

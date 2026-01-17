@@ -1,4 +1,4 @@
-import type { Point, Rect, Tile } from "./types";
+import type { Point, Rect, Tile, Tileset } from "./types";
 
 function detectOS() {
     const platform = navigator.platform.toLowerCase();
@@ -26,34 +26,17 @@ function createOffScreenCanvas(width: number, height: number) {
     return ctx;
 }
 
-const splitIntoTiles = async (spritesheet: ImageBitmap, tileSize: number): Promise<Tile[]> => {
+const splitIntoTiles = async (tileset: Tileset, tileSize: number): Promise<Tile[]> => {
 
-    try {
+        const tiles: Tile[] = [];
 
-        const ctx = createOffScreenCanvas(tileSize, tileSize);
-
-        const tiles = [];
-
-        for (let r = 0; r < spritesheet.height; r += tileSize) {
-            for (let c = 0; c < spritesheet.width; c += tileSize) {
-
-                ctx.drawImage(spritesheet, c, r, tileSize, tileSize, 0, 0, tileSize, tileSize);
-
-                const tileImageData = ctx.getImageData(0, 0, tileSize, tileSize);
-                const bitmap = await window.createImageBitmap(tileImageData);
-
-                const dataURL = ctx.canvas.toDataURL("image/png");
-                tiles.push({ id: crypto.randomUUID(), dataURL, bitmap, row: r / tileSize, col: c / tileSize});
-                ctx.clearRect(0, 0, tileSize, tileSize);
+        for (let y = 0; y < tileset.height; y += tileSize) {
+            for (let x = 0; x < tileset.width; x += tileSize) {
+                tiles.push({tilesetID: tileset.id, offsetPos: {y, x}});
             }
         }
 
         return tiles;
-
-    } catch (e) {
-        console.error(e);
-        throw new Error("Failed to split spritesheet into tiles");
-    }
 
 }
 

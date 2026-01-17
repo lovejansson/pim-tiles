@@ -2,18 +2,40 @@
 
 * Add attribute for a Tile
 
-* Add flood fill for auto tile 
+* Flood fill, utgår ifrån att man fyller den klickade tilen och alla grannar som är målade av samma sort. Det gör inte så att man kan fylla områden annars, 
+t.ex. om man vill rita en större rektangel eller radera ett större området
+
+* select area to move it around kommer behövas, annars kan man inte flytta på husen och rita saker på ett bra sätt
+
+Workflow ->
+
+Jag målar tiles och kanske test bygger saker i aseprite, alltså prefab buildings mest. 
+
+Jag importerar dessa sets i editorn och kan välja ut en eller flera tiles att måla med 
+
+Jag kommer då måla med det men kommer säkert vilja flytta på ställen för att tweeka plats, att flytta på areas
+
+Efter detta kommer jag vilja kunna exportera allt till JSON och importera det i ett javascript program 
+
+Jag kommer också vilja spara innan jag gör klart town 
+
+Essentials innan GB town build kan göras: 
+
+* Move tool 
+
+* Implement sync with local storage
+
+Efter
 
 FILE 
 
 * Implement Save
 * Implement Save AS
-* Implement sync with local storage
+
 
 Imp
 
 * Errors from updates of project state, don't want to throw in the console
-
 
 FANCY STUFF 
 
@@ -23,4 +45,4 @@ FANCY STUFF
 
 * Randomize placement of something within an area like trees
 
-* Add tiles that can animate
+* Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image

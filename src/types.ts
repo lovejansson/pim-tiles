@@ -17,11 +17,9 @@ type Area = {
 }
 
 type Tile = {
-    id: string;
-    dataURL: string;
-    bitmap: ImageBitmap;
-    
-} & Cell;
+    tilesetID: string;
+    offsetPos: Point; 
+}
 
 type Tileset = {
     id: string;
@@ -29,6 +27,7 @@ type Tileset = {
     tiles: Tile[];
     width: number;
     height: number;
+    bitmap: ImageBitmap;
 };
 
 type Point = {
@@ -123,8 +122,8 @@ type TileRule = {
 }
 
 type TileRef = {
-    tile: IdRef;
-    tileset: IdRef;
+    tile: Tile;
+
 }
 
 type IdRef = {
@@ -139,13 +138,12 @@ type AssetRef = TileAsset | AutoTileAsset | AreaAsset;
 
 type TilemapEditorState = TileLayerState | AutoTileLayerState | AreaLayerState;
 
-type SelectedTiles = {asset: TileAsset, cell: Cell}[];
 
 type TileLayerState = {
     type: PaintType.TILE;
     selectedTool: Tool;
     selectedLayer: TileLayer;
-    selectedAsset: SelectedTiles | null;
+    selectedAsset: TileAsset[] | null;
     fillToolIsActive: boolean;
 }
 
@@ -217,7 +215,7 @@ type AreaHistoryEntry = HistoryEntryT<PaintType.AREA>;
 type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry;
 
 
-export { type SelectedTiles, type ProjectJSON,
+export { type ProjectJSON,
     type PaintedTile, type PaintedArea, type PaintedAutoTile, type PaintedAsset, type LayerT, type PaintedAssetT,
     type AreaHistoryEntryItem, type AutoTileHistoryEntryItem, type TileHistoryEntryItem,
     PaintType, Tool, TileRequirement, type HistoryEntry, type TileHistoryEntry, type AreaHistoryEntry,

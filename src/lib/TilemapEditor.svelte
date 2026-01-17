@@ -7,16 +7,16 @@
   const { tileSize } = $derived(projectState);
   const { gridColor, tilemapEditorState } = $derived(guiState);
 
-  let shiftKeyIsDown = $state(false);
-  let ctrlKeyIsDown = $state(false);
+  let shiftKeyIsDown = false;
+  let ctrlKeyIsDown = false;
   let spaceKeyIsDown = $state(false);
-  let isMousDown = $state(false);
-  let translation = $state({ x: 0, y: 0 });
-  let zoom = $state(1);
-  let zoomPos = $state({ x: 0, y: 0 });
-  let mousePosCanvas = $state({ x: 0, y: 0 });
+  let isMousDown = false;
+  let translation = { x: 0, y: 0 };
+  let zoom = 1;
+  let zoomPos = { x: 0, y: 0 };
+  let mousePosCanvas = { x: 0, y: 0 };
 
-  let mouseTileStart = $state({ row: 0, col: 0 });
+  let mouseTileStart = { row: 0, col: 0 };
 
   let canvasEl!: HTMLCanvasElement;
   let ctx!: CanvasRenderingContext2D;
@@ -100,9 +100,10 @@
                   tilemapEditorState.selectedLayer.id,
                   row,
                   col,
-                  tilemapEditorState.selectedAsset[0].asset,
+                  tilemapEditorState.selectedAsset[0],
                 );
               } else {
+             
                 projectState.layers.paintTiles(
                   row,
                   col,
@@ -367,17 +368,21 @@
       if (guiState.visibleLayers[layer.id]) {
         switch (layer.type) {
           case PaintType.TILE:
-            for (const [key, tileAsset] of layer.data) {
-              const [ty, tx] = key.split(":").map(Number);
-              const tile = projectState.tilesets.getTile(
-                tileAsset.ref.tileset.id,
-                tileAsset.ref.tile.id,
+            for (const [key, paintedTile] of layer.data) {
+              const tileset = projectState.tilesets.getTileset(
+                paintedTile.ref.tile.tilesetID,
               );
 
+              const [row, col] = key.split(":").map(Number);
+
               ctx.drawImage(
-                tile.bitmap,
-                tx * tileSize,
-                ty * tileSize,
+                tileset.bitmap,
+                paintedTile.ref.tile.offsetPos.x,
+                paintedTile.ref.tile.offsetPos.y,
+                tileSize,
+                tileSize,
+                col * tileSize,
+                row * tileSize,
                 tileSize,
                 tileSize,
               );
@@ -386,13 +391,16 @@
           case PaintType.AUTO_TILE:
             for (const [key, autoTileAsset] of layer.data) {
               const [row, col] = key.split(":").map(Number);
-              const tile = projectState.tilesets.getTile(
-                autoTileAsset.tile.ref.tileset.id,
-                autoTileAsset.tile.ref.tile.id,
+              const tileset = projectState.tilesets.getTileset(
+                autoTileAsset.tile.ref.tile.tilesetID,
               );
 
               ctx.drawImage(
-                tile.bitmap,
+                tileset.bitmap,
+                autoTileAsset.tile.ref.tile.offsetPos.x,
+                autoTileAsset.tile.ref.tile.offsetPos.y,
+                tileSize,
+                tileSize,
                 col * tileSize,
                 row * tileSize,
                 tileSize,
@@ -404,7 +412,6 @@
             ctx.lineWidth = 2;
 
             for (const [key, areaAsset] of layer.data) {
-              
               const area = projectState.areas.getArea(areaAsset.ref.id);
 
               const [row, col] = key.split(":").map(Number);
