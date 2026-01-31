@@ -5,13 +5,11 @@ import {
   type AutoTileHistoryEntryItem,
   type TileAsset,
   type PaintedAsset,
-  type Cell,
   type Point,
   type ProjectJSON,
   type Tileset,
-  type PaintedTile,
 } from "./types";
-import { getNeighbours, createOffScreenCanvas, download, splitIntoTiles } from "./utils";
+import { getNeighbours, createOffScreenCanvas, splitIntoTiles, bitmapToDataURL, dataURLToBitmap } from "./utils";
 
 
 const DEFAULT_LAYER: TileLayer = {
@@ -75,7 +73,46 @@ export const projectState = (() => {
     return crypto.randomUUID();
   }
 
-  const projectState: ProjectState = $state({
+  async function isValidProjectState(p: any): Promise<boolean> {
+
+    if (!Array.isArray(p.autoTiles)) throw new TypeError("ProjectState: invalid type autoTiles");
+    if (!Array.isArray(p.tilesets)) throw new TypeError("ProjectState: invalid type tilesets");
+    if (!Array.isArray(p.layers)) throw new TypeError("ProjectState: invalid type layers");
+    if (!Array.isArray(p.areas)) throw new TypeError("ProjectState: invalid type areas");
+
+    if (typeof p.projectName !== "string") throw new TypeError(`ProjectState: invalid type projectName expected string got ${typeof p.projectname}`);
+    if (typeof p.tileSize !== "number") throw new TypeError(`ProjectState: invalid type tileSize expected number got ${typeof p.tileSize}`);
+
+    // TODO: continue parsing the saved object to check if it is a valid project state further along when final data structure is determined
+
+    p.tilesets = await Promise.all(p.tilesets.map(async (t: any) =>
+      ({ ...t, spritesheet: await dataURLToBitmap(t.spritesheet) })
+    ));
+    p.layers = p.layers.map((l: any) => ({ ...l, data: new Map(l.data) }));
+    return true;
+  }
+
+  async function getProjectStateFromLocalStorage(): Promise<ProjectState | null> {
+    try {
+      const projectLocalStorage = localStorage.getItem("project");
+
+      if (projectLocalStorage === null) {
+        return null;
+      }
+      const parsed = JSON.parse(projectLocalStorage);
+      await isValidProjectState(parsed)
+      console.log(parsed)
+      return parsed;
+
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
+
+  let isInitialized = $state(false);
+
+  let projectState: ProjectState = $state({
     projectName: "My project",
     tileSize: 16,
     layers: [
@@ -104,11 +141,17 @@ export const projectState = (() => {
     areas: [],
   });
 
+  // getProjectStateFromLocalStorage().then((res) => {
+
+  //   if (res !== null) projectState = res;
+  //   isInitialized = true;
+  // });
+
   const api = {
 
     tileSize: projectState.tileSize,
     projectName: projectState.projectName,
-
+    isInitialized,
     tilesets: {
       get() {
         return projectState.tilesets;
@@ -118,14 +161,19 @@ export const projectState = (() => {
         if (tileset === undefined) throw new ProjectStateError("Tileset not found", "not-found");
         return tileset;
       },
-      getTile(tilesetId: string, pos: Point): Tile {
+
+      getTileDataUrl(tilesetId: string, pos: Point): string {
         const tileset = projectState.tilesets.find(ts => ts.id === tilesetId);
         if (!tileset) throw new ProjectStateError("Tileset not found", "not-found");
 
         const tile = tileset.tiles.find(t => t.offsetPos.y === pos.y && t.offsetPos.x === pos.x);
         if (!tile) throw new ProjectStateError("Tile not found", "not-found");
 
-        return tile;
+        const ctxTile = createOffScreenCanvas(projectState.tileSize, projectState.tileSize);
+        ctxTile.drawImage(tileset.spritesheet, tile.offsetPos.x, tile.offsetPos.y, projectState.tileSize, projectState.tileSize, 0, 0, projectState.tileSize, projectState.tileSize);
+
+        return ctxTile.canvas.toDataURL();
+
       },
       async add(name: string, bitmap: ImageBitmap) {
 
@@ -135,13 +183,12 @@ export const projectState = (() => {
           tiles: [],
           width: bitmap.width,
           height: bitmap.height,
-          bitmap
+          spritesheet: bitmap
         }
 
         tileset.tiles = await splitIntoTiles(tileset, projectState.tileSize);
 
         projectState.tilesets.push(tileset);
-
       },
       delete(id: string) {
 
@@ -163,7 +210,7 @@ export const projectState = (() => {
         if (isUsedInTileLayer || isUsedInAutoTile) throw new ProjectStateError("Tileset is referenced in project", "asset-in-use");
 
         projectState.tilesets.splice(idx, 1);
-      }
+      },
     },
 
     areas: {
@@ -181,6 +228,10 @@ export const projectState = (() => {
           name: name,
           color: color,
         });
+
+        const jsoN = JSON.stringify(projectState.areas);
+
+        console.log(jsoN);
       },
       update(id: string, name: string, color: string) {
         const idx = projectState.areas.findIndex(a => a.id === id);
@@ -223,6 +274,11 @@ export const projectState = (() => {
           rules: rules,
           defaultTile
         });
+
+
+        const jsoN = JSON.stringify(projectState.autoTiles);
+
+        console.log(jsoN);
       },
       update(id: string, autoTile: Omit<AutoTile, "id">) {
         const idx = projectState.autoTiles.findIndex(at => at.id === id);
@@ -323,6 +379,7 @@ export const projectState = (() => {
         projectState.layers = layers
       },
       getLayer(id: string): Layer {
+       
         const layer = projectState.layers.find(l => l.id === id);
         if (layer === undefined) throw new ProjectStateError("Layer not found", "not-found");
         return layer;
@@ -382,9 +439,8 @@ export const projectState = (() => {
 
       },
 
-
       paintTiles(row: number, col: number, layerID: string, tiles: TileAsset[]) {
-  
+
         const layer = this.getLayer(layerID);
 
         if (layer.type !== PaintType.TILE) throw new ProjectStateError("type mismatch between layer and asset", "type-error");
@@ -416,6 +472,8 @@ export const projectState = (() => {
           nextTiles.push({ data: t !== null ? { ...t } as any : null, pos: { row: r, col: c } });
 
         }
+
+
 
         projectStateChangeEvents.emit({
           prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
@@ -660,107 +718,135 @@ export const projectState = (() => {
             return a.ref.id === (b as typeof a).ref.id;
         }
       },
-      toJSON(): string {
-        const tileSize = projectState.tileSize;
 
-        const tilemapBounds: { x1: number, x2: number, y1: number, y2: number } = projectState.layers.reduce((acc, l) => {
 
-          for (const key of l.data.keys()) {
+    },
 
-            const [row, col] = key.split(":").map(Number);
+    getJSONExport(): string {
+      const tileSize = projectState.tileSize;
 
-            acc.y1 = Math.min(row * tileSize, acc.y1);
-            acc.y2 = Math.max(row * tileSize, acc.y2);
-            acc.x1 = Math.min(col * tileSize, acc.x1);
-            acc.x2 = Math.max(col * tileSize, acc.x2);
+      const tilemapBounds: { x1: number, x2: number, y1: number, y2: number } = projectState.layers.reduce((acc, l) => {
 
-          }
+        for (const key of l.data.keys()) {
 
-          return acc;
+          const [row, col] = key.split(":").map(Number);
 
-        }, { x1: Infinity, x2: -Infinity, y1: Infinity, y2: -Infinity });
+          acc.y1 = Math.min(row * tileSize, acc.y1);
+          acc.y2 = Math.max(row * tileSize, acc.y2);
+          acc.x1 = Math.min(col * tileSize, acc.x1);
+          acc.x2 = Math.max(col * tileSize, acc.x2);
 
-        const ctx = createOffScreenCanvas(tilemapBounds.x2 - tilemapBounds.x1, tilemapBounds.y2 - tilemapBounds.y1);
-
-        for (const layer of api.layers.get()) {
-          if (guiState.visibleLayers[layer.id]) {
-            switch (layer.type) {
-              case PaintType.TILE:
-                for (const [key, tileAsset] of layer.data) {
-                  const tileset = api.tilesets.getTileset(
-                    tileAsset.ref.tile.tilesetID,
-                  );
-
-                  const [row, col] = key.split(":").map(Number);
-
-                  ctx.drawImage(
-                    tileset.bitmap,
-                    tileAsset.ref.tile.offsetPos.x,
-                    tileAsset.ref.tile.offsetPos.y,
-                    tileSize,
-                    tileSize,
-                    col * tileSize,
-                    row * tileSize,
-                    tileSize,
-                    tileSize,
-                  );
-                }
-                break;
-              case PaintType.AUTO_TILE:
-                for (const [key, autoTileAsset] of layer.data) {
-                  const [row, col] = key.split(":").map(Number);
-                  const tileset = api.tilesets.getTileset(
-                    autoTileAsset.tile.ref.tile.tilesetID,
-                  );
-
-                  ctx.drawImage(
-                    tileset.bitmap,
-                    autoTileAsset.tile.ref.tile.offsetPos.x,
-                    autoTileAsset.tile.ref.tile.offsetPos.y,
-                    tileSize,
-                    tileSize,
-                    col * tileSize,
-                    row * tileSize,
-                    tileSize,
-                    tileSize,
-                  );
-                }
-                break;
-            }
-          }
         }
 
-        const areas: { name: string, tiles: Point[] }[] = projectState.layers.filter(l => l.type === PaintType.AREA).reduce((acc, curr) => {
-          for (const [key, areaAsset] of curr.data) {
-            const area = api.areas.getArea(areaAsset.ref.id);
+        return acc;
 
-            const [row, col] = key.split(":").map(Number);
+      }, { x1: Infinity, x2: -Infinity, y1: Infinity, y2: -Infinity });
 
-            const areaItem = acc.find(a => a.name === area.name);
+      const ctx = createOffScreenCanvas(tilemapBounds.x2 - tilemapBounds.x1, tilemapBounds.y2 - tilemapBounds.y1);
 
-            if (areaItem !== undefined) {
-              areaItem.tiles.push({ x: col * projectState.tileSize - tilemapBounds.x1, y: row * projectState.tileSize - tilemapBounds.y1 })
-            } else {
-              acc.push({ name: area.name, tiles: [{ x: col * projectState.tileSize - tilemapBounds.x1, y: row * projectState.tileSize - tilemapBounds.y1 }] })
-            }
+      for (const layer of api.layers.get()) {
+        if (guiState.visibleLayers[layer.id]) {
+          switch (layer.type) {
+            case PaintType.TILE:
+              for (const [key, tileAsset] of layer.data) {
+                const tileset = api.tilesets.getTileset(
+                  tileAsset.ref.tile.tilesetID,
+                );
 
+                const [row, col] = key.split(":").map(Number);
+
+                ctx.drawImage(
+                  tileset.spritesheet,
+                  tileAsset.ref.tile.offsetPos.x,
+                  tileAsset.ref.tile.offsetPos.y,
+                  tileSize,
+                  tileSize,
+                  col * tileSize,
+                  row * tileSize,
+                  tileSize,
+                  tileSize,
+                );
+              }
+              break;
+            case PaintType.AUTO_TILE:
+              for (const [key, autoTileAsset] of layer.data) {
+                const [row, col] = key.split(":").map(Number);
+                const tileset = api.tilesets.getTileset(
+                  autoTileAsset.tile.ref.tile.tilesetID,
+                );
+
+                ctx.drawImage(
+                  tileset.spritesheet,
+                  autoTileAsset.tile.ref.tile.offsetPos.x,
+                  autoTileAsset.tile.ref.tile.offsetPos.y,
+                  tileSize,
+                  tileSize,
+                  col * tileSize,
+                  row * tileSize,
+                  tileSize,
+                  tileSize,
+                );
+              }
+              break;
+          }
+        }
+      }
+
+      const areas: { name: string, tiles: Point[] }[] = projectState.layers.filter(l => l.type === PaintType.AREA).reduce((acc, curr) => {
+        for (const [key, areaAsset] of curr.data) {
+          const area = api.areas.getArea(areaAsset.ref.id);
+
+          const [row, col] = key.split(":").map(Number);
+
+          const areaItem = acc.find(a => a.name === area.name);
+
+          if (areaItem !== undefined) {
+            areaItem.tiles.push({ x: col * projectState.tileSize - tilemapBounds.x1, y: row * projectState.tileSize - tilemapBounds.y1 })
+          } else {
+            acc.push({ name: area.name, tiles: [{ x: col * projectState.tileSize - tilemapBounds.x1, y: row * projectState.tileSize - tilemapBounds.y1 }] })
           }
 
-          return acc;
-        }, [] as { name: string, tiles: Point[] }[]);
+        }
 
-        // TODO: add tileAttributes: [{x, y, attributes: {key: value, key: value, key: value}}]
+        return acc;
+      }, [] as { name: string, tiles: Point[] }[]);
 
-        const data: ProjectJSON = { tilemap: ctx.canvas.toDataURL(), areas, tileSize: projectState.tileSize, name: projectState.projectName, attributes: [] };
+      // TODO: add tileAttributes: [{x, y, attributes: {key: value, key: value, key: value}}]
 
-        return JSON.stringify(data);
+      const data: ProjectJSON = { tilemap: ctx.canvas.toDataURL(), areas, tileSize: projectState.tileSize, name: projectState.projectName, attributes: [] };
 
-      }
+      return JSON.stringify(data);
+
     }
   }
 
   return api;
 })();
+
+
+const LocalStorage = (() => {
+
+  projectStateChangeEvents.addEventListener("project-state-change", (e) => {
+    save();
+  });
+
+
+  const save = () => {
+    localStorage.setItem("project", JSON.stringify({
+      projectName: projectState.projectName,
+      tileSize: projectState.tileSize,
+      tilesets: projectState.tilesets.get().map(t => ({ ...t, spritesheet: bitmapToDataURL(t.spritesheet) })),
+      areas: projectState.areas.get(),
+      autoTiles: projectState.autoTiles.get(),
+      layers: projectState.layers.get().map(l => ({ ...l, data: [...l.data.entries()] }))
+    }));
+  }
+
+  return {
+
+  }
+})();
+
 
 
 export const HistoryStack = (() => {

@@ -81,10 +81,10 @@
     >
         {#if ruleTile.tile !== null}
             <img
-                src={projectState.tilesets.getTile(
-                    ruleTile.tile.ref.tileset.id,
-                    ruleTile.tile.ref.tile.id,
-                ).dataURL}
+                src={projectState.tilesets.getTileDataUrl(
+                    ruleTile.tile.ref.tile.tilesetID,
+                    ruleTile.tile.ref.tile.offsetPos,
+                )}
                 alt="tile"
             />
         {/if}</sl-button

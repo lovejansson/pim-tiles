@@ -3,16 +3,19 @@
   import TilemapEditor from "./lib/TilemapEditor.svelte";
   import Toast from "./lib/Toast.svelte";
   import ToolBar from "./lib/ToolBar.svelte";
+
 </script>
 
-<Toast />
-<div id="menu">
-  <Menu />
-</div>
-<div id="content">
-  <TilemapEditor />
-  <ToolBar />
-</div>
+
+  <Toast />
+  <div id="menu">
+    <Menu />
+  </div>
+  <div id="content">
+    <ToolBar />
+    <TilemapEditor />
+  </div>
+
 
 <style>
   #menu {

@@ -31,6 +31,9 @@
       case "t":
         tilemapEditorState.selectedTool = Tool.PAINT;
         break;
+      case "s":
+        tilemapEditorState.selectedTool = Tool.SELECT;
+        break;
       case "f":
         tilemapEditorState.fillToolIsActive =
           !tilemapEditorState.fillToolIsActive;
@@ -71,10 +74,25 @@
           }
         }}
         ><sl-icon
-          id="Tool.ERASE"
           library="pixelarticons"
           name="layout-sidebar-left"
-          label="Tool.ERASE"
+          label="Erase"
+        ></sl-icon></sl-button
+      >
+    </sl-tooltip>
+
+    <sl-tooltip content="Selection (S)">
+      <!-- Svelte wants an aria role   but shoelace has handled this internally -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <sl-button
+        class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
+        onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
+        onkeydown={(e: KeyboardEvent) => {
+          if (e.key === "Enter") {
+            tilemapEditorState.selectedTool = Tool.SELECT;
+          }
+        }}
+        ><sl-icon library="pixelarticons" name="drop-area" label="Select"
         ></sl-icon></sl-button
       >
     </sl-tooltip>

@@ -1,43 +1,28 @@
 # Todo
 
+
+* Select tool ->
+    Move, 
+    Delete,
+    Copy and paste 
+
 * Add attribute for a Tile
 
-* Flood fill, utgår ifrån att man fyller den klickade tilen och alla grannar som är målade av samma sort. Det gör inte så att man kan fylla områden annars, 
-t.ex. om man vill rita en större rektangel eller radera ett större området
-
-* select area to move it around kommer behövas, annars kan man inte flytta på husen och rita saker på ett bra sätt
-
-Workflow ->
-
-Jag målar tiles och kanske test bygger saker i aseprite, alltså prefab buildings mest. 
-
-Jag importerar dessa sets i editorn och kan välja ut en eller flera tiles att måla med 
-
-Jag kommer då måla med det men kommer säkert vilja flytta på ställen för att tweeka plats, att flytta på areas
-
-Efter detta kommer jag vilja kunna exportera allt till JSON och importera det i ett javascript program 
-
-Jag kommer också vilja spara innan jag gör klart town 
-
-Essentials innan GB town build kan göras: 
-
-* Move tool 
-
-* Implement sync with local storage
-
-Efter
+* Flood fill
 
 FILE 
 
 * Implement Save
-* Implement Save AS
 
+* Implement Save AS
 
 Imp
 
 * Errors from updates of project state, don't want to throw in the console
 
 FANCY STUFF 
+
+* Pan when cursor moves out of view (useful if you want to move an object far away)
 
 * Add a image next to the cursor to show selected asset that the user is painting with -> not necessary, adds clutter I think
 

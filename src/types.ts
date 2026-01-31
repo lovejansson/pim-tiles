@@ -27,7 +27,7 @@ type Tileset = {
     tiles: Tile[];
     width: number;
     height: number;
-    bitmap: ImageBitmap;
+    spritesheet: ImageBitmap;
 };
 
 type Point = {
@@ -56,6 +56,7 @@ enum PaintType {
 enum Tool {
     PAINT,
     ERASE,
+    SELECT
 }
 
 

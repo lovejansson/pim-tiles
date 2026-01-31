@@ -20,7 +20,7 @@
       case "save-as":
         break;
       case "export-json":
-        const json = projectState.utils.toJSON();
+        const json = projectState.getJSONExport();
         console.log(json);
         
         break;

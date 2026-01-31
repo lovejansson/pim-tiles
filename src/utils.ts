@@ -18,7 +18,7 @@ function createOffScreenCanvas(width: number, height: number) {
 
     canvas.width = width;
     canvas.height = height;
-    
+
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
     if (ctx === null) throw new Error("ctx is null");
@@ -28,16 +28,15 @@ function createOffScreenCanvas(width: number, height: number) {
 
 const splitIntoTiles = async (tileset: Tileset, tileSize: number): Promise<Tile[]> => {
 
-        const tiles: Tile[] = [];
+    const tiles: Tile[] = [];
 
-        for (let y = 0; y < tileset.height; y += tileSize) {
-            for (let x = 0; x < tileset.width; x += tileSize) {
-                tiles.push({tilesetID: tileset.id, offsetPos: {y, x}});
-            }
+    for (let y = 0; y < tileset.height; y += tileSize) {
+        for (let x = 0; x < tileset.width; x += tileSize) {
+            tiles.push({ tilesetID: tileset.id, offsetPos: { y, x } });
         }
+    }
 
-        return tiles;
-
+    return tiles;
 }
 
 function roundToDecimal(num: number, decimalPlaces: number) {
@@ -45,16 +44,15 @@ function roundToDecimal(num: number, decimalPlaces: number) {
     return Math.round(num * factor) / factor;
 }
 
-async function bitmapToDataURL(bitmap: ImageBitmap) {
-    const canvas = document.createElement('canvas');
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-
-    const ctx = canvas.getContext('2d');
-    if (ctx === null) throw new Error("ctx is null");
+function bitmapToDataURL(bitmap: ImageBitmap) {
+    const ctx = createOffScreenCanvas(bitmap.width, bitmap.height);
     ctx.drawImage(bitmap, 0, 0);
+    return ctx.canvas.toDataURL('image/png');
+}
 
-    return canvas.toDataURL('image/png');
+async function dataURLToBitmap(dataURL: string) {
+    const blob = await fetch(dataURL).then(r => r.blob());
+    return await createImageBitmap(blob);
 }
 
 function isPointInRect(point: Point, rect: Rect) {
@@ -100,12 +98,12 @@ function isTransparent(bitmap: ImageBitmap) {
 }
 
 function download(blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "tilemap.json";
-  a.click();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tilemap.json";
+    a.click();
 }
 
 
-export { splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas,download }
+export { dataURLToBitmap, splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas, download }

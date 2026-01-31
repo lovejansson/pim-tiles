@@ -54,7 +54,6 @@
     };
 
     const save = (e: MouseEvent | KeyboardEvent) => {
-
         if (e.type === "keydown" && (e as KeyboardEvent).key !== "Enter")
             return;
 
@@ -259,10 +258,10 @@
             >
                 {#if defaultTile !== null}
                     <img
-                        src={projectState.tilesets.getTile(
-                            defaultTile.ref.tileset.id,
-                            defaultTile.ref.tile.id,
-                        ).dataURL}
+                        src={projectState.tilesets.getTileDataUrl(
+                            defaultTile.ref.tile.tilesetID,
+                            defaultTile.ref.tile.offsetPos,
+                        )}
                         alt="tile"
                     />
                 {/if}
@@ -289,7 +288,7 @@
                         <TilesCanvas
                             {tileset}
                             onSelect={(selectedTiles) =>
-                                (selectedTile = selectedTiles[0].asset)}
+                                (selectedTile = selectedTiles[0])}
                         />
                     </sl-tab-panel>
                 {/each}
