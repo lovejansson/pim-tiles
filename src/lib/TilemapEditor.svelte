@@ -10,13 +10,11 @@
   const { tileSize } = $derived(projectState);
   const { tilemapEditorState } = $derived(guiState);
 
-  let shiftKeyIsDown = false;
   let ctrlKeyIsDown = false;
-  let spaceKeyIsDown = $state(false);
 
   let mouseTileStart = { row: 0, col: 0 };
 
-  let selectedTiles: { org: Cell; curr: Cell }[] = $state([]);
+  let selectedTiles: { org: Cell; curr: Cell; tile: PaintedTile }[] = [];
 
   let canvasEl!: HTMLCanvasElement;
   let ctx!: CanvasRenderingContext2D;
@@ -75,29 +73,36 @@
   const handleCanvasSelection = (e: Event) => {
     const selection = (e as CanvasViewPortSelectEvent).selection;
 
+    selectedTiles = [];
+
     if (selection !== null) {
       const minX = Math.min(selection.x1, selection.x2);
       const maxX = Math.max(selection.x1, selection.x2);
       const minY = Math.min(selection.y1, selection.y2);
       const maxY = Math.max(selection.y1, selection.y2);
 
+      let row = 0;
+      let col = 0;
+
       for (let y = minY; y < maxY; y += tileSize) {
         for (let x = minX; x < maxX; x += tileSize) {
+          row = Math.floor(y / tileSize);
+          col = Math.floor(x / tileSize);
+
           selectedTiles.push({
-            org: {
-              row: Math.floor(y / tileSize),
-              col: Math.floor(x / tileSize),
-            },
-            curr: {
-              row: Math.floor(y / tileSize),
-              col: Math.floor(x / tileSize),
-            },
+            org: { row, col },
+            curr: { row, col },
+            tile: projectState.layers.getTileAt(
+              row,
+              col,
+              tilemapEditorState.selectedLayer.id,
+            ) as PaintedTile,
           });
         }
       }
-    } else {
-      selectedTiles = [];
     }
+
+    console.dir(selectedTiles[0])
   };
 
   const handleCanvasSelectionDrag = (e: Event) => {
@@ -202,18 +207,14 @@
   };
 
   const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.key.toLowerCase() === "shift") shiftKeyIsDown = false;
     if (e.key.toLowerCase() === "meta" || e.key.toLowerCase() === "control")
       ctrlKeyIsDown = false;
-    if (e.key === " ") spaceKeyIsDown = false;
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
 
-    if (e.shiftKey) shiftKeyIsDown = true;
     if (e.ctrlKey || e.metaKey) ctrlKeyIsDown = true;
-    if (e.key === " ") spaceKeyIsDown = true;
 
     switch (e.key.toLowerCase()) {
       case "z":
@@ -293,31 +294,62 @@
         }
       }
 
+      /**
+       *
+       * Flytta
+       *
+       * Radera
+       *
+       * Kopiera
+       *
+       *
+       * Klistra in
+       *
+       *
+       * Flytta
+       *
+       * Målas ovanpå resten av lagret och när användaren "är klar" så flyttas alla tiles dit man har flyttat dom,
+       *
+       * dvs, när användaren har slutat dra och när "selection är slut", alltså när ny selection börjar så skickas ett event om att det är slut för den tidigare
+       *
+       *
+       * Radera innebär bara att vi lyssnar på on delete, del press, och om det finns en selection så ska de tilsen deletas.
+       *
+       * Kopiera innebär att tilsen ska dubbleras och sedan kan man flytta kopian vart man vill och när kopian har landat så kommer de nya tilsen att uppdateras men
+       * de gamla ligger kvar, så det är ungefär som move fast i move så vill man också visualisera att dom försvinner direkt när man flyttar
+       *
+       *
+       * så selected tiles måste innehålla både old pos, curr och vilken asset som är målad
+       *
+       *
+       *
+       *
+       *
+       */
+      
+
       if (tilemapEditorState.selectedLayer.type === PaintType.TILE) {
-        for (const t of selectedTiles) {
-          const tile: PaintedTile | undefined =
-            tilemapEditorState.selectedLayer.data.get(
-              `${t.curr.row}:${t.curr.col}`,
-            );
+         for (const t of selectedTiles) {
+           if(t.tile) {
+              const tileset = projectState.tilesets.getTileset(
+                       t.tile.ref.tile.tilesetID,
+                );
 
-          if (tile !== undefined) {
-            const tileset = projectState.tilesets.getTileset(
-              tile?.ref.tile.tilesetID,
-            );
-
-            ctx.drawImage(
-              tileset.spritesheet,
-              tile.ref.tile.offsetPos.x,
-              tile.ref.tile.offsetPos.y,
-              tileSize,
-              tileSize,
-              t.curr.col * tileSize,
-              t.curr.row * tileSize,
-              tileSize,
-              tileSize,
-            );
-          }
-        }
+                ctx.drawImage(tileset.spritesheet, t.tile.ref.tile.offsetPos.x, t.tile.ref.tile.offsetPos.y, tileSize, tileSize, t.curr.col * tileSize,t.curr.row * tileSize, tileSize, tileSize);
+   
+                 // ctx.drawImage(
+                 //   tileset.spritesheet,
+              //   t.tile.ref.tile.offsetPos.x,
+                //   t.tile.ref.tile.offsetPos.y,
+                //   tileSize,
+               //   tileSize,
+               //   t.curr.col * tileSize,
+              //   t.curr.row * tileSize,
+                //   tileSize,
+              //   tileSize,
+                // );
+            }
+            }
       }
     }
   }

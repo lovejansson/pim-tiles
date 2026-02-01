@@ -218,13 +218,15 @@ export default class CanvasViewport extends EventTarget {
         }
 
         if (this.selectionRect !== null) {
-            this.ctx.strokeStyle = "aqua";
+            this.ctx.strokeStyle = "lime";
+            this.ctx.setLineDash([4, 4]);
             this.ctx.strokeRect(
                 this.selectionRect.x1,
                 this.selectionRect.y1,
                 this.selectionRect.x2 - this.selectionRect.x1,
                 this.selectionRect.y2 - this.selectionRect.y1,
             );
+            this.ctx.setLineDash([]);
         }
     }
 

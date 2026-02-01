@@ -1,5 +1,6 @@
 # Todo
 
+Before GB town can be done 
 
 * Select tool ->
     Move, 
@@ -8,19 +9,18 @@
 
 * Add attribute for a Tile
 
-* Flood fill
-
 FILE 
 
 * Implement Save
 
 * Implement Save AS
 
-Imp
+
+After
 
 * Errors from updates of project state, don't want to throw in the console
 
-FANCY STUFF 
+* Flood fill
 
 * Pan when cursor moves out of view (useful if you want to move an object far away)
 
