@@ -2,12 +2,32 @@
 
 Before GB town can be done 
 
+* Add attribute for a Tile 
+
+// right click on tile to add attributes for it? is not layer dependent
+
+// right click for tilemap 
+// check row console
+// display edit tile attributes 
+// in edit tile attributes -> row col, add or remove tile attributes for that tile 
+// if tile attributes don't exist -> create a tile attribute entry
+// if this gets saved it is saved to the attributes map 
+// i app vill jag kunna vad? se att en viss dör är på ett sätlle säger vi, "här är någons hem", 
+attribute blir "home", value blir "oskar"
+
+in editor attributes => Map<string, attributes>
+exported => [{x: numer, y: number, attributes: [key: string]: any}]
+
+så i js programmet måste jag göra en find
+
+* weird to keep CRUD API for projectstate when GUI updates it by updating the objects directly, for example layer name
+
 * Select tool ->
     Move, 
     Delete,
     Copy and paste 
 
-* Add attribute for a Tile
+
 
 FILE 
 

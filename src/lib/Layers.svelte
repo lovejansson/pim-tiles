@@ -7,6 +7,8 @@
   import LayerItem from "./LayerItem.svelte";
   import type { Layer } from "../types";
 
+
+
   const handleDndConsider = (e: CustomEvent<DndEvent<Layer>>) => {
     projectState.layers.set(e.detail.items);
   };
@@ -34,11 +36,19 @@
     for (const li of ul.children) {
       if (li.id === guiState.tilemapEditorState.selectedLayer) {
         (li as HTMLLIElement).style.backgroundColor = "var(--color-2)";
+       
       } else {
         (li as HTMLLIElement).style.backgroundColor = "";
+        
+      }
+
+      const eyeIcon = li.querySelector("sl-icon-button");
+      if(eyeIcon) {
+        eyeIcon.name = guiState.visibleLayers[li.id] ? "eye" : "eye-closed";
       }
     }
   };
+
 
   $effect(() => {
     if (guiState.tilemapEditorState.selectedLayer) {
@@ -77,7 +87,7 @@
   >
     {#each projectState.layers.get() as layer, idx (layer.id)}
       <li id={layer.id} animate:flip={{ duration: 100 }}>
-        <LayerItem {layer} />
+        <LayerItem layer={layer}  />
       </li>
     {/each}
   </ul>

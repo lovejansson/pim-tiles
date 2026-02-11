@@ -16,8 +16,9 @@ import {
   type TileAsset,
   type PaintedAsset,
   type Point,
-  type ProjectJSON,
+  type ProjectStateJSONExport,
   type Tileset,
+  type Cell,
 } from "./types";
 import {
   getNeighbours,
@@ -162,6 +163,7 @@ export const projectState = (() => {
     tilesets: [],
     autoTiles: [],
     areas: [],
+    attributes: new Map()
   });
 
   // getProjectStateFromLocalStorage().then((res) => {
@@ -273,6 +275,23 @@ export const projectState = (() => {
       },
     },
 
+    attributes: {
+      get() {
+        return projectState.attributes;
+      },
+
+      getTileAttributes(cell: Cell) {
+        return projectState.attributes.get(`${cell.row}:${cell.col}`);
+      },
+
+      update(cell: Cell, attributes: Map<string, string>) {
+        projectState.attributes.set(`${cell.row}:${cell.col}`,attributes);
+      },
+      delete(cell: Cell) {
+        projectState.attributes.delete(`${cell.row}:${cell.col}`);
+      }
+    },
+
     areas: {
       get() {
         return projectState.areas;
@@ -283,16 +302,13 @@ export const projectState = (() => {
           throw new ProjectStateError("Area not found", "not-found");
         return area;
       },
-      add(name: string, color: string) {
+      add(name: string, color: string, isWalkable: boolean) {
         projectState.areas.push({
           id: generateId(),
-          name: name,
-          color: color,
+          name,
+          color,
+          isWalkable,
         });
-
-        const jsoN = JSON.stringify(projectState.areas);
-
-        console.log(jsoN);
       },
       update(id: string, name: string, color: string) {
         const idx = projectState.areas.findIndex((a) => a.id === id);
@@ -1085,7 +1101,7 @@ export const projectState = (() => {
 
       // TODO: add tileAttributes: [{x, y, attributes: {key: value, key: value, key: value}}]
 
-      const data: ProjectJSON = {
+      const data: ProjectStateJSONExport = {
         tilemap: ctx.canvas.toDataURL(),
         areas,
         tileSize: projectState.tileSize,

@@ -5,12 +5,14 @@ type ProjectState = {
   tilesets: Tileset[];
   autoTiles: AutoTile[];
   areas: Area[];
+  attributes: Map<string, Map<string, string>>
 };
 
 type Area = {
   id: string;
   color: string;
   name: string;
+  isWalkable: boolean;
 };
 
 type Tile = {
@@ -206,7 +208,7 @@ type AreaHistoryEntry = HistoryEntryT<PaintType.AREA>;
 type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry;
 
 export {
-  type ProjectStateJSONExport as ProjectJSON,
+  type ProjectStateJSONExport,
   type PaintedTile,
   type PaintedArea,
   type PaintedAutoTile,

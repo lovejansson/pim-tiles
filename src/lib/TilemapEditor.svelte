@@ -3,12 +3,17 @@
   import { PaintType, Tool, type Cell, type PaintedTile } from "../types";
   import CanvasViewport, {
     CanvasViewPortPaintEvent,
+    CanvasViewPortRightClickEvent,
     CanvasViewPortSelectEvent,
     CanvasViewPortSelectionDragEvent,
   } from "./CanvasViewPort";
+  import TileAttributesDialog from "./TileAttributesDialog.svelte";
 
   const { tileSize } = $derived(projectState);
   const { tilemapEditorState } = $derived(guiState);
+
+  let tileAttributesDialogIsOpen = $state(false);
+  let tileAttributesCell: Cell = $state({ row: 0, col: 0 });
 
   let ctrlKeyIsDown = false;
 
@@ -46,6 +51,8 @@
     canvasView.addEventListener("select", handleCanvasSelection);
 
     canvasView.addEventListener("selection-drag", handleCanvasSelectionDrag);
+
+    canvasView.addEventListener("right-click", handleCanvasRightClick);
 
     canvasView.init();
   };
@@ -101,8 +108,16 @@
         }
       }
     }
+  };
 
-    console.dir(selectedTiles[0])
+  const handleCanvasRightClick = (e: Event) => {
+    const pos = (e as CanvasViewPortRightClickEvent).pos;
+
+    const row = Math.floor(pos.y / projectState.tileSize);
+    const col = Math.floor(pos.x / projectState.tileSize);
+
+    tileAttributesCell = { row, col };
+    tileAttributesDialogIsOpen = true;
   };
 
   const handleCanvasSelectionDrag = (e: Event) => {
@@ -294,29 +309,38 @@
         }
       }
 
-  
       if (tilemapEditorState.type === PaintType.TILE) {
-         for (const t of selectedTiles) {
-           if(t.tile) {
-              const tileset = projectState.tilesets.getTileset(
-                       t.tile.ref.tile.tilesetId,
-                );
+        for (const t of selectedTiles) {
+          if (t.tile) {
+            const tileset = projectState.tilesets.getTileset(
+              t.tile.ref.tile.tilesetId,
+            );
 
-                ctx.drawImage(tileset.spritesheet, t.tile.ref.tile.tilesetPos.x, t.tile.ref.tile.tilesetPos.y, tileSize, tileSize, t.curr.col * tileSize,t.curr.row * tileSize, tileSize, tileSize);
-   
-                 // ctx.drawImage(
-                 //   tileset.spritesheet,
-              //   t.tile.ref.tile.offsetPos.x,
-                //   t.tile.ref.tile.offsetPos.y,
-                //   tileSize,
-               //   tileSize,
-               //   t.curr.col * tileSize,
-              //   t.curr.row * tileSize,
-                //   tileSize,
-              //   tileSize,
-                // );
-            }
-            }
+            ctx.drawImage(
+              tileset.spritesheet,
+              t.tile.ref.tile.tilesetPos.x,
+              t.tile.ref.tile.tilesetPos.y,
+              tileSize,
+              tileSize,
+              t.curr.col * tileSize,
+              t.curr.row * tileSize,
+              tileSize,
+              tileSize,
+            );
+
+            // ctx.drawImage(
+            //   tileset.spritesheet,
+            //   t.tile.ref.tile.offsetPos.x,
+            //   t.tile.ref.tile.offsetPos.y,
+            //   tileSize,
+            //   tileSize,
+            //   t.curr.col * tileSize,
+            //   t.curr.row * tileSize,
+            //   tileSize,
+            //   tileSize,
+            // );
+          }
+        }
       }
     }
   }
@@ -327,6 +351,11 @@
 <section id="tilemap-editor">
   <canvas {@attach initCanvas}></canvas>
 </section>
+
+<TileAttributesDialog
+  open={tileAttributesDialogIsOpen}
+  cell={tileAttributesCell}
+/>
 
 <style lang="postcss">
   #tilemap-editor {

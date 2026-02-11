@@ -74,7 +74,7 @@
       </sl-tooltip>
     {/if}
 
-    <EditableText bind:isEditing={isEditingName} text={layer.name} />
+    <EditableText bind:isEditing={isEditingName} bind:text={layer.name} />
 
     <!-- sl handles accessability internally -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
