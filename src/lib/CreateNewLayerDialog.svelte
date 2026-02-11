@@ -6,18 +6,17 @@
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
   import { projectState } from "../state.svelte";
-    import { PaintType } from "../types";
+  import { PaintType } from "../types";
 
-  type CreateLayerDialogProps = {open: boolean;}
+  type CreateLayerDialogProps = { open: boolean };
   let { open = $bindable() }: CreateLayerDialogProps = $props();
 
   const hide = () => {
     open = false;
   };
- 
 
   let name = $state("New layer");
-  let layerType: PaintType.TILE | PaintType.AREA | PaintType.AUTO_TILE = $state(PaintType.TILE);
+  let layerType: PaintType = $state(PaintType.TILE);
 
   const saveLayer = () => {
     projectState.layers.add(name, layerType);
@@ -39,21 +38,25 @@
 
   <sl-select
     onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
-    value={layerType}
+    value={layerType.toString()}
     onsl-change={(e: SlChangeEvent) => {
-      layerType = +(e.target as SlSelect).value as PaintType.TILE | PaintType.AREA;
+      const value = (e.target as SlSelect).value;
+
+      if (typeof value === "string") {
+        layerType = parseInt(value) as PaintType;
+      }
     }}
   >
-    <sl-option value={PaintType.TILE}>
+    <sl-option value={PaintType.TILE.toString()}>
       <sl-icon slot="prefix" library="pixelarticons" name="chess"></sl-icon>
       Tile
     </sl-option>
 
-    <sl-option value={PaintType.AREA}>
+    <sl-option value={PaintType.AREA.toString()}>
       <sl-icon slot="prefix" library="pixelarticons" name="section"></sl-icon>
       Area
     </sl-option>
-    <sl-option value={PaintType.AUTO_TILE}>
+    <sl-option value={PaintType.AUTO_TILE.toString()}>
       <sl-icon slot="prefix" library="pixelarticons" name="grid"></sl-icon>
       Auto tile
     </sl-option>

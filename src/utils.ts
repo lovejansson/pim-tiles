@@ -32,7 +32,7 @@ const splitIntoTiles = async (tileset: Tileset, tileSize: number): Promise<Tile[
 
     for (let y = 0; y < tileset.height; y += tileSize) {
         for (let x = 0; x < tileset.width; x += tileSize) {
-            tiles.push({ tilesetID: tileset.id, offsetPos: { y, x } });
+            tiles.push({ tilesetId: tileset.id, tilesetPos: { y, x } });
         }
     }
 

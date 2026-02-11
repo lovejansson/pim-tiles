@@ -3,7 +3,9 @@
 :root,
 :host,
 .sl-theme-light {
-  font-family: 'Source Code Pro', monospace;
+
+  --font-family: "Google Sans Code", monospace;
+  
   --color-0: #363636;
   --color-3: #ffffff; 
   --color-1: #ececec;
@@ -12,51 +14,53 @@
   --color-2: #b5b7b9; /* intermediate for hover backgrounds */
  
 
-  background-color: var(--color-1);
---sl-color-primary-50: var(--color-1);
---sl-color-primary-100: var(--color-1);
---sl-color-primary-200: var(--color-1);
---sl-color-primary-300: var(--color-0);
---sl-color-primary-400: var(--color-0);
---sl-color-primary-500: var(--color-0);
---sl-color-primary-600: var(--color-0);
---sl-color-primary-700: var(--color-0);
---sl-color-primary-800: var(--color-0);
---sl-color-primary-900: var(--color-0);
---sl-color-primary-950: var(--color-0);
+    background-color: var(--color-1);
+  --sl-color-primary-50: var(--color-1);
+  --sl-color-primary-100: var(--color-1);
+  --sl-color-primary-200: var(--color-1);
+  --sl-color-primary-300: var(--color-0);
+  --sl-color-primary-400: var(--color-0);
+  --sl-color-primary-500: var(--color-0);
+  --sl-color-primary-600: var(--color-0);
+  --sl-color-primary-700: var(--color-0);
+  --sl-color-primary-800: var(--color-0);
+  --sl-color-primary-900: var(--color-0);
+  --sl-color-primary-950: var(--color-0);
 
-/* Neutral palette (used for text, borders, backgrounds) */
---sl-color-neutral-0: var(--color-1);
---sl-color-neutral-50: var(--color-1);
---sl-color-neutral-100: var(--color-2);
---sl-color-neutral-200: var(--color-2);
---sl-color-neutral-300: var(--color-2);
---sl-color-neutral-400: var(--color-2);
---sl-color-neutral-500: var(--color-0);
---sl-color-neutral-600: var(--color-0);
---sl-color-neutral-700: var(--color-0);
---sl-color-neutral-800: var(--color-0);
---sl-color-neutral-900: var(--color-0);
---sl-color-neutral-950: var(--color-0);
---sl-color-neutral-1000: var(--color-0);
+  /* Neutral palette (used for text, borders, backgrounds) */
+  --sl-color-neutral-0: var(--color-1);
+  --sl-color-neutral-50: var(--color-1);
+  --sl-color-neutral-100: var(--color-2);
+  --sl-color-neutral-200: var(--color-2);
+  --sl-color-neutral-300: var(--color-2);
+  --sl-color-neutral-400: var(--color-2);
+  --sl-color-neutral-500: var(--color-0);
+  --sl-color-neutral-600: var(--color-0);
+  --sl-color-neutral-700: var(--color-0);
+  --sl-color-neutral-800: var(--color-0);
+  --sl-color-neutral-900: var(--color-0);
+  --sl-color-neutral-950: var(--color-0);
+  --sl-color-neutral-1000: var(--color-0);
 
---sl-color-danger-0: var(--sl-color-rose-0);
---sl-color-danger-50: var(--sl-color-rose-50);
---sl-color-danger-100: var(--sl-color-rose-100);
---sl-color-danger-200: var(--sl-color-rose-200);
---sl-color-danger-300: var(--sl-color-rose-300);
---sl-color-danger-400: var(--sl-color-rose-400);
---sl-color-danger-500: var(--sl-color-rose-500);
---sl-color-danger-600: var(--sl-color-rose-600);
---sl-color-danger-700: var(--sl-color-rose-700);
---sl-color-danger-800: var(--sl-color-rose-800);
---sl-color-danger-900: var(--sl-color-rose-900);
---sl-color-danger-1000: var(--sl-color-rose-1000);
+  --sl-color-danger-0: var(--sl-color-rose-0);
+  --sl-color-danger-50: var(--sl-color-rose-50);
+  --sl-color-danger-100: var(--sl-color-rose-100);
+  --sl-color-danger-200: var(--sl-color-rose-200);
+  --sl-color-danger-300: var(--sl-color-rose-300);
+  --sl-color-danger-400: var(--sl-color-rose-400);
+  --sl-color-danger-500: var(--sl-color-rose-500);
+  --sl-color-danger-600: var(--sl-color-rose-600);
+  --sl-color-danger-700: var(--sl-color-rose-700);
+  --sl-color-danger-800: var(--sl-color-rose-800);
+  --sl-color-danger-900: var(--sl-color-rose-900);
+  --sl-color-danger-1000: var(--sl-color-rose-1000);
 
 
- --sl-font-mono: 'Source Code Pro', monospace;
-  --sl-font-sans: 'Source Code Pro', monospace;
-  --sl-font-serif: 'Source Code Pro', monospace;
+  --sl-font-mono:  var(--font-family);
+  --sl-font-sans:   var(--font-family);
+  --sl-font-serif: var(--font-family);
+  font-family: var(--font-family);
+
 
   /* Remove border radius for square style */
 
@@ -117,7 +121,7 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  height: 100dvh;
+  height: 100dvh; 
   width: 100dvw;
 }
 

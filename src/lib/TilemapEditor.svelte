@@ -95,7 +95,7 @@
             tile: projectState.layers.getTileAt(
               row,
               col,
-              tilemapEditorState.selectedLayer.id,
+              tilemapEditorState.selectedLayer,
             ) as PaintedTile,
           });
         }
@@ -139,7 +139,7 @@
               projectState.layers.paintTiles(
                 row,
                 col,
-                tilemapEditorState.selectedLayer.id,
+                tilemapEditorState.selectedLayer,
                 tilemapEditorState.selectedAsset,
               );
             }
@@ -148,7 +148,7 @@
             projectState.layers.eraseTile(
               row,
               col,
-              tilemapEditorState.selectedLayer.id,
+              tilemapEditorState.selectedLayer,
             );
             break;
         }
@@ -162,7 +162,7 @@
                 row,
                 col,
                 tilemapEditorState.selectedAsset.ref.id,
-                tilemapEditorState.selectedLayer.id,
+                tilemapEditorState.selectedLayer,
               );
             }
 
@@ -172,7 +172,7 @@
             projectState.layers.eraseAutoTile(
               row,
               col,
-              tilemapEditorState.selectedLayer.id,
+              tilemapEditorState.selectedLayer,
             );
 
             break;
@@ -188,7 +188,7 @@
               projectState.layers.paintTile(
                 row,
                 col,
-                tilemapEditorState.selectedLayer.id,
+                tilemapEditorState.selectedLayer,
                 tilemapEditorState.selectedAsset,
               );
             }
@@ -197,7 +197,7 @@
             projectState.layers.eraseTile(
               row,
               col,
-              tilemapEditorState.selectedLayer.id,
+              tilemapEditorState.selectedLayer,
             );
 
             break;
@@ -233,15 +233,15 @@
           case PaintType.TILE:
             for (const [key, paintedTile] of layer.data) {
               const tileset = projectState.tilesets.getTileset(
-                paintedTile.ref.tile.tilesetID,
+                paintedTile.ref.tile.tilesetId,
               );
 
               const [row, col] = key.split(":").map(Number);
 
               ctx.drawImage(
                 tileset.spritesheet,
-                paintedTile.ref.tile.offsetPos.x,
-                paintedTile.ref.tile.offsetPos.y,
+                paintedTile.ref.tile.tilesetPos.x,
+                paintedTile.ref.tile.tilesetPos.y,
                 tileSize,
                 tileSize,
                 col * tileSize,
@@ -256,13 +256,13 @@
             for (const [key, autoTileAsset] of layer.data) {
               const [row, col] = key.split(":").map(Number);
               const tileset = projectState.tilesets.getTileset(
-                autoTileAsset.tile.ref.tile.tilesetID,
+                autoTileAsset.tile.ref.tile.tilesetId,
               );
 
               ctx.drawImage(
                 tileset.spritesheet,
-                autoTileAsset.tile.ref.tile.offsetPos.x,
-                autoTileAsset.tile.ref.tile.offsetPos.y,
+                autoTileAsset.tile.ref.tile.tilesetPos.x,
+                autoTileAsset.tile.ref.tile.tilesetPos.y,
                 tileSize,
                 tileSize,
                 col * tileSize,
@@ -294,48 +294,15 @@
         }
       }
 
-      /**
-       *
-       * Flytta
-       *
-       * Radera
-       *
-       * Kopiera
-       *
-       *
-       * Klistra in
-       *
-       *
-       * Flytta
-       *
-       * Målas ovanpå resten av lagret och när användaren "är klar" så flyttas alla tiles dit man har flyttat dom,
-       *
-       * dvs, när användaren har slutat dra och när "selection är slut", alltså när ny selection börjar så skickas ett event om att det är slut för den tidigare
-       *
-       *
-       * Radera innebär bara att vi lyssnar på on delete, del press, och om det finns en selection så ska de tilsen deletas.
-       *
-       * Kopiera innebär att tilsen ska dubbleras och sedan kan man flytta kopian vart man vill och när kopian har landat så kommer de nya tilsen att uppdateras men
-       * de gamla ligger kvar, så det är ungefär som move fast i move så vill man också visualisera att dom försvinner direkt när man flyttar
-       *
-       *
-       * så selected tiles måste innehålla både old pos, curr och vilken asset som är målad
-       *
-       *
-       *
-       *
-       *
-       */
-      
-
-      if (tilemapEditorState.selectedLayer.type === PaintType.TILE) {
+  
+      if (tilemapEditorState.type === PaintType.TILE) {
          for (const t of selectedTiles) {
            if(t.tile) {
               const tileset = projectState.tilesets.getTileset(
-                       t.tile.ref.tile.tilesetID,
+                       t.tile.ref.tile.tilesetId,
                 );
 
-                ctx.drawImage(tileset.spritesheet, t.tile.ref.tile.offsetPos.x, t.tile.ref.tile.offsetPos.y, tileSize, tileSize, t.curr.col * tileSize,t.curr.row * tileSize, tileSize, tileSize);
+                ctx.drawImage(tileset.spritesheet, t.tile.ref.tile.tilesetPos.x, t.tile.ref.tile.tilesetPos.y, tileSize, tileSize, t.curr.col * tileSize,t.curr.row * tileSize, tileSize, tileSize);
    
                  // ctx.drawImage(
                  //   tileset.spritesheet,

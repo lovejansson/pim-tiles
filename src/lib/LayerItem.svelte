@@ -24,7 +24,7 @@
       }
 
       const layerIsSelected =
-        guiState.tilemapEditorState.selectedLayer.id === layer.id;
+        guiState.tilemapEditorState.selectedLayer === layer.id;
 
       if (layerIsSelected) {
         selectLayer();
@@ -37,8 +37,8 @@
   };
 
   const selectLayer = () => {
-    if (guiState.tilemapEditorState.selectedLayer.id !== layer.id) {
-      guiState.tilemapEditorState.selectedLayer = layer;
+    if (guiState.tilemapEditorState.selectedLayer !== layer.id) {
+      guiState.tilemapEditorState.selectedLayer = layer.id;
       guiState.tilemapEditorState.selectedAsset = null;
       guiState.tilemapEditorState.type = layer.type;
     }
@@ -47,6 +47,7 @@
   const toggleVisibility = () => {
     guiState.visibleLayers[layer.id] = !guiState.visibleLayers[layer.id];
   };
+
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -98,9 +99,10 @@
     width: 100%;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: none;
     padding: none;
     border: none;
     font-family: inherit;
   }
+
+
 </style>

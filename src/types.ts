@@ -1,83 +1,76 @@
-
-
-
 type ProjectState = {
-    projectName: string,
-    tileSize: number,
-    layers: Layer[],
-    tilesets: Tileset[],
-    autoTiles: AutoTile[],
-    areas: Area[],
-}
+  projectName: string;
+  tileSize: number;
+  layers: Layer[];
+  tilesets: Tileset[];
+  autoTiles: AutoTile[];
+  areas: Area[];
+};
 
 type Area = {
-    id: string;
-    color: string;
-    name: string;
-}
+  id: string;
+  color: string;
+  name: string;
+};
 
 type Tile = {
-    tilesetID: string;
-    offsetPos: Point; 
-}
+  tilesetId: string;
+  tilesetPos: Point;
+};
 
 type Tileset = {
-    id: string;
-    name: string;
-    tiles: Tile[];
-    width: number;
-    height: number;
-    spritesheet: ImageBitmap;
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  spritesheet: ImageBitmap;
 };
 
 type Point = {
-    x: number;
-    y: number;
-}
+  x: number;
+  y: number;
+};
 
 type Cell = {
-    row: number;
-    col: number;
-}
+  row: number;
+  col: number;
+};
 
 type Rect = {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 enum PaintType {
-    TILE,
-    AREA,
-    AUTO_TILE,
+  TILE,
+  AREA,
+  AUTO_TILE,
 }
 
 enum Tool {
-    PAINT,
-    ERASE,
-    SELECT
+  PAINT,
+  ERASE,
+  SELECT,
 }
-
 
 type AssetRefT<T extends PaintType> = {
-    type: T,
-    ref: T extends PaintType.TILE ? TileRef : IdRef;
-}
+  type: T;
+  ref: T extends PaintType.TILE ? TileRef : IdRef;
+};
 
-type LayerData<T extends PaintType> = T extends PaintType.AUTO_TILE ? Map<string, PaintedAssetT<T>>
-    : T extends PaintType.AREA ? Map<string, PaintedAssetT<T>>
-    : T extends PaintType.TILE ? Map<string, PaintedAssetT<T>>
-    : never;
 
-type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE ? AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> } : AssetRefT<T>;
+type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE
+  ? AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> }
+  : AssetRefT<T>;
 
 type LayerT<T extends PaintType> = {
     id: string;
     type: T;
     name: string;
-    data: LayerData<T>,
-}
+    data: Map<string, PaintedAssetT<T>>;
+};
 
 type PaintedTile = PaintedAssetT<PaintType.TILE>;
 type PaintedArea = PaintedAssetT<PaintType.AREA>;
@@ -92,44 +85,42 @@ type AutoTileLayer = LayerT<PaintType.AUTO_TILE>;
 type Layer = TileLayer | AreaLayer | AutoTileLayer;
 
 enum TileRequirement {
-    REQUIRED = "required",
-    EXCLUDED = "excluded",
-    OPTIONAL = "optional"
+  REQUIRED = "required",
+  EXCLUDED = "excluded",
+  OPTIONAL = "optional",
 }
 
 type AutoTile = {
-    id: string;
-    name: string;
-    rules: TileRule[];
-    defaultTile: TileAsset;
-}
+  id: string;
+  name: string;
+  rules: TileRule[];
+  defaultTile: TileAsset;
+};
 
 type TileConnections = {
-    n: TileRequirement;
-    ne: TileRequirement;
-    e: TileRequirement;
-    se: TileRequirement;
-    s: TileRequirement;
-    sw: TileRequirement;
-    w: TileRequirement;
-    nw: TileRequirement;
-}
+  n: TileRequirement;
+  ne: TileRequirement;
+  e: TileRequirement;
+  se: TileRequirement;
+  s: TileRequirement;
+  sw: TileRequirement;
+  w: TileRequirement;
+  nw: TileRequirement;
+};
 
 type TileRule = {
-    id: string;
-    connections: TileConnections,
-    tile: TileAsset;
-
-}
+  id: string;
+  connections: TileConnections;
+  tile: TileAsset;
+};
 
 type TileRef = {
-    tile: Tile;
-
-}
+  tile: Tile;
+};
 
 type IdRef = {
-    id: string;
-}
+  id: string;
+};
 
 type TileAsset = AssetRefT<PaintType.TILE>;
 type AutoTileAsset = AssetRefT<PaintType.AUTO_TILE>;
@@ -139,88 +130,120 @@ type AssetRef = TileAsset | AutoTileAsset | AreaAsset;
 
 type TilemapEditorState = TileLayerState | AutoTileLayerState | AreaLayerState;
 
-
 type TileLayerState = {
-    type: PaintType.TILE;
-    selectedTool: Tool;
-    selectedLayer: TileLayer;
-    selectedAsset: TileAsset[] | null;
-    fillToolIsActive: boolean;
-}
+  type: PaintType.TILE;
+  selectedTool: Tool;
+  selectedLayer: string;
+  selectedAsset: TileAsset[] | null;
+  fillToolIsActive: boolean;
+};
 
 type AutoTileLayerState = {
-    type: PaintType.AUTO_TILE;
-    selectedTool: Tool;
-    selectedLayer: AutoTileLayer;
-    selectedAsset: AutoTileAsset | null;
-    fillToolIsActive: boolean;
-}
+  type: PaintType.AUTO_TILE;
+  selectedTool: Tool;
+  selectedLayer: string;
+  selectedAsset: AutoTileAsset | null;
+  fillToolIsActive: boolean;
+};
 
 type AreaLayerState = {
-    type: PaintType.AREA;
-    selectedTool: Tool;
-    selectedLayer: AreaLayer;
-    selectedAsset: AreaAsset | null;
-    fillToolIsActive: boolean;
-}
+  type: PaintType.AREA;
+  selectedTool: Tool;
+  selectedLayer: string;
+  selectedAsset: AreaAsset | null;
+  fillToolIsActive: boolean;
+};
 
 type GUIState = {
-    notification: Notification | null;
-    tilemapEditorState: TilemapEditorState;
-    showGrid: boolean;
-    gridColor: string;
-    history: HistoryEntry[];
-    historyIdx: number;
-    mouseTile: {row: number, col: number};
-    mouseTileDelta: {row: number, col: number};
-    visibleLayers: {[key: string]: boolean};
-}
+  notification: Notification | null;
+  tilemapEditorState: TilemapEditorState;
+  showGrid: boolean;
+  gridColor: string;
+  history: HistoryEntry[];
+  historyIdx: number;
+  mouseTile: { row: number; col: number };
+  mouseTileDelta: { row: number; col: number };
+  visibleLayers: { [key: string]: boolean };
+};
 
-type ProjectJSON = {
-    tilemap: string;
-    name: string;
-    tileSize: number;
-    areas: {name: string, tiles: Point[]}[];
-    attributes: (Point & {attributes: {[key:string]: any}})[];
-}
+type ProjectStateJSONExport = {
+  tilemap: string; // image url 
+  name: string;
+  tileSize: number;
+  areas: { name: string; tiles: Point[] }[]; // Just an array of areas with name and which tiles they belong to
+  attributes: {pos: Point, attributes: { [key: string]: any }}[]; // An array of tiles positions with attributes
+};
 
 type Notification = {
-    variant: "primary" | "success" | "neutral" | "warning" | "danger",
-    title: string;
-    msg: string;
-}
+  variant: "primary" | "success" | "neutral" | "warning" | "danger";
+  title: string;
+  msg: string;
+};
 
-type HistoryEntryData<T extends PaintType> = T extends PaintType.AUTO_TILE ? (AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> }) : AssetRefT<PaintType.TILE>;
+type HistoryEntryData<T extends PaintType> = T extends PaintType.AUTO_TILE
+  ? AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> }
+  : AssetRefT<PaintType.TILE>;
 
 type HistoryEntryItem<T extends PaintType> = {
-    data: HistoryEntryData<T> | null,
-    pos: Cell,
-}
+  data: HistoryEntryData<T> | null;
+  pos: Cell;
+};
 
 type TileHistoryEntryItem = HistoryEntryItem<PaintType.TILE>;
 type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
 type AreaHistoryEntryItem = HistoryEntryItem<PaintType.AREA>;
 
-
 type HistoryEntryT<T extends PaintType> = {
-    type: T,
-    layer: IdRef,
-    items: HistoryEntryItem<T>[]
-}
+  type: T;
+  layer: IdRef;
+  items: HistoryEntryItem<T>[];
+};
 
 type TileHistoryEntry = HistoryEntryT<PaintType.TILE>;
 type AutoTileHistoryEntry = HistoryEntryT<PaintType.AUTO_TILE>;
 type AreaHistoryEntry = HistoryEntryT<PaintType.AREA>;
 
-
 type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry;
 
-
-export { type ProjectJSON,
-    type PaintedTile, type PaintedArea, type PaintedAutoTile, type PaintedAsset, type LayerT, type PaintedAssetT,
-    type AreaHistoryEntryItem, type AutoTileHistoryEntryItem, type TileHistoryEntryItem,
-    PaintType, Tool, TileRequirement, type HistoryEntry, type TileHistoryEntry, type AreaHistoryEntry,
-    type TilemapEditorState, type AssetRef, type Area, type AreaAsset, type TileAsset, type AutoTileAsset, type TileLayerState, type AutoTileLayerState, type AreaLayerState,
-    type Point, type Rect, type ProjectState, type GUIState, type Notification, type Layer, type TileLayer,
-    type IdRef, type Tileset, type Tile, type AutoTile, type TileRule, type TileRef, type TileConnections, type Cell
+export {
+  type ProjectStateJSONExport as ProjectJSON,
+  type PaintedTile,
+  type PaintedArea,
+  type PaintedAutoTile,
+  type PaintedAsset,
+  type LayerT,
+  type PaintedAssetT,
+  type AreaHistoryEntryItem,
+  type AutoTileHistoryEntryItem,
+  type TileHistoryEntryItem,
+  PaintType,
+  Tool,
+  TileRequirement,
+  type HistoryEntry,
+  type TileHistoryEntry,
+  type AreaHistoryEntry,
+  type TilemapEditorState,
+  type AssetRef,
+  type Area,
+  type AreaAsset,
+  type TileAsset,
+  type AutoTileAsset,
+  type TileLayerState,
+  type AutoTileLayerState,
+  type AreaLayerState,
+  type Point,
+  type Rect,
+  type ProjectState,
+  type GUIState,
+  type Notification,
+  type Layer,
+  type TileLayer,
+  type IdRef,
+  type Tileset,
+  type Tile,
+  type AutoTile,
+  type TileRule,
+  type TileRef,
+  type TileConnections,
+  type Cell,
 };

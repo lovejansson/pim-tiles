@@ -259,8 +259,8 @@
                 {#if defaultTile !== null}
                     <img
                         src={projectState.tilesets.getTileDataUrl(
-                            defaultTile.ref.tile.tilesetID,
-                            defaultTile.ref.tile.offsetPos,
+                            defaultTile.ref.tile.tilesetId,
+                            defaultTile.ref.tile.tilesetPos,
                         )}
                         alt="tile"
                     />
