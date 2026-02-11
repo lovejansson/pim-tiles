@@ -1,10 +1,7 @@
 <script lang="ts">
-  import { SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
+  import {  type SlChangeEvent } from "@shoelace-style/shoelace";
   import { projectState } from "../state.svelte";
   import type { Cell } from "../types";
-  import {
-	SvelteMap,
-} from 'svelte/reactivity';
 
   type TileAttributesDialogProps = {
     cell: Cell;
@@ -16,8 +13,11 @@
     open = false;
   };
 
-  const attributes =
-    $state(projectState.attributes.getTileAttributes(cell) ?  Array.from(projectState.attributes.getTileAttributes(cell)!.entries()) : []);
+  const currentAttributes = projectState.attributes.getTileAttributes(cell);
+
+  const attributes: [string, string][] = $state(
+    currentAttributes ? Array.from(currentAttributes.entries()) : [],
+  );
 
   const save = () => {
     if (attributes.length !== 0) {
@@ -30,16 +30,26 @@
   };
 </script>
 
-<sl-dialog onsl-after-hide={hide} label="Edit tile attributes" {open}>
-    <p>{cell.row}:{cell.col}</p>
-  <ul>
-    {#each attributes as [key, value], idx}
+<sl-dialog
+  onsl-after-hide={hide}
+  label={"Edit tile attributes (r" + cell.row + " c" + cell.col + ")"}
+  {open}
+  
+>
+{#if attributes.length > 0}
+  <ul id="attributes">
+    {#each attributes as [key, value], idx (key)}
       <li class="attribute">
-        <p>{key}</p>
+        <sl-input label="Name" type="text"  value={key} 
+         onsl-change={(e: SlChangeEvent) => {
+            if (e.target) {
+              attributes[idx][0] = value;
+            }
+          }}></sl-input>
         <sl-input
           onsl-change={(e: SlChangeEvent) => {
             if (e.target) {
-                attributes[idx][1] = value;
+              attributes[idx][1] = value;
             }
           }}
           label="Value"
@@ -58,13 +68,18 @@
       </li>
     {/each}
   </ul>
+  {:else}
+  <p>No attributes added for tile.</p>
+  {/if}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <sl-button variant="primary"
+  <sl-button
+    variant="primary"
     onclick={() => attributes.push(["new", ""])}
     onkeydown={(e: KeyboardEvent) => {
       if (e.key === "Enter") attributes.push(["new", ""]);
-    }}>
-        Add
+    }}
+  >
+    Add
   </sl-button>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -83,7 +98,18 @@
     flex-direction: column;
     gap: 1.6rem;
     font-size: small;
+
   }
+   sl-dialog {
+        --width: 40%;
+      
+    }
+
+    #attributes {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
 
   .attribute {
     display: flex;
