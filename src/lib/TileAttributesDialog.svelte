@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {  type SlChangeEvent } from "@shoelace-style/shoelace";
+  import {  SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
   import { projectState } from "../state.svelte";
   import type { Cell } from "../types";
 
@@ -13,9 +13,9 @@
     open = false;
   };
 
-  const currentAttributes = projectState.attributes.getTileAttributes(cell);
+  const currentAttributes = $state(projectState.attributes.getTileAttributes(cell));
 
-  const attributes: [string, string][] = $state(
+  let attributes: [string, string][] = $state(
     currentAttributes ? Array.from(currentAttributes.entries()) : [],
   );
 
@@ -26,7 +26,8 @@
       projectState.attributes.delete(cell);
     }
 
-    open = false;
+    attributes = [];
+    hide();
   };
 </script>
 
@@ -34,22 +35,23 @@
   onsl-after-hide={hide}
   label={"Edit tile attributes (r" + cell.row + " c" + cell.col + ")"}
   {open}
-  
 >
 {#if attributes.length > 0}
+
   <ul id="attributes">
-    {#each attributes as [key, value], idx (key)}
+    {#each attributes as [key, value], idx }
       <li class="attribute">
-        <sl-input label="Name" type="text"  value={key} 
+        <sl-input label="Name" type="text" value={key} 
          onsl-change={(e: SlChangeEvent) => {
+      
             if (e.target) {
-              attributes[idx][0] = value;
+              attributes[idx][0] = (e.target as SlInput).value;
             }
           }}></sl-input>
         <sl-input
           onsl-change={(e: SlChangeEvent) => {
             if (e.target) {
-              attributes[idx][1] = value;
+              attributes[idx][1] = (e.target as SlInput).value;
             }
           }}
           label="Value"
@@ -101,8 +103,7 @@
 
   }
    sl-dialog {
-        --width: 40%;
-      
+        --width: 50%;
     }
 
     #attributes {

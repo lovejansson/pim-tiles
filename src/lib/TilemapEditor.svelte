@@ -111,6 +111,7 @@
   };
 
   const handleCanvasRightClick = (e: Event) => {
+    console.log("JE", tileAttributesDialogIsOpen)
     const pos = (e as CanvasViewPortRightClickEvent).pos;
 
     const row = Math.floor(pos.y / projectState.tileSize);
@@ -353,7 +354,7 @@
 </section>
 
 <TileAttributesDialog
-  open={tileAttributesDialogIsOpen}
+  bind:open={tileAttributesDialogIsOpen}
   cell={tileAttributesCell}
 />
 
