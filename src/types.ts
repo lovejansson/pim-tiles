@@ -163,8 +163,7 @@ type GUIState = {
   gridColor: string;
   history: HistoryEntry[];
   historyIdx: number;
-  mouseTile: { row: number; col: number };
-  mouseTileDelta: { row: number; col: number };
+  mouseTilePos: { row: number; col: number };
   visibleLayers: { [key: string]: boolean };
 };
 

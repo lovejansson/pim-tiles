@@ -1,6 +1,6 @@
 <script lang="ts">
   import { projectState } from "../state.svelte";
-    import { detectOS } from "../utils";
+    import { detectOS, download } from "../utils";
   import SettingsDialog from "./SettingsDialog.svelte";
 
 
@@ -21,8 +21,10 @@
         break;
       case "export-json":
         const json = projectState.getJSONExport();
-        console.log(json);
-        
+        const blob = new Blob([json], {
+          type: "application/json",
+        });
+        download(blob, projectState.projectName, "json");
         break;
       case "settings":
         settingsDialogIsOpen = true;

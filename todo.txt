@@ -2,17 +2,20 @@
 
 Before GB town can be done 
 
+* Slow performance for canvas need WEBGL 
+
 * Select tool ->
     Move, 
     Delete,
     Copy and paste 
 
-FILE 
+FILE & Export JSON
 
 * Implement Save
 
 * Implement Save AS
 
+* Do testing for export and save project functions
 
 Refactoring 
 
@@ -20,8 +23,10 @@ Refactoring
 
 * Errors from updates of project state, don't want to throw in the console
 
+
 After
 
+* API för projectstate tydligare att "areas" är en modul och inte listan av areas 
 
 * Flood fill
 

@@ -97,11 +97,11 @@ function isTransparent(bitmap: ImageBitmap) {
     return true;
 }
 
-function download(blob: Blob) {
+function download(blob: Blob, filename: string, extension: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "tilemap.json";
+    a.download = `${filename}.${extension}`;
     a.click();
 }
 

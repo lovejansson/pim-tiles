@@ -57,11 +57,7 @@
   </section>
   <section id="statusbar">
     <div class="stats-wrapper">
-      <p>r{guiState.mouseTile.row} c{guiState.mouseTile.col}</p>
-    </div>
-    <div class="stats-wrapper">
-      <sl-icon library="pixelarticons" name="sharp-corner"></sl-icon>
-      <p>r{guiState.mouseTileDelta.row} c{guiState.mouseTileDelta.col}</p>
+      <p>r{guiState.mouseTilePos.row} c{guiState.mouseTilePos.col}</p>
     </div>
   </section>
 </section>

@@ -2,15 +2,17 @@
   import { guiState, projectState, HistoryStack } from "../state.svelte";
   import { PaintType, Tool, type Cell, type PaintedTile } from "../types";
   import CanvasViewport, {
+    CanvasViewPortMousePosEvent,
     CanvasViewPortPaintEvent,
     CanvasViewPortRightClickEvent,
     CanvasViewPortSelectEvent,
     CanvasViewPortSelectionDragEvent,
   } from "./CanvasViewPort";
   import TileAttributesDialog from "./TileAttributesDialog.svelte";
+  import {onMount} from "svelte";
 
-  const { tileSize } = $derived(projectState);
-  const { tilemapEditorState } = $derived(guiState);
+  const { tileSize, layers, areas, tilesets } = $derived(projectState);
+  const { tilemapEditorState, gridColor, showGrid } = $derived(guiState);
 
   let tileAttributesDialogIsOpen = $state(false);
   let tileAttributesCell: Cell = $state({ row: 0, col: 0 });
@@ -21,56 +23,55 @@
 
   let selectedTiles: { org: Cell; curr: Cell; tile: PaintedTile }[] = [];
 
-  let canvasEl!: HTMLCanvasElement;
-  let ctx!: CanvasRenderingContext2D;
-
+  let canvas!: HTMLCanvasElement;
   let canvasView!: CanvasViewport;
 
-  const initCanvas = (canvas: HTMLCanvasElement) => {
-    canvasEl = canvas;
-    ctx = canvasEl.getContext("2d")!;
-    canvasEl.width = canvasEl.clientWidth;
-    canvasEl.height = canvasEl.clientHeight;
-
-    canvasView = new CanvasViewport(canvas, {
-      zoom: { min: 0.5, max: 4.0, speed: 0.375 },
-      pan: { key: " " },
-      grid: {
-        tileSize: projectState.tileSize,
-        gridColor: guiState.gridColor,
-        showGrid: guiState.showGrid,
-      },
-      drawLoop: true,
-      draw: draw,
-      defaultCursor: "crosshair",
-      selection: guiState.tilemapEditorState.selectedTool === Tool.SELECT,
-    });
-
-    canvasView.addEventListener("paint", handleCanvasPaint);
-
-    canvasView.addEventListener("select", handleCanvasSelection);
-
-    canvasView.addEventListener("selection-drag", handleCanvasSelectionDrag);
-
-    canvasView.addEventListener("right-click", handleCanvasRightClick);
-
-    canvasView.init();
-  };
 
   $effect(() => {
-    canvasView.tileSize = projectState.tileSize;
+    if(canvas === undefined) return;
+
+      canvasView = new CanvasViewport(canvas, {
+        zoom: { min: 0.5, max: 4.0, speed: 0.375 },
+        pan: { key: " " },
+        grid: {
+          tileSize: tileSize,
+          gridColor: gridColor,
+          showGrid: showGrid,
+        },
+        drawLoop: true,
+        draw: draw,
+        defaultCursor: "crosshair",
+        selection: tilemapEditorState.selectedTool === Tool.SELECT,
+      });
+
+      canvasView.addEventListener("paint", handleCanvasPaint);
+
+      canvasView.addEventListener("select", handleCanvasSelection);
+
+      canvasView.addEventListener("selection-drag", handleCanvasSelectionDrag);
+
+      canvasView.addEventListener("right-click", handleCanvasRightClick);
+
+      canvasView.addEventListener("mouse-pos", handleMousePosChange);
+
+      canvasView.init();
+  })
+
+
+  $effect(() => {
+    canvasView.tileSize = tileSize;
   });
 
   $effect(() => {
-    canvasView.showGrid = guiState.showGrid;
+    canvasView.showGrid = showGrid;
+  })
+
+  $effect(() => {
+    canvasView.gridColor = gridColor;
   });
 
   $effect(() => {
-    canvasView.gridColor = guiState.gridColor;
-  });
-
-  $effect(() => {
-    if (guiState.tilemapEditorState.selectedTool === Tool.SELECT) {
+    if (tilemapEditorState.selectedTool === Tool.SELECT) {
       canvasView.enableSelection();
     } else {
       canvasView.disabledSelection();
@@ -78,6 +79,7 @@
   });
 
   const handleCanvasSelection = (e: Event) => {
+
     const selection = (e as CanvasViewPortSelectEvent).selection;
 
     selectedTiles = [];
@@ -99,7 +101,7 @@
           selectedTiles.push({
             org: { row, col },
             curr: { row, col },
-            tile: projectState.layers.getTileAt(
+            tile: layers.getTileAt(
               row,
               col,
               tilemapEditorState.selectedLayer,
@@ -111,11 +113,10 @@
   };
 
   const handleCanvasRightClick = (e: Event) => {
-    console.log("JE", tileAttributesDialogIsOpen)
     const pos = (e as CanvasViewPortRightClickEvent).pos;
 
-    const row = Math.floor(pos.y / projectState.tileSize);
-    const col = Math.floor(pos.x / projectState.tileSize);
+    const row = Math.floor(pos.y / tileSize);
+    const col = Math.floor(pos.x / tileSize);
 
     tileAttributesCell = { row, col };
     tileAttributesDialogIsOpen = true;
@@ -124,26 +125,30 @@
   const handleCanvasSelectionDrag = (e: Event) => {
     const delta = (e as CanvasViewPortSelectionDragEvent).delta;
 
-    const rowDelta = delta.y / projectState.tileSize;
-    const colDelta = delta.x / projectState.tileSize;
+    const rowDelta = delta.y / tileSize;
+    const colDelta = delta.x / tileSize;
 
     for (const t of selectedTiles) {
       t.curr.row += rowDelta;
       t.curr.col += colDelta;
     }
-  };
+  }
+
+
+  const handleMousePosChange = (e: Event) => {
+     const pos = (e as CanvasViewPortRightClickEvent).pos;
+     const row = Math.floor(pos.y / tileSize);
+     const col = Math.floor(pos.x / tileSize);
+
+     guiState.mouseTilePos = {row, col};
+  }
+
 
   const handleCanvasPaint = (e: Event) => {
     const pos = (e as CanvasViewPortPaintEvent).pos;
 
     const col = Math.floor(pos.x / tileSize);
     const row = Math.floor(pos.y / tileSize);
-
-    guiState.mouseTile.row = row;
-    guiState.mouseTile.col = col;
-
-    guiState.mouseTileDelta.row = Math.abs(row - mouseTileStart.row);
-    guiState.mouseTileDelta.col = Math.abs(col - mouseTileStart.col);
 
     switch (tilemapEditorState.type) {
       case PaintType.TILE:
@@ -152,7 +157,7 @@
         switch (tilemapEditorState.selectedTool) {
           case Tool.PAINT:
             if (tilemapEditorState.selectedAsset !== null) {
-              projectState.layers.paintTiles(
+              layers.paintTiles(
                 row,
                 col,
                 tilemapEditorState.selectedLayer,
@@ -161,7 +166,7 @@
             }
             break;
           case Tool.ERASE:
-            projectState.layers.eraseTile(
+            layers.eraseTile(
               row,
               col,
               tilemapEditorState.selectedLayer,
@@ -174,7 +179,7 @@
         switch (tilemapEditorState.selectedTool) {
           case Tool.PAINT: {
             if (tilemapEditorState.selectedAsset !== null) {
-              projectState.layers.paintWithAutoTile(
+              layers.paintWithAutoTile(
                 row,
                 col,
                 tilemapEditorState.selectedAsset.ref.id,
@@ -185,7 +190,7 @@
             break;
           }
           case Tool.ERASE: {
-            projectState.layers.eraseAutoTile(
+            layers.eraseAutoTile(
               row,
               col,
               tilemapEditorState.selectedLayer,
@@ -201,7 +206,7 @@
         switch (tilemapEditorState.selectedTool) {
           case Tool.PAINT:
             if (tilemapEditorState.selectedAsset !== null) {
-              projectState.layers.paintTile(
+              layers.paintTile(
                 row,
                 col,
                 tilemapEditorState.selectedLayer,
@@ -210,7 +215,7 @@
             }
             break;
           case Tool.ERASE:
-            projectState.layers.eraseTile(
+            layers.eraseTile(
               row,
               col,
               tilemapEditorState.selectedLayer,
@@ -243,12 +248,13 @@
   };
 
   function draw(ctx: CanvasRenderingContext2D) {
-    for (const layer of projectState.layers.get()) {
+   
+    for (const layer of layers.get()) {
       if (guiState.visibleLayers[layer.id]) {
         switch (layer.type) {
           case PaintType.TILE:
             for (const [key, paintedTile] of layer.data) {
-              const tileset = projectState.tilesets.getTileset(
+              const tileset = tilesets.getTileset(
                 paintedTile.ref.tile.tilesetId,
               );
 
@@ -271,7 +277,7 @@
           case PaintType.AUTO_TILE:
             for (const [key, autoTileAsset] of layer.data) {
               const [row, col] = key.split(":").map(Number);
-              const tileset = projectState.tilesets.getTileset(
+              const tileset = tilesets.getTileset(
                 autoTileAsset.tile.ref.tile.tilesetId,
               );
 
@@ -292,7 +298,7 @@
             ctx.lineWidth = 2;
 
             for (const [key, areaAsset] of layer.data) {
-              const area = projectState.areas.getArea(areaAsset.ref.id);
+              const area = areas.getArea(areaAsset.ref.id);
 
               const [row, col] = key.split(":").map(Number);
 
@@ -310,39 +316,39 @@
         }
       }
 
-      if (tilemapEditorState.type === PaintType.TILE) {
-        for (const t of selectedTiles) {
-          if (t.tile) {
-            const tileset = projectState.tilesets.getTileset(
-              t.tile.ref.tile.tilesetId,
-            );
+      // if (tilemapEditorState.type === PaintType.TILE) {
+      //   for (const t of selectedTiles) {
+      //     if (t.tile) {
+      //       const tileset = tilesets.getTileset(
+      //         t.tile.ref.tile.tilesetId,
+      //       );
 
-            ctx.drawImage(
-              tileset.spritesheet,
-              t.tile.ref.tile.tilesetPos.x,
-              t.tile.ref.tile.tilesetPos.y,
-              tileSize,
-              tileSize,
-              t.curr.col * tileSize,
-              t.curr.row * tileSize,
-              tileSize,
-              tileSize,
-            );
+      //       ctx.drawImage(
+      //         tileset.spritesheet,
+      //         t.tile.ref.tile.tilesetPos.x,
+      //         t.tile.ref.tile.tilesetPos.y,
+      //         tileSize,
+      //         tileSize,
+      //         t.curr.col * tileSize,
+      //         t.curr.row * tileSize,
+      //         tileSize,
+      //         tileSize,
+      //       );
 
-            // ctx.drawImage(
-            //   tileset.spritesheet,
-            //   t.tile.ref.tile.offsetPos.x,
-            //   t.tile.ref.tile.offsetPos.y,
-            //   tileSize,
-            //   tileSize,
-            //   t.curr.col * tileSize,
-            //   t.curr.row * tileSize,
-            //   tileSize,
-            //   tileSize,
-            // );
-          }
-        }
-      }
+      //       // ctx.drawImage(
+      //       //   tileset.spritesheet,
+      //       //   t.tile.ref.tile.offsetPos.x,
+      //       //   t.tile.ref.tile.offsetPos.y,
+      //       //   tileSize,
+      //       //   tileSize,
+      //       //   t.curr.col * tileSize,
+      //       //   t.curr.row * tileSize,
+      //       //   tileSize,
+      //       //   tileSize,
+      //       // );
+      //     }
+      //   }
+      // }
     }
   }
 </script>
@@ -350,7 +356,7 @@
 <svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
 
 <section id="tilemap-editor">
-  <canvas {@attach initCanvas}></canvas>
+  <canvas  bind:this={canvas}></canvas>
 </section>
 
 <TileAttributesDialog

@@ -70,6 +70,15 @@ export class CanvasViewPortRightClickEvent extends Event {
   }
 }
 
+export class CanvasViewPortMousePosEvent extends Event {
+  pos: Point;
+
+  constructor(pos: Point) {
+    super("mouse-pos");
+    this.pos = pos;
+  }
+}
+
 export default class CanvasViewport extends EventTarget {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -97,6 +106,7 @@ export default class CanvasViewport extends EventTarget {
 
   constructor(canvas: HTMLCanvasElement, options: CanvasViewportOptions) {
     super();
+
     this.canvas = canvas;
 
     const ctx = this.canvas.getContext("2d");
@@ -180,6 +190,8 @@ export default class CanvasViewport extends EventTarget {
   init() {
     this.addEventListeners();
 
+    this.width = this.canvas.clientWidth;
+    this.height = this.canvas.clientHeight;
     this.canvas.style.cursor = this.cursor;
 
     if (this.drawLoop) {
@@ -195,6 +207,7 @@ export default class CanvasViewport extends EventTarget {
   }
 
   draw() {
+
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.ctx.translate(this.translation.x, this.translation.y);
@@ -214,10 +227,16 @@ export default class CanvasViewport extends EventTarget {
 
       this.ctx.strokeStyle = this.gridSettings.gridColor;
 
+      // Draws horisontal lines
       for (let y = startY; y <= y1; y += tileSize) {
-        for (let x = startX; x <= x1; x += tileSize) {
-          this.ctx.rect(x, y, tileSize, tileSize);
-        }
+        this.ctx.moveTo(startX, y);
+        this.ctx.lineTo(x1, y);
+      }
+
+      // Draws vertical lines
+      for (let x = startX; x <= x1; x += tileSize) {
+        this.ctx.moveTo(x, startY);
+        this.ctx.lineTo(x, y1);
       }
 
       this.ctx.stroke();
@@ -360,7 +379,7 @@ export default class CanvasViewport extends EventTarget {
             this.selectionStartPos = { x, y };
             this.selectionRect = this.getSelectionRect({ x, y }, { x, y });
           }
-        } else if(e.button === 0){
+        } else if (e.button === 0) {
 
           this.dispatchEvent(new CanvasViewPortPaintEvent({ x, y }));
         }
@@ -369,14 +388,19 @@ export default class CanvasViewport extends EventTarget {
       this.canvas.addEventListener("mousemove", (e: MouseEvent) => {
         if (e.target !== this.canvas) return;
 
+        const rect = this.canvas.getBoundingClientRect();
+
+        const canvasX = Math.round(e.clientX - rect.left);
+
+        const canvasY = Math.round(e.clientY - rect.top);
+
+        const worldPos = this.getWorldPos({ x: canvasX, y: canvasY });
+
+        this.dispatchEvent(new CanvasViewPortMousePosEvent(worldPos));
+
         if (this.isMouseDown) {
-          const rect = this.canvas.getBoundingClientRect();
 
-          const canvasX = Math.round(e.clientX - rect.left);
 
-          const canvasY = Math.round(e.clientY - rect.top);
-
-          const worldPos = this.getWorldPos({ x: canvasX, y: canvasY });
 
           if (this.isPanKeyDown) {
             this.translation.x += canvasX - this.panPos.x;
@@ -457,7 +481,7 @@ export default class CanvasViewport extends EventTarget {
           x,
           y,
         });
-   console.log(" CLICK")
+
         this.dispatchEvent(
           new CustomEvent("click", { detail: { pos: worldPos } }),
         );
@@ -477,8 +501,6 @@ export default class CanvasViewport extends EventTarget {
         });
 
         this.dispatchEvent(new CanvasViewPortRightClickEvent(worldPos));
-
-        console.log("RIGHT CLICK")
 
         e.preventDefault();
         e.stopPropagation();

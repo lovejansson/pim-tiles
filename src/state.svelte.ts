@@ -47,8 +47,7 @@ export const guiState: GUIState = $state({
   showGrid: true,
   history: [],
   historyIdx: 0,
-  mouseTile: { row: 0, col: 0 },
-  mouseTileDelta: { row: 0, col: 0 },
+  mouseTilePos: { row: 0, col: 0 },
   visibleLayers: {},
 });
 
@@ -126,7 +125,7 @@ export const projectState = (() => {
       }
       const parsed = JSON.parse(projectLocalStorage);
       await isValidProjectState(parsed);
-      console.log(parsed);
+
       return parsed;
     } catch (e) {
       console.error(e);
@@ -285,7 +284,7 @@ export const projectState = (() => {
       },
 
       update(cell: Cell, attributes: Map<string, string>) {
-        projectState.attributes.set(`${cell.row}:${cell.col}`,attributes);
+        projectState.attributes.set(`${cell.row}:${cell.col}`, attributes);
       },
       delete(cell: Cell) {
         projectState.attributes.delete(`${cell.row}:${cell.col}`);
@@ -367,7 +366,6 @@ export const projectState = (() => {
 
         const jsoN = JSON.stringify(projectState.autoTiles);
 
-        console.log(jsoN);
       },
       update(id: string, autoTile: Omit<AutoTile, "id">) {
         const idx = projectState.autoTiles.findIndex((at) => at.id === id);
@@ -981,7 +979,7 @@ export const projectState = (() => {
             return (
               a.ref.tile.tilesetId === (b as typeof a).ref.tile.tilesetId &&
               a.ref.tile.tilesetPos.y ===
-                (b as typeof a).ref.tile.tilesetPos.y &&
+              (b as typeof a).ref.tile.tilesetPos.y &&
               a.ref.tile.tilesetPos.x === (b as typeof a).ref.tile.tilesetPos.x
             );
           case PaintType.AUTO_TILE:
@@ -993,6 +991,7 @@ export const projectState = (() => {
     },
 
     getJSONExport(): string {
+
       const tileSize = projectState.tileSize;
 
       const tilemapBounds: { x1: number; x2: number; y1: number; y2: number } =
@@ -1101,12 +1100,19 @@ export const projectState = (() => {
 
       // TODO: add tileAttributes: [{x, y, attributes: {key: value, key: value, key: value}}]
 
+      const attributes: { pos: Point, attributes: { [k: string]: string } }[] = Array.from(projectState.attributes.entries()).map(e => {
+
+        const [row, col] = e[0].split(":").map(Number);
+
+        return { pos: { x: col * projectState.tileSize, y: row * projectState.tileSize }, attributes: Object.fromEntries(e[1]) }
+      });
+
       const data: ProjectStateJSONExport = {
         tilemap: ctx.canvas.toDataURL(),
         areas,
         tileSize: projectState.tileSize,
         name: projectState.projectName,
-        attributes: [],
+        attributes,
       };
 
       return JSON.stringify(data);
