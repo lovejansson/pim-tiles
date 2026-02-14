@@ -38,7 +38,7 @@
     const ro = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width === 0) return;
       canvasView.width = entry.contentRect.width;
-      canvas.height = entry.contentRect.height;
+      canvasView.height = entry.contentRect.height;
       ro.disconnect();
       canvasView.init();
 

@@ -24,13 +24,9 @@
   let fileInput: HTMLInputElement;
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<sl-button
-  onkeydown={(e: KeyboardEvent) => {
-    if (e.key === "Enter") fileInput.showPicker();
-  }}
-  onclick={() => fileInput?.showPicker()}
->
+
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<sl-button onclick={() => fileInput?.showPicker()}>
   <sl-icon label="Load file" library="pixelarticons" name="upload"></sl-icon>
 </sl-button>
 

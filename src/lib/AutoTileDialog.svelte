@@ -200,19 +200,15 @@
             >
             </sl-input>
 
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <sl-button
-                onclick={newRule}
-                onkeydown={(e: KeyboardEvent) => {
-                    if (e.key === "Enter") newRule();
-                }}
-            >
+            
+           
+            <sl-button onclick={newRule}>
                 Add rule
                 <sl-icon label="Add rule" library="pixelarticons" name="plus"
                 ></sl-icon></sl-button
             >
             <div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                
                 <sl-button
                     disabled={hasAddedTileRulesByTemplate}
                     onclick={createRoadTileRules}
@@ -221,7 +217,7 @@
                     Add Roads NESW (16)
                 </sl-button>
 
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                
                 <sl-button
                     disabled={hasAddedTileRulesByTemplate}
                     onclick={createGroundTileRules}
@@ -242,12 +238,9 @@
                 </ul>
             </section>
 
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            
+           
             <sl-button
-                onkeydown={(e: KeyboardEvent) => {
-                    if (e.key === "Enter" && selectedTile !== null)
-                        defaultTile = { ...selectedTile };
-                }}
                 onclick={() => {
                     if (selectedTile !== null) {
                         defaultTile = { ...selectedTile };
@@ -305,7 +298,7 @@
             </sl-tab-group>
         {/if}
     </div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    
     <sl-button
         disabled={!isValid}
         slot="footer"

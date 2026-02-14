@@ -24,18 +24,15 @@
   });
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+
+
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 {#if isEditing}
   <sl-input
     style={`width:${inputWidth}px`}
     value={text}
     size="small"
     bind:this={inputName}
-    onkeydown={(e: KeyboardEvent) => {
-      if (e.key === "Enter") {
-        isEditing = false;
-      }
-    }}
     onblur={() => {
       isEditing = false;
     }}

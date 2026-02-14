@@ -52,14 +52,10 @@
         label="Color"
     ></sl-color-picker>
 
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <sl-button
-        variant="primary"
-        onclick={saveArea}
-        onkeydown={(e: KeyboardEvent) => {
-            if (e.key === "Enter") saveArea();
-        }}>Save</sl-button
-    >
+    
+   
+    <sl-button variant="primary" onclick={saveArea}>Save</sl-button>
+
 </sl-dialog>
 
 <style>

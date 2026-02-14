@@ -62,14 +62,9 @@
     </sl-option>
   </sl-select>
 
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <sl-button
-    variant="primary"
-    onclick={saveLayer}
-    onkeydown={(e: KeyboardEvent) => {
-      if (e.key === "Enter") saveLayer();
-    }}>Save</sl-button
-  >
+  
+ 
+  <sl-button variant="primary" onclick={saveLayer}>Save</sl-button>
 </sl-dialog>
 
 <style>

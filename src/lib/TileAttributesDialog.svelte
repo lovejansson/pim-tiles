@@ -1,7 +1,12 @@
 <script lang="ts">
-  import {  SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
+  import {
+    SlIconButton,
+    SlInput,
+    type SlChangeEvent,
+  } from "@shoelace-style/shoelace";
   import { projectState } from "../state.svelte";
   import type { Cell } from "../types";
+  import { isSameCell } from "../utils";
 
   type TileAttributesDialogProps = {
     cell: Cell;
@@ -13,85 +18,136 @@
     open = false;
   };
 
-  const currentAttributes = $state(projectState.attributes.getTileAttributes(cell));
+  let tile = $state(cell);
 
+  // Using an array of tuples since the Map is not reactive!
   let attributes: [string, string][] = $state(
-    currentAttributes ? Array.from(currentAttributes.entries()) : [],
+    Array.from(
+      projectState.attributes.getTileAttributes(cell)?.entries() ?? [],
+    ),
   );
 
+  let deleteButtons: SlIconButton[] = $state([]);
+  let focusBtnIdx: number | null = $state(null);
+
+  // ! had do update state inside of an effect since i want to sync the attributes state with current tile and at the same time update the attributes in local component.
+  $effect(() => {
+    if (!isSameCell(cell, tile)) {
+      tile = cell;
+      const tileAttributes = projectState.attributes.getTileAttributes(tile);
+      attributes = tileAttributes ? Array.from(tileAttributes.entries()) : [];
+    }
+  });
+
+  $effect(() => {
+    if (focusBtnIdx !== null) {
+      deleteButtons[focusBtnIdx]?.focus();
+      focusBtnIdx = null;
+    }
+  });
+
   const save = () => {
-    if (attributes.length !== 0) {
-      projectState.attributes.update(cell, new Map(attributes));
-    } else if (projectState.attributes.getTileAttributes(cell)) {
-      projectState.attributes.delete(cell);
+    if (attributes.length > 0) {
+      projectState.attributes.update(tile, new Map(attributes));
+    } else if (projectState.attributes.getTileAttributes(tile)) {
+      projectState.attributes.delete(tile);
     }
 
-    attributes = [];
     hide();
+  };
+
+  const addNewAttribute = () => {
+    const countNameNew = attributes.reduce(
+      (acc, curr) => (acc += curr[0].startsWith("new") ? 1 : 0),
+      0,
+    );
+    countNameNew > 0
+      ? attributes.push([`new(${countNameNew})`, ""])
+      : attributes.push(["new", ""]);
+  };
+
+  const deleteAttribute = (idx: number) => {
+    const isLastAttr = idx === attributes.length - 1;
+    attributes.splice(idx, 1);
+
+    // Pick focus idx to advance focus to the next delete button in list
+
+    if (isLastAttr) {
+      if (attributes.length > 0) {
+        focusBtnIdx = idx - 1;
+      }
+    } else {
+      focusBtnIdx = idx + 1;
+    }
+  };
+
+  const updateAttributeValue = (idx: number, value: string) => {
+    attributes[idx][1] = value;
+  };
+
+  const updateAttributeKey = (idx: number, key: string) => {
+    attributes[idx][0] = key;
   };
 </script>
 
 <sl-dialog
   onsl-after-hide={hide}
-  label={"Edit tile attributes (r" + cell.row + " c" + cell.col + ")"}
+  label={"Tile attributes (r" + tile.row + " c" + tile.col + ")"}
   {open}
->
-{#if attributes.length > 0}
-
-  <ul id="attributes">
-    {#each attributes as [key, value], idx }
-      <li class="attribute">
-        <sl-input label="Name" type="text" value={key} 
-         onsl-change={(e: SlChangeEvent) => {
-      
-            if (e.target) {
-              attributes[idx][0] = (e.target as SlInput).value;
-            }
-          }}></sl-input>
-        <sl-input
-          onsl-change={(e: SlChangeEvent) => {
-            if (e.target) {
-              attributes[idx][1] = (e.target as SlInput).value;
-            }
-          }}
-          label="Value"
-          type="text"
-          {value}
-        ></sl-input>
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <sl-icon-button
-          onclick={() => attributes.splice(idx, 1)}
-          onkeydown={(e: KeyboardEvent) =>
-            e.key === "Enter" && attributes.splice(idx, 1)}
-          library="pixelarticons"
-          name="close"
+  ><section id="section-attributes">
+    {#if attributes.length > 0}
+      <ul id="attributes">
+        {#each attributes as [key, value], idx}
+          <li class="attribute">
+            <sl-input
+              label="Name"
+              type="text"
+              value={key}
+              onsl-change={(e: SlChangeEvent) => {
+                if (e.target === null) return;
+                updateAttributeKey(idx, (e.target as SlInput).value);
+              }}
+            ></sl-input>
+            <sl-input
+              onsl-change={(e: SlChangeEvent) => {
+                if (e.target === null) return;
+                updateAttributeValue(idx, (e.target as SlInput).value);
+              }}
+              label="Value"
+              type="text"
+              {value}
+            ></sl-input>
+            <sl-icon-button
+              class="btn-delete"
+              bind:this={deleteButtons[idx]}
+              onclick={() => deleteAttribute(idx)}
+              library="pixelarticons"
+              name="close"
+            >
+            </sl-icon-button>
+          </li>
+        {/each}
+      </ul>
+      <sl-button id="btn-add" variant="default" onclick={addNewAttribute}>
+        Add
+      </sl-button>
+    {:else}
+      <div id="no-attributes-added">
+        <p>No attributes added.</p>
+        <sl-button
+          id="btn-add"
+          variant="default"
+          size="small"
+          onclick={addNewAttribute}
         >
-        </sl-icon-button>
-      </li>
-    {/each}
-  </ul>
-  {:else}
-  <p>No attributes added for tile.</p>
-  {/if}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <sl-button
-    variant="primary"
-    onclick={() => attributes.push(["new", ""])}
-    onkeydown={(e: KeyboardEvent) => {
-      if (e.key === "Enter") attributes.push(["new", ""]);
-    }}
-  >
-    Add
-  </sl-button>
-
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <sl-button
-    variant="primary"
-    onclick={save}
-    onkeydown={(e: KeyboardEvent) => {
-      if (e.key === "Enter") save();
-    }}>Save</sl-button
-  >
+          Add
+        </sl-button>
+      </div>
+    {/if}
+  </section>
+  <div slot="footer">
+    <sl-button variant="primary" onclick={save}>Save</sl-button>
+  </div>
 </sl-dialog>
 
 <style>
@@ -100,17 +156,38 @@
     flex-direction: column;
     gap: 1.6rem;
     font-size: small;
-
   }
-   sl-dialog {
-        --width: 50%;
-    }
+  sl-dialog {
+    --width: 600px;
+  }
 
-    #attributes {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+  .btn-delete {
+    font-size: 2rem;
+    align-self: flex-end;
+  }
+
+  #section-attributes {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: fit-content;
+  }
+
+  #no-attributes-added {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  #btn-add {
+    width: fit-content;
+    align-self: flex-end;
+  }
+
+  #attributes {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
 
   .attribute {
     display: flex;

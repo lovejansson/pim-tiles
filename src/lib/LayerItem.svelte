@@ -47,10 +47,9 @@
   const toggleVisibility = () => {
     guiState.visibleLayers[layer.id] = !guiState.visibleLayers[layer.id];
   };
-
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+
 <ContextMenu
   onSelect={handleSelectMenuItem}
   menuItems={[
@@ -58,7 +57,7 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
+ 
   <div id="layer" onclick={selectLayer}>
     {#if layer.type === PaintType.TILE}
       <sl-tooltip content="Tile layer">
@@ -77,9 +76,9 @@
     <EditableText bind:isEditing={isEditingName} bind:text={layer.name} />
 
     <!-- sl handles accessability internally -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    
+   
     <sl-icon-button
-      onkeydown={(e: KeyboardEvent) => e.key === "Enter" && toggleVisibility()}
       onclick={(e: MouseEvent) => {
         e.stopPropagation();
         toggleVisibility();
@@ -103,6 +102,4 @@
     border: none;
     font-family: inherit;
   }
-
-
 </style>

@@ -49,7 +49,7 @@
 
 <div id="wrapper">
     <!-- sl button handles it internally -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    
     <div id="btns-directions">
         {#each entries as [direction, connectionReq]}
             <sl-button
@@ -65,12 +65,9 @@
         {/each}
     </div>
 
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    
+   
     <sl-button
-        onkeydown={(e: KeyboardEvent) => {
-            if (e.key === "Enter" && selectedTile !== null)
-                ruleTile.tile = { ...selectedTile };
-        }}
         onclick={() => {
             if (selectedTile !== null) {
                 ruleTile.tile = { ...selectedTile };
@@ -90,13 +87,9 @@
         {/if}</sl-button
     >
 
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <sl-icon-button
-        onclick={onDelete}
-        onkeydown={(e: KeyboardEvent) => e.key === "Enter" && onDelete()}
-        library="pixelarticons"
-        name="close"
-    >
+    
+   
+    <sl-icon-button onclick={onDelete} library="pixelarticons" name="close">
     </sl-icon-button>
 </div>
 
@@ -118,7 +111,7 @@
 
     .tile::part(base) {
         height: calc(32px * 3 + 0.5rem);
-        width:calc(32px *  + 0.5rem);;
+        width: calc(32px * + 0.5rem);
         aspect-ratio: 1/1;
     }
 
@@ -131,7 +124,6 @@
         width: 100%;
         image-rendering: pixelated;
     }
-
 
     .btn-dir::part(base) {
         width: 32px;

@@ -48,15 +48,11 @@
   <sl-button-group label="Tools">
     <sl-tooltip content="Tile paint (T)">
       <!-- Svelte wants an aria role but shoelace has handled this internally -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      
+     
       <sl-button
         class:selected-tool={tilemapEditorState.selectedTool === Tool.PAINT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.PAINT)}
-        onkeydown={(e: KeyboardEvent) => {
-          if (e.key === "Enter") {
-            tilemapEditorState.selectedTool = Tool.PAINT;
-          }
-        }}
         ><sl-icon library="pixelarticons" name="edit" label="Tile paint"
         ></sl-icon></sl-button
       >
@@ -64,15 +60,11 @@
 
     <sl-tooltip content="Erase (E)">
       <!-- Svelte wants an aria role   but shoelace has handled this internally -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      
+     
       <sl-button
         class:selected-tool={tilemapEditorState.selectedTool === Tool.ERASE}
         onclick={() => (tilemapEditorState.selectedTool = Tool.ERASE)}
-        onkeydown={(e: KeyboardEvent) => {
-          if (e.key === "Enter") {
-            tilemapEditorState.selectedTool = Tool.ERASE;
-          }
-        }}
         ><sl-icon
           library="pixelarticons"
           name="layout-sidebar-left"
@@ -83,15 +75,11 @@
 
     <sl-tooltip content="Selection (S)">
       <!-- Svelte wants an aria role   but shoelace has handled this internally -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      
+     
       <sl-button
         class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
-        onkeydown={(e: KeyboardEvent) => {
-          if (e.key === "Enter") {
-            tilemapEditorState.selectedTool = Tool.SELECT;
-          }
-        }}
         ><sl-icon library="pixelarticons" name="drop-area" label="Select"
         ></sl-icon></sl-button
       >
@@ -101,18 +89,13 @@
   <sl-button-group label="Modifiers">
     <sl-tooltip content="Fill tool (F)">
       <!-- Svelte wants an aria role but shoelace has handled this internally -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      
+     
       <sl-button
         class:selected-tool={tilemapEditorState.fillToolIsActive}
         onclick={() =>
           (tilemapEditorState.fillToolIsActive =
             !tilemapEditorState.fillToolIsActive)}
-        onkeydown={(e: KeyboardEvent) => {
-          if (e.key === "Enter") {
-            tilemapEditorState.fillToolIsActive =
-              !tilemapEditorState.fillToolIsActive;
-          }
-        }}
         ><sl-icon library="pixelarticons" name="paint-bucket"
         ></sl-icon></sl-button
       >

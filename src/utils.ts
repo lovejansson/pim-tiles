@@ -1,4 +1,4 @@
-import type { Point, Rect, Tile, Tileset } from "./types";
+import type { Cell, Point, Rect, Tile, Tileset } from "./types";
 
 function detectOS() {
     const platform = navigator.platform.toLowerCase();
@@ -105,5 +105,8 @@ function download(blob: Blob) {
     a.click();
 }
 
+function isSameCell(cell1: Cell, cell2: Cell) {
+    return cell1.row === cell2.row && cell1.col === cell2.col;
+}
 
-export { dataURLToBitmap, splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas, download }
+export { isSameCell, dataURLToBitmap, splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas, download }

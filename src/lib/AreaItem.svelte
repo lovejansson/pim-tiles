@@ -42,15 +42,12 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
+ 
   <sl-button
     id="area"
     variant="text"
     class:selected={tilemapEditorState.selectedAsset?.ref.id === area.id}
     onclick={selectArea}
-    onkeydown={(e: KeyboardEvent) => {
-      if (e.key === "Enter") selectArea();
-    }}
   >
     <div
       slot="prefix"
@@ -59,7 +56,7 @@
     ></div>
     {area.name}
 
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    
   </sl-button>
 </ContextMenu>
 

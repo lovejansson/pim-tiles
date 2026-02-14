@@ -4,19 +4,14 @@
     import AutoTileItem from "./AutoTileItem.svelte";
 
     let createDialogIsOpen = $state(false);
-    
 </script>
 
 <section id="auto-tiles">
     <header>
         <h2>Auto tiles</h2>
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        
+       
         <sl-button
-            onkeydown={(e: KeyboardEvent) => {
-                if (e.key === "Enter") {
-                    createDialogIsOpen = true;
-                }
-            }}
             onclick={() => {
                 createDialogIsOpen = true;
             }}
@@ -43,11 +38,11 @@
 </section>
 
 <style>
-     header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
     #auto-tiles {
         display: flex;

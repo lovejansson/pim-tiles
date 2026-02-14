@@ -64,19 +64,14 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
+
   <sl-button
     id="auto-tile-item"
     variant="text"
     class:selected={tilemapEditorState.selectedAsset?.ref.id === autoTile.id}
     onclick={selectAutoTile}
-    onkeydown={(e: KeyboardEvent) => {
-      if (e.key === "Enter") selectAutoTile();
-    }}
   >
     {autoTile.name}
-
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
   </sl-button>
 </ContextMenu>
 

@@ -85,7 +85,7 @@ export default class CanvasViewport extends EventTarget {
   private cursor: string;
 
   private isPanKeyDown: boolean;
-  private dragPos: Point;
+  private panPos: Point;
   private isMouseDown: boolean;
 
   private selectionStartPos: Point;
@@ -109,7 +109,7 @@ export default class CanvasViewport extends EventTarget {
 
     this.translation = { x: 0, y: 0 };
 
-    this.dragPos = { x: 0, y: 0 };
+    this.panPos = { x: 0, y: 0 };
 
     this.zoomSettings = options.zoom ?? null;
 
@@ -337,8 +337,8 @@ export default class CanvasViewport extends EventTarget {
         const { x, y } = this.getWorldPos({ x: canvasX, y: canvasY });
 
         if (this.isPanKeyDown) {
-          this.dragPos.x = canvasX;
-          this.dragPos.y = canvasY;
+          this.panPos.x = canvasX;
+          this.panPos.y = canvasY;
         } else if (this.isSelectionEnabled) {
           if (
             this.selectionRect !== null &&
@@ -353,14 +353,15 @@ export default class CanvasViewport extends EventTarget {
             )
           ) {
             this.isDraggingSelection = true;
-            this.dragPos.x = canvasX;
-            this.dragPos.y = canvasY;
+            this.panPos.x = canvasX;
+            this.panPos.y = canvasY;
           } else {
             this.dispatchEvent(new CanvasViewPortSelectEvent(null));
             this.selectionStartPos = { x, y };
             this.selectionRect = this.getSelectionRect({ x, y }, { x, y });
           }
-        } else {
+        } else if(e.button === 0){
+
           this.dispatchEvent(new CanvasViewPortPaintEvent({ x, y }));
         }
       });
@@ -378,15 +379,15 @@ export default class CanvasViewport extends EventTarget {
           const worldPos = this.getWorldPos({ x: canvasX, y: canvasY });
 
           if (this.isPanKeyDown) {
-            this.translation.x += canvasX - this.dragPos.x;
+            this.translation.x += canvasX - this.panPos.x;
 
-            this.translation.y += canvasY - this.dragPos.y;
+            this.translation.y += canvasY - this.panPos.y;
 
-            this.dragPos = { x: canvasX, y: canvasY };
+            this.panPos = { x: canvasX, y: canvasY };
           } else if (this.isSelectionEnabled && this.selectionRect !== null) {
             if (this.isDraggingSelection) {
-              const deltaX = canvasX - this.dragPos.x;
-              const deltaY = canvasY - this.dragPos.y;
+              const deltaX = canvasX - this.panPos.x;
+              const deltaY = canvasY - this.panPos.y;
 
               let shouldemitDeltaX = false;
               let shouldemitDeltaY = false;
@@ -394,14 +395,14 @@ export default class CanvasViewport extends EventTarget {
               if (Math.abs(deltaX) >= this.gridSettings.tileSize) {
                 this.selectionRect.x1 += deltaX;
                 this.selectionRect.x2 += deltaX;
-                this.dragPos.x = canvasX;
+                this.panPos.x = canvasX;
                 shouldemitDeltaX = true;
               }
 
               if (Math.abs(deltaY) >= this.gridSettings.tileSize) {
                 this.selectionRect.y1 += deltaY;
                 this.selectionRect.y2 += deltaY;
-                this.dragPos.y = canvasY;
+                this.panPos.y = canvasY;
                 shouldemitDeltaY = true;
               }
 
@@ -434,8 +435,8 @@ export default class CanvasViewport extends EventTarget {
       });
 
       this.canvas.addEventListener("mouseup", (_: MouseEvent) => {
-        this.dragPos.x = 0;
-        this.dragPos.y = 0;
+        this.panPos.x = 0;
+        this.panPos.y = 0;
         this.isMouseDown = false;
         this.isDraggingSelection = false;
 
@@ -456,7 +457,7 @@ export default class CanvasViewport extends EventTarget {
           x,
           y,
         });
-
+   console.log(" CLICK")
         this.dispatchEvent(
           new CustomEvent("click", { detail: { pos: worldPos } }),
         );
@@ -476,6 +477,8 @@ export default class CanvasViewport extends EventTarget {
         });
 
         this.dispatchEvent(new CanvasViewPortRightClickEvent(worldPos));
+
+        console.log("RIGHT CLICK")
 
         e.preventDefault();
         e.stopPropagation();

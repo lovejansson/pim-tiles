@@ -9,13 +9,11 @@
 <section id="areas">
   <header>
     <h2>Areas</h2>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    
+    
     <sl-button
       onclick={() => {
         createNewAreaDialogIsOpen = true;
-      }}
-      onkeydown={(e: KeyboardEvent) => {
-        if (e.key === "Enter") createNewAreaDialogIsOpen = true;
       }}
     >
       <sl-icon label="New area" library="pixelarticons" name="plus"
