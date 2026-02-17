@@ -9,7 +9,7 @@
     CanvasViewPortSelectionDragEvent,
   } from "./CanvasViewPort";
   import TileAttributesDialog from "./TileAttributesDialog.svelte";
-  import {onMount} from "svelte";
+  import { onMount } from "svelte";
 
   const { tileSize, layers, areas, tilesets } = $derived(projectState);
   const { tilemapEditorState, gridColor, showGrid } = $derived(guiState);
@@ -19,44 +19,41 @@
 
   let ctrlKeyIsDown = false;
 
-  let mouseTileStart = { row: 0, col: 0 };
-
+  const dirtyTiles = new Set();
   let selectedTiles: { org: Cell; curr: Cell; tile: PaintedTile }[] = [];
 
   let canvas!: HTMLCanvasElement;
   let canvasView!: CanvasViewport;
 
+  onMount(() => {
+    if (canvas === undefined) return;
 
-  $effect(() => {
-    if(canvas === undefined) return;
+    canvasView = new CanvasViewport(canvas, {
+      zoom: { min: 0.5, max: 4.0, speed: 0.375 },
+      pan: { key: " " },
+      grid: {
+        tileSize: tileSize,
+        gridColor: gridColor,
+        showGrid: showGrid,
+      },
+      drawLoop: true,
+      draw: draw,
+      defaultCursor: "crosshair",
+      selection: tilemapEditorState.selectedTool === Tool.SELECT,
+    });
 
-      canvasView = new CanvasViewport(canvas, {
-        zoom: { min: 0.5, max: 4.0, speed: 0.375 },
-        pan: { key: " " },
-        grid: {
-          tileSize: tileSize,
-          gridColor: gridColor,
-          showGrid: showGrid,
-        },
-        drawLoop: true,
-        draw: draw,
-        defaultCursor: "crosshair",
-        selection: tilemapEditorState.selectedTool === Tool.SELECT,
-      });
+    canvasView.addEventListener("paint", handleCanvasPaint);
 
-      canvasView.addEventListener("paint", handleCanvasPaint);
+    canvasView.addEventListener("select", handleCanvasSelection);
 
-      canvasView.addEventListener("select", handleCanvasSelection);
+    canvasView.addEventListener("selection-drag", handleCanvasSelectionDrag);
 
-      canvasView.addEventListener("selection-drag", handleCanvasSelectionDrag);
+    canvasView.addEventListener("right-click", handleCanvasRightClick);
 
-      canvasView.addEventListener("right-click", handleCanvasRightClick);
+    canvasView.addEventListener("mouse-pos", handleMousePosChange);
 
-      canvasView.addEventListener("mouse-pos", handleMousePosChange);
-
-      canvasView.init();
-  })
-
+    canvasView.init();
+  });
 
   $effect(() => {
     canvasView.tileSize = tileSize;
@@ -64,7 +61,7 @@
 
   $effect(() => {
     canvasView.showGrid = showGrid;
-  })
+  });
 
   $effect(() => {
     canvasView.gridColor = gridColor;
@@ -79,7 +76,6 @@
   });
 
   const handleCanvasSelection = (e: Event) => {
-
     const selection = (e as CanvasViewPortSelectEvent).selection;
 
     selectedTiles = [];
@@ -132,17 +128,15 @@
       t.curr.row += rowDelta;
       t.curr.col += colDelta;
     }
-  }
-
+  };
 
   const handleMousePosChange = (e: Event) => {
-     const pos = (e as CanvasViewPortRightClickEvent).pos;
-     const row = Math.floor(pos.y / tileSize);
-     const col = Math.floor(pos.x / tileSize);
+    const pos = (e as CanvasViewPortRightClickEvent).pos;
+    const row = Math.floor(pos.y / tileSize);
+    const col = Math.floor(pos.x / tileSize);
 
-     guiState.mouseTilePos = {row, col};
-  }
-
+    guiState.mouseTilePos = { row, col };
+  };
 
   const handleCanvasPaint = (e: Event) => {
     const pos = (e as CanvasViewPortPaintEvent).pos;
@@ -163,16 +157,33 @@
                 tilemapEditorState.selectedLayer,
                 tilemapEditorState.selectedAsset,
               );
+
+              const minX = Math.min(
+                ...tilemapEditorState.selectedAsset.map(
+                  (t) => t.ref.tile.tilesetPos.x,
+                ),
+              );
+              const minY = Math.min(
+                ...tilemapEditorState.selectedAsset.map(
+                  (t) => t.ref.tile.tilesetPos.y,
+                ),
+              );
+
+              for (const t of tilemapEditorState.selectedAsset) {
+                const r =
+                  row + Math.floor((t.ref.tile.tilesetPos.y - minY) / tileSize);
+                const c =
+                  col + Math.floor((t.ref.tile.tilesetPos.x - minX) / tileSize);
+                    dirtyTiles.add(`${r}:${c}`);
+              }
             }
+
             break;
           case Tool.ERASE:
-            layers.eraseTile(
-              row,
-              col,
-              tilemapEditorState.selectedLayer,
-            );
+            layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
             break;
         }
+
 
         break;
       case PaintType.AUTO_TILE:
@@ -190,11 +201,7 @@
             break;
           }
           case Tool.ERASE: {
-            layers.eraseAutoTile(
-              row,
-              col,
-              tilemapEditorState.selectedLayer,
-            );
+            layers.eraseAutoTile(row, col, tilemapEditorState.selectedLayer);
 
             break;
           }
@@ -215,11 +222,7 @@
             }
             break;
           case Tool.ERASE:
-            layers.eraseTile(
-              row,
-              col,
-              tilemapEditorState.selectedLayer,
-            );
+            layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
 
             break;
         }
@@ -247,8 +250,7 @@
     }
   };
 
-  function draw(ctx: CanvasRenderingContext2D) {
-   
+  function draw(ctx: CanvasRenderingContext2D, clear: boolean) {
     for (const layer of layers.get()) {
       if (guiState.visibleLayers[layer.id]) {
         switch (layer.type) {
@@ -260,17 +262,21 @@
 
               const [row, col] = key.split(":").map(Number);
 
-              ctx.drawImage(
-                tileset.spritesheet,
-                paintedTile.ref.tile.tilesetPos.x,
-                paintedTile.ref.tile.tilesetPos.y,
-                tileSize,
-                tileSize,
-                col * tileSize,
-                row * tileSize,
-                tileSize,
-                tileSize,
-              );
+              if (clear || dirtyTiles.has(key)) {
+           
+                ctx.drawImage(
+                  tileset.spritesheet,
+                  paintedTile.ref.tile.tilesetPos.x,
+                  paintedTile.ref.tile.tilesetPos.y,
+                  tileSize,
+                  tileSize,
+                  col * tileSize,
+                  row * tileSize,
+                  tileSize,
+                  tileSize,
+                );
+                dirtyTiles.delete(key);
+              }
             }
 
             break;
@@ -280,18 +286,20 @@
               const tileset = tilesets.getTileset(
                 autoTileAsset.tile.ref.tile.tilesetId,
               );
-
-              ctx.drawImage(
-                tileset.spritesheet,
-                autoTileAsset.tile.ref.tile.tilesetPos.x,
-                autoTileAsset.tile.ref.tile.tilesetPos.y,
-                tileSize,
-                tileSize,
-                col * tileSize,
-                row * tileSize,
-                tileSize,
-                tileSize,
-              );
+              if (clear || dirtyTiles.has(key)) {
+                ctx.drawImage(
+                  tileset.spritesheet,
+                  autoTileAsset.tile.ref.tile.tilesetPos.x,
+                  autoTileAsset.tile.ref.tile.tilesetPos.y,
+                  tileSize,
+                  tileSize,
+                  col * tileSize,
+                  row * tileSize,
+                  tileSize,
+                  tileSize,
+                );
+                dirtyTiles.delete(key);
+              }
             }
             break;
           case PaintType.AREA:
@@ -302,14 +310,17 @@
 
               const [row, col] = key.split(":").map(Number);
 
-              ctx.strokeStyle = area.color;
+              if (clear || dirtyTiles.has(key)) {
+                ctx.strokeStyle = area.color;
 
-              ctx.strokeRect(
-                col * tileSize,
-                row * tileSize,
-                tileSize,
-                tileSize,
-              );
+                ctx.strokeRect(
+                  col * tileSize,
+                  row * tileSize,
+                  tileSize,
+                  tileSize,
+                );
+                dirtyTiles.delete(key);
+              }
             }
 
             break;
@@ -356,7 +367,7 @@
 <svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
 
 <section id="tilemap-editor">
-  <canvas  bind:this={canvas}></canvas>
+  <canvas bind:this={canvas}></canvas>
 </section>
 
 <TileAttributesDialog

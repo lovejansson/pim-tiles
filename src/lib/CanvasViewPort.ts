@@ -30,7 +30,7 @@ export type CanvasViewportOptions = {
   selection?: boolean;
   grid: GridSettings;
   drawLoop?: boolean;
-  draw: (ctx: CanvasRenderingContext2D) => void;
+  draw: (ctx: CanvasRenderingContext2D, clear: boolean) => void;
   defaultCursor?: string;
 };
 
@@ -102,7 +102,11 @@ export default class CanvasViewport extends EventTarget {
 
   private isDraggingSelection: boolean;
 
-  private drawFunc: (ctx: CanvasRenderingContext2D) => void;
+  private isDirty: boolean;
+
+  private transformHasChanged: boolean;
+
+  private drawFunc: (ctx: CanvasRenderingContext2D, clear: boolean) => void;
 
   constructor(canvas: HTMLCanvasElement, options: CanvasViewportOptions) {
     super();
@@ -143,6 +147,9 @@ export default class CanvasViewport extends EventTarget {
     this.selectionRect = null;
 
     this.isDraggingSelection = false;
+
+    this.isDirty = true;
+    this.transformHasChanged = true;
   }
 
   get width(): number {
@@ -202,18 +209,26 @@ export default class CanvasViewport extends EventTarget {
   }
 
   loop() {
-    this.draw();
+    if (this.transformHasChanged) {
+      this.clear();
+       this.draw();
+      this.transformHasChanged = false;
+    } else if (this.isDirty) {
+        this.draw();
+      this.isDirty = false;
+    }
+
     requestAnimationFrame(() => this.loop());
   }
 
-  draw() {
-
+  private clear() {
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.ctx.translate(this.translation.x, this.translation.y);
     this.ctx.scale(this.zoom, this.zoom);
-    this.drawFunc(this.ctx);
+  }
 
+  private drawGrid() {
     // Draw grid if not to zoomed out bc of performance
     if (this.zoom >= 0.5 && this.gridSettings.showGrid) {
       const { x0, x1, y0, y1 } = this.getWorldBounds();
@@ -241,6 +256,12 @@ export default class CanvasViewport extends EventTarget {
 
       this.ctx.stroke();
     }
+  }
+
+  draw() {
+    this.drawFunc(this.ctx,this.transformHasChanged);
+
+    this.drawGrid();
 
     if (this.selectionRect !== null) {
       this.ctx.strokeStyle = "lime";
@@ -320,6 +341,7 @@ export default class CanvasViewport extends EventTarget {
         }
 
         e.stopPropagation();
+        this.transformHasChanged = true;
       });
     }
 
@@ -378,10 +400,11 @@ export default class CanvasViewport extends EventTarget {
             this.dispatchEvent(new CanvasViewPortSelectEvent(null));
             this.selectionStartPos = { x, y };
             this.selectionRect = this.getSelectionRect({ x, y }, { x, y });
+            this.isDirty = true;
           }
         } else if (e.button === 0) {
-
           this.dispatchEvent(new CanvasViewPortPaintEvent({ x, y }));
+          this.isDirty = true;
         }
       });
 
@@ -399,15 +422,14 @@ export default class CanvasViewport extends EventTarget {
         this.dispatchEvent(new CanvasViewPortMousePosEvent(worldPos));
 
         if (this.isMouseDown) {
-
-
-
           if (this.isPanKeyDown) {
             this.translation.x += canvasX - this.panPos.x;
 
             this.translation.y += canvasY - this.panPos.y;
 
             this.panPos = { x: canvasX, y: canvasY };
+
+            this.transformHasChanged = true;
           } else if (this.isSelectionEnabled && this.selectionRect !== null) {
             if (this.isDraggingSelection) {
               const deltaX = canvasX - this.panPos.x;
@@ -451,9 +473,11 @@ export default class CanvasViewport extends EventTarget {
                 this.selectionStartPos,
                 worldPos,
               );
+              this.isDirty = true;
             }
           } else {
             this.dispatchEvent(new CanvasViewPortPaintEvent(worldPos));
+            this.isDirty = true;
           }
         }
       });
