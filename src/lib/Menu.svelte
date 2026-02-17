@@ -118,6 +118,7 @@
 <style>
   sl-menu {
     width: 300px;
+    
   }
   p {
     padding: 0px 1.8rem;

@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { projectState } from "../state.svelte";
+    import { projectState } from "../../state.svelte";
     import {
         type TileRule,
         type TileAsset,
         TileRequirement,
         type TileConnections,
-    } from "../types";
+    } from "../../types";
 
     type RuleTileButtonProps = {
         ruleTile: Omit<TileRule, "tile"> & { tile: TileAsset | null };

@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { guiState, projectState } from "../state.svelte";
+  import { guiState, projectState } from "../../state.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
   import { dndzone, type DndEvent, type Item } from "svelte-dnd-action";
   let createNewLayerDialogIsOpen = $state(false);
   import { flip } from "svelte/animate";
   import LayerItem from "./LayerItem.svelte";
-  import type { Layer } from "../types";
+  import type { Layer } from "../../types";
 
   const handleDndConsider = (e: CustomEvent<DndEvent<Layer>>) => {
     projectState.layers.set(e.detail.items);

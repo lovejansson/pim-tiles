@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { SlAlert } from "@shoelace-style/shoelace";
-  import { guiState } from "../state.svelte";
+  import { guiState } from "../../state.svelte";
 
   $effect(() => {
     if (guiState.notification !== null && alert) {

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { SlMenuItem } from "@shoelace-style/shoelace";
-  import { guiState, projectState } from "../state.svelte";
-  import ContextMenu from "./ui/ContextMenu.svelte";
-  import { type AutoTileLayerState, type AutoTile, type IdRef, PaintType } from "../types";
+  import { guiState, projectState } from "../../state.svelte";
+  import ContextMenu from "../common/ContextMenu.svelte";
+  import { type AutoTileLayerState, type AutoTile, type IdRef, PaintType } from "../../types";
   import CreateAutoTileDialog from "./AutoTileDialog.svelte";
 
   type AreaItemProps = {

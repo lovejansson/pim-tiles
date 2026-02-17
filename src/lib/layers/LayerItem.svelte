@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { guiState, projectState } from "../state.svelte";
-  import { PaintType, type Layer } from "../types";
-  import ContextMenu from "./ui/ContextMenu.svelte";
-  import EditableText from "./ui/EditableText.svelte";
+  import { guiState, projectState } from "../../state.svelte";
+  import { PaintType, type Layer } from "../../types";
+  import ContextMenu from "../common/ContextMenu.svelte";
+  import EditableText from "../common/EditableText.svelte";
 
   type LayerItemProps = {
     layer: Layer;

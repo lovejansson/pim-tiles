@@ -4,8 +4,8 @@
         type SlChangeEvent,
         type SlHideEvent,
     } from "@shoelace-style/shoelace";
-    import { projectState } from "../state.svelte";
-    import type { Area } from "../types";
+    import { projectState } from "../../state.svelte";
+    import type { Area } from "../../types";
 
     type EditAreaDialogProps = {
         area: Area;

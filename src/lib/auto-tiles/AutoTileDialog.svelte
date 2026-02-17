@@ -1,15 +1,15 @@
 <script lang="ts">
     import { SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
-    import { guiState, projectState } from "../state.svelte";
+    import { guiState, projectState } from "../../state.svelte";
     import {
         type TileRule,
         type TileAsset,
         type AutoTile,
         TileRequirement,
-    } from "../types";
+    } from "../../types";
     import RuleTileButton from "./RuleTileButton.svelte";
 
-    import TilesCanvas from "./TilesCanvas.svelte";
+    import TilesCanvas from "../tilesets/TilesetCanvas.svelte";
 
     type AutoTileDialogProps = {
         autoTile?: AutoTile;

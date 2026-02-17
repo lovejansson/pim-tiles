@@ -1,9 +1,9 @@
 <script lang="ts">
   import { SlMenuItem } from "@shoelace-style/shoelace";
-  import { guiState, projectState } from "../state.svelte";
-  import ContextMenu from "./ui/ContextMenu.svelte";
+  import { guiState, projectState } from "../../state.svelte";
+  import ContextMenu from "../common/ContextMenu.svelte";
   import EditAreaDialog from "./EditAreaDialog.svelte";
-  import { PaintType, type Area, type AreaLayerState } from "../types";
+  import { PaintType, type Area, type AreaLayerState } from "../../types";
 
   type AreaItemProps = {
     area: Area;

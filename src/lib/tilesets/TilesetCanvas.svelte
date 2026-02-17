@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { PaintType, type TileAsset, type Tileset } from "../types";
-  import { guiState, projectState } from "../state.svelte";
+  import { PaintType, type TileAsset, type Tileset } from "../../types";
+  import { guiState, projectState } from "../../state.svelte";
   import CanvasViewport, {
     CanvasViewPortSelectEvent,
     type SelectionRect,
-  } from "./CanvasViewPort";
+  } from "../CanvasViewPort";
 
   type TilesCanvasProps = {
     tileset: Tileset;
@@ -104,6 +104,7 @@
     width: 100%;
     height: 100%;
     display: block;
+    background-color: var(--color-0);
     image-rendering: pixelated;
   }
 </style>

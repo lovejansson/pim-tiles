@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { guiState, projectState, setSelectedTiles } from "../state.svelte";
-  import FilePicker from "./ui/FilePicker.svelte";
+  import { guiState, projectState, setSelectedTiles } from "../../state.svelte";
+  import FilePicker from "../common/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
-  import TilesCanvas from "./TilesCanvas.svelte";
-    import type { TileAsset } from "../types";
+  import TilesCanvas from "./TilesetCanvas.svelte";
+    import type { TileAsset } from "../../types";
 
   let selectedTilesetIdx = $state(0);
 

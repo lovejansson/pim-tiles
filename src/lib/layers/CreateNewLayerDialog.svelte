@@ -5,8 +5,8 @@
     type SlChangeEvent,
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
-  import { projectState } from "../state.svelte";
-  import { PaintType } from "../types";
+  import { projectState } from "../../state.svelte";
+  import { PaintType } from "../../types";
 
   type CreateLayerDialogProps = { open: boolean };
   let { open = $bindable() }: CreateLayerDialogProps = $props();

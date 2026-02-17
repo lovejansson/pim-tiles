@@ -1,6 +1,6 @@
 <script lang="ts">
     import CreateAutoTileDialog from "./AutoTileDialog.svelte";
-    import { projectState } from "../state.svelte";
+    import { projectState } from "../../state.svelte";
     import AutoTileItem from "./AutoTileItem.svelte";
 
     let createDialogIsOpen = $state(false);

@@ -2,9 +2,10 @@
   import {
     SlInput,
     type SlChangeEvent,
+    type SlHideEvent,
   } from "@shoelace-style/shoelace";
-  import { projectState } from "../state.svelte";
-  import ConfirmDialog from "./ui/ConfirmDialog.svelte";
+  import { guiState, projectState } from "../state.svelte";
+  import ConfirmDialog from "./common/ConfirmDialog.svelte";
 
   let { open = $bindable() } = $props();
 
@@ -53,6 +54,23 @@
     <span slot="suffix">px</span>
   </sl-input>
 
+  <div id="wrapper-grid-color">
+    <p id="label-grid-color">Grid color</p>
+    <sl-color-picker
+      onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
+      swatches="#000000; #FFFFFF; #2ada64; #bb46eb; #FFD700; #00BFFF;
+    "
+      value={guiState.gridColor}
+      onsl-change={(e: SlChangeEvent) => {
+        if (e.target) {
+          guiState.gridColor = (e.target as SlInput).value;
+        }
+        e.stopPropagation();
+      }}
+      label="Grid color"
+      size="small"
+    ></sl-color-picker>
+  </div>
 </sl-dialog>
 
 <ConfirmDialog
@@ -71,6 +89,19 @@
     gap: 1.6rem;
     font-size: small;
   }
+  sl-color-picker {
+    width: fit-content;
+    line-height: 0.8; /** Display block adds height depending on line-height attr*/
+  }
 
 
+  #wrapper-grid-color {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  #label-grid-color {
+    font-size: 1rem;
+    margin: 0;
+  }
 </style>

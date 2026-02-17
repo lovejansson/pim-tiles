@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { projectState } from "../state.svelte";
+  import { projectState } from "../../state.svelte";
   import AreaItem from "./AreaItem.svelte";
   import CreateNewAreaDialog from "./CreateNewAreaDialog.svelte";
 

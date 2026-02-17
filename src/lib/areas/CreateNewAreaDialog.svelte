@@ -5,7 +5,7 @@
     type SlChangeEvent,
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
-  import { projectState } from "../state.svelte";
+  import { projectState } from "../../state.svelte";
 
   let { open = $bindable() } = $props();
 
