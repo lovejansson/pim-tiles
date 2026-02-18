@@ -81,7 +81,9 @@ export class CanvasViewPortMousePosEvent extends Event {
 
 export default class CanvasViewport extends EventTarget {
   private canvas: HTMLCanvasElement;
+  private overlayCanvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private ctxOverlay: CanvasRenderingContext2D;
 
   zoom: number;
   private translation: Point;
@@ -108,14 +110,35 @@ export default class CanvasViewport extends EventTarget {
 
   private drawFunc: (ctx: CanvasRenderingContext2D, clear: boolean) => void;
 
-  constructor(canvas: HTMLCanvasElement, options: CanvasViewportOptions) {
+  constructor(container: HTMLElement, options: CanvasViewportOptions) {
     super();
 
-    this.canvas = canvas;
+    container.style.position = "relative";
+
+    this.canvas = document.createElement("canvas");
+    this.overlayCanvas = document.createElement("canvas");
+
+    this.canvas.style.imageRendering = "pixelated";
+    this.canvas.style.width = "100%";
+    this.canvas.style.height = "100%";
+
+    this.canvas.style.position = "absolute";
+    this.canvas.style.zIndex = this.overlayCanvas.style.imageRendering =
+      "pixelated";
+    this.overlayCanvas.style.width = "100%";
+    this.overlayCanvas.style.height = "100%";
+
+    this.overlayCanvas.style.position = "absolute";
+    this.overlayCanvas.style.zIndex = "1";
+    container.appendChild(this.overlayCanvas);
+    container.appendChild(this.canvas);
 
     const ctx = this.canvas.getContext("2d");
     if (ctx === null) throw new Error("Canvas ctx is null");
+    const ctxOverlay = this.overlayCanvas.getContext("2d");
+    if (ctxOverlay === null) throw new Error("Canvas ctx is null");
     this.ctx = ctx;
+    this.ctxOverlay = ctxOverlay;
 
     this.ctx.imageSmoothingEnabled = false;
 
@@ -159,8 +182,10 @@ export default class CanvasViewport extends EventTarget {
   set width(width: number) {
     const rounded = Math.round(width);
     this.canvas.width = rounded;
+    this.overlayCanvas.width = rounded;
     this.ctx.imageSmoothingEnabled = false;
-    if (!this.drawLoop) this.draw();
+    this.ctxOverlay.imageSmoothingEnabled = false;
+   
   }
 
   get height(): number {
@@ -170,8 +195,10 @@ export default class CanvasViewport extends EventTarget {
   set height(height: number) {
     const rounded = Math.round(height);
     this.canvas.height = rounded;
+    this.overlayCanvas.height = rounded;
     this.ctx.imageSmoothingEnabled = false;
-    if (!this.drawLoop) this.draw();
+    this.ctxOverlay.imageSmoothingEnabled = false;
+   
   }
 
   set gridColor(gridColor: string) {
@@ -203,18 +230,18 @@ export default class CanvasViewport extends EventTarget {
 
     if (this.drawLoop) {
       this.loop();
-    } else {
-      this.draw();
-    }
+    } 
   }
 
   loop() {
     if (this.transformHasChanged) {
       this.clear();
-       this.draw();
+      this.drawFunc(this.ctx, this.transformHasChanged);
+      this.drawOverlay();
       this.transformHasChanged = false;
     } else if (this.isDirty) {
-        this.draw();
+      this.drawFunc(this.ctx, false);
+      this.drawOverlay();
       this.isDirty = false;
     }
 
@@ -228,51 +255,61 @@ export default class CanvasViewport extends EventTarget {
     this.ctx.scale(this.zoom, this.zoom);
   }
 
-  private drawGrid() {
-    // Draw grid if not to zoomed out bc of performance
-    if (this.zoom >= 0.5 && this.gridSettings.showGrid) {
-      const { x0, x1, y0, y1 } = this.getWorldBounds();
-
-      const tileSize = this.gridSettings.tileSize;
-
-      const startX = Math.floor(x0 / tileSize) * tileSize;
-      const startY = Math.floor(y0 / tileSize) * tileSize;
-
-      this.ctx.beginPath();
-
-      this.ctx.strokeStyle = this.gridSettings.gridColor;
-
-      // Draws horisontal lines
-      for (let y = startY; y <= y1; y += tileSize) {
-        this.ctx.moveTo(startX, y);
-        this.ctx.lineTo(x1, y);
-      }
-
-      // Draws vertical lines
-      for (let x = startX; x <= x1; x += tileSize) {
-        this.ctx.moveTo(x, startY);
-        this.ctx.lineTo(x, y1);
-      }
-
-      this.ctx.stroke();
-    }
-  }
-
-  draw() {
-    this.drawFunc(this.ctx,this.transformHasChanged);
-
+  private drawOverlay() {
+    this.ctxOverlay.resetTransform();
+    this.ctxOverlay.clearRect(0, 0, this.width, this.height);
+    this.ctxOverlay.translate(this.translation.x, this.translation.y);
+    this.ctxOverlay.scale(this.zoom, this.zoom);
     this.drawGrid();
-
     if (this.selectionRect !== null) {
-      this.ctx.strokeStyle = "lime";
-      this.ctx.setLineDash([4, 4]);
-      this.ctx.strokeRect(
+      this.ctxOverlay.strokeStyle = "lime";
+      this.ctxOverlay.setLineDash([4, 4]);
+      this.ctxOverlay.strokeRect(
         this.selectionRect.x1,
         this.selectionRect.y1,
         this.selectionRect.x2 - this.selectionRect.x1,
         this.selectionRect.y2 - this.selectionRect.y1,
       );
-      this.ctx.setLineDash([]);
+      this.ctxOverlay.setLineDash([]);
+    }
+  }
+
+  private drawGrid() {
+    // Draw grid if not to zoomed out bc of performance
+    if (this.zoom >= 0.25 && this.gridSettings.showGrid) {
+      const tileSize = this.gridSettings.tileSize;
+
+      this.ctxOverlay.beginPath();
+
+      this.ctxOverlay.strokeStyle = "white";
+
+      // Draws horisontal lines
+      for (let y = 0; y < 256 * tileSize; y += tileSize) {
+        this.ctxOverlay.moveTo(0, y);
+        this.ctxOverlay.lineTo(256 * tileSize, y);
+      }
+
+      // Draws vertical lines
+      for (let x = 0; x < 256 * tileSize; x += tileSize) {
+        this.ctxOverlay.moveTo(x, 0);
+        this.ctxOverlay.lineTo(x, 256 * tileSize);
+      }
+
+      this.ctxOverlay.stroke();
+    }
+  }
+
+  private drawSelection() {
+    if (this.selectionRect !== null) {
+      this.ctxOverlay.strokeStyle = "lime";
+      this.ctxOverlay.setLineDash([4, 4]);
+      this.ctxOverlay.strokeRect(
+        this.selectionRect.x1,
+        this.selectionRect.y1,
+        this.selectionRect.x2 - this.selectionRect.x1,
+        this.selectionRect.y2 - this.selectionRect.y1,
+      );
+      this.ctxOverlay.setLineDash([]);
     }
   }
 
@@ -291,7 +328,7 @@ export default class CanvasViewport extends EventTarget {
   private addEventListeners() {
     if (this.isZoomEnabled(this.zoomSettings)) {
       addEventListener("wheel", (e: WheelEvent) => {
-        if (e.target !== this.canvas) return;
+        if (e.target !== this.overlayCanvas) return;
 
         if (!this.isZoomEnabled(this.zoomSettings)) return;
 
@@ -364,8 +401,8 @@ export default class CanvasViewport extends EventTarget {
         }
       });
 
-      this.canvas.addEventListener("mousedown", (e: MouseEvent) => {
-        if (e.target !== this.canvas) return;
+      this.overlayCanvas.addEventListener("mousedown", (e: MouseEvent) => {
+        if (e.target !== this.overlayCanvas) return;
 
         this.isMouseDown = true;
 
@@ -408,8 +445,8 @@ export default class CanvasViewport extends EventTarget {
         }
       });
 
-      this.canvas.addEventListener("mousemove", (e: MouseEvent) => {
-        if (e.target !== this.canvas) return;
+      this.overlayCanvas.addEventListener("mousemove", (e: MouseEvent) => {
+        if (e.target !== this.overlayCanvas) return;
 
         const rect = this.canvas.getBoundingClientRect();
 
@@ -482,7 +519,7 @@ export default class CanvasViewport extends EventTarget {
         }
       });
 
-      this.canvas.addEventListener("mouseup", (_: MouseEvent) => {
+      this.overlayCanvas.addEventListener("mouseup", (_: MouseEvent) => {
         this.panPos.x = 0;
         this.panPos.y = 0;
         this.isMouseDown = false;
@@ -493,8 +530,8 @@ export default class CanvasViewport extends EventTarget {
         }
       });
 
-      this.canvas.addEventListener("click", (e: MouseEvent) => {
-        if (e.target !== this.canvas) return;
+      this.overlayCanvas.addEventListener("click", (e: MouseEvent) => {
+        if (e.target !== this.overlayCanvas) return;
 
         const rect = this.canvas.getBoundingClientRect();
 
@@ -511,8 +548,8 @@ export default class CanvasViewport extends EventTarget {
         );
       });
 
-      this.canvas.addEventListener("contextmenu", (e: MouseEvent) => {
-        if (e.target !== this.canvas) return;
+      this.overlayCanvas.addEventListener("contextmenu", (e: MouseEvent) => {
+        if (e.target !== this.overlayCanvas) return;
 
         const rect = this.canvas.getBoundingClientRect();
 

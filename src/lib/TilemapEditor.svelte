@@ -2,7 +2,6 @@
   import { guiState, projectState, HistoryStack } from "../state.svelte";
   import { PaintType, Tool, type Cell, type PaintedTile } from "../types";
   import CanvasViewport, {
-    CanvasViewPortMousePosEvent,
     CanvasViewPortPaintEvent,
     CanvasViewPortRightClickEvent,
     CanvasViewPortSelectEvent,
@@ -22,13 +21,13 @@
   const dirtyTiles = new Set();
   let selectedTiles: { org: Cell; curr: Cell; tile: PaintedTile }[] = [];
 
-  let canvas!: HTMLCanvasElement;
+  let container!: HTMLElement;
   let canvasView!: CanvasViewport;
 
   onMount(() => {
-    if (canvas === undefined) return;
+    if (container === undefined) return;
 
-    canvasView = new CanvasViewport(canvas, {
+    canvasView = new CanvasViewport(container, {
       zoom: { min: 0.5, max: 4.0, speed: 0.375 },
       pan: { key: " " },
       grid: {
@@ -366,8 +365,7 @@
 
 <svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
 
-<section id="tilemap-editor">
-  <canvas bind:this={canvas}></canvas>
+<section bind:this={container} id="tilemap-editor">
 </section>
 
 <TileAttributesDialog
@@ -381,11 +379,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background-color: var(--color-0);
   }
 
-  canvas {
-    flex: 1;
-    background-color: var(--color-0);
-    image-rendering: pixelated;
-  }
 </style>

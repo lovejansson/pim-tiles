@@ -15,13 +15,13 @@
 
   let { tileset, onSelect, multipleSelection }: TilesCanvasProps = $props();
 
-  let canvas!: HTMLCanvasElement;
+  let container!: HTMLDivElement;
   let canvasView!: CanvasViewport;
 
   onMount(() => {
-    if (!canvas) return;
+    if (container === undefined) return;
 
-    canvasView = new CanvasViewport(canvas, {
+    canvasView = new CanvasViewport(container, {
       zoom: { min: 0.5, max: 4.0, speed: 0.375 },
       pan: { key: " " },
       grid: {
@@ -33,6 +33,7 @@
       draw: draw,
       defaultCursor: "crosshair",
       selection: multipleSelection,
+
     });
 
     const ro = new ResizeObserver(([entry]) => {
@@ -49,7 +50,7 @@
       }
     });
 
-    ro.observe(canvas);
+    ro.observe(container);
 
     return () => {
       ro.disconnect();
@@ -97,14 +98,13 @@
   }
 </script>
 
-<canvas bind:this={canvas}></canvas>
+<div bind:this={container}></div>
 
 <style>
-  canvas {
+  div {
     width: 100%;
     height: 100%;
     display: block;
     background-color: var(--color-0);
-    image-rendering: pixelated;
   }
 </style>
