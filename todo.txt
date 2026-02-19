@@ -2,8 +2,6 @@
 
 Before GB town can be done 
 
-* Slow performance for canvas need WEBGL 
-
 * Select tool ->
     Move, 
     Delete,
@@ -23,17 +21,17 @@ Refactoring
 
 * Errors from updates of project state, don't want to throw in the console
 
-
-After
-
 * API för projectstate tydligare att "areas" är en modul och inte listan av areas 
 
 * Flood fill
 
-* Pan when cursor moves out of view (useful if you want to move an object far away)
+After
 
 * Add a image next to the cursor to show selected asset that the user is painting with -> not necessary, adds clutter I think 
 
 * Generate maze 
 
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
+
+
+Canvas performance acceptable for 

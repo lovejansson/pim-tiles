@@ -22,5 +22,6 @@
     justify-content: flex-start;
     overflow-y: auto;
     flex-grow: 1;
+    overflow-x: hidden;
   }
 </style>

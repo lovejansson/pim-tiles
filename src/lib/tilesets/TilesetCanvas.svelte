@@ -2,10 +2,10 @@
   import { onMount } from "svelte";
   import { PaintType, type TileAsset, type Tileset } from "../../types";
   import { guiState, projectState } from "../../state.svelte";
-  import CanvasViewport, {
-    CanvasViewPortSelectEvent,
+  import TilemapViewport, {
+    TilemapViewportSelectEvent,
     type SelectionRect,
-  } from "../CanvasViewPort";
+  } from "../TilemapViewport";
 
   type TilesCanvasProps = {
     tileset: Tileset;
@@ -16,20 +16,21 @@
   let { tileset, onSelect, multipleSelection }: TilesCanvasProps = $props();
 
   let container!: HTMLDivElement;
-  let canvasView!: CanvasViewport;
+  let tilemapViewport!: TilemapViewport;
 
   onMount(() => {
     if (container === undefined) return;
 
-    canvasView = new CanvasViewport(container, {
+    tilemapViewport = new TilemapViewport(container, {
       zoom: { min: 0.5, max: 4.0, speed: 0.375 },
       pan: { key: " " },
       grid: {
         tileSize: projectState.tileSize,
         gridColor: guiState.gridColor,
         showGrid: guiState.showGrid,
+        width: tileset.width,
+        height: tileset.height
       },
-      drawLoop: true,
       draw: draw,
       defaultCursor: "crosshair",
       selection: multipleSelection,
@@ -38,14 +39,14 @@
 
     const ro = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width === 0) return;
-      canvasView.width = entry.contentRect.width;
-      canvasView.height = entry.contentRect.height;
+      tilemapViewport.width = entry.contentRect.width;
+      tilemapViewport.height = entry.contentRect.height;
       ro.disconnect();
-      canvasView.init();
+      tilemapViewport.init();
 
       if (multipleSelection) {
-        canvasView.addEventListener("select", (e) => {
-          updateSelectedTiles((e as CanvasViewPortSelectEvent).selection);
+        tilemapViewport.addEventListener("select", (e) => {
+          updateSelectedTiles((e as TilemapViewportSelectEvent).selection);
         });
       }
     });
@@ -58,15 +59,15 @@
   });
 
   $effect(() => {
-    canvasView.tileSize = projectState.tileSize;
+    tilemapViewport.tileSize = projectState.tileSize;
   });
 
   $effect(() => {
-    canvasView.showGrid = guiState.showGrid;
+    tilemapViewport.showGrid = guiState.showGrid;
   });
 
   $effect(() => {
-    canvasView.gridColor = guiState.gridColor;
+    tilemapViewport.gridColor = guiState.gridColor;
   });
 
   const updateSelectedTiles = (selection: SelectionRect | null) => {
@@ -94,7 +95,7 @@
   };
 
   function draw(ctx: CanvasRenderingContext2D) {
-    ctx.drawImage(tileset.spritesheet, 0, 0);
+    ctx.drawImage(tileset.spritesheet,0, 0);
   }
 </script>
 

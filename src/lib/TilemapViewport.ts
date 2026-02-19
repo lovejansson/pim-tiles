@@ -15,6 +15,8 @@ type GridSettings = {
   showGrid: boolean;
   gridColor: string;
   tileSize: number;
+  width: number;
+  height: number;
 };
 
 export type SelectionRect = {
@@ -24,26 +26,25 @@ export type SelectionRect = {
   y2: number;
 };
 
-export type CanvasViewportOptions = {
+export type TilemapViewportOptions = {
   zoom?: ZoomSettings;
   pan?: PanSettings;
   selection?: boolean;
   grid: GridSettings;
-  drawLoop?: boolean;
-  draw: (ctx: CanvasRenderingContext2D, clear: boolean) => void;
+  draw: (ctx: CanvasRenderingContext2D) => void;
   defaultCursor?: string;
 };
 
-export class CanvasViewPortPaintEvent extends Event {
-  pos: Point;
+export class TilemapViewportPaintEvent extends Event {
+  cell: Cell;
 
-  constructor(pos: Point) {
+  constructor(cell: Cell) {
     super("paint");
-    this.pos = pos;
+    this.cell = cell;
   }
 }
 
-export class CanvasViewPortSelectEvent extends Event {
+export class TilemapViewportSelectEvent extends Event {
   selection: SelectionRect | null;
 
   constructor(selection: SelectionRect | null) {
@@ -52,7 +53,7 @@ export class CanvasViewPortSelectEvent extends Event {
   }
 }
 
-export class CanvasViewPortSelectionDragEvent extends Event {
+export class TilemapViewportSelectionDragEvent extends Event {
   delta: Point;
 
   constructor(delta: Point) {
@@ -61,7 +62,7 @@ export class CanvasViewPortSelectionDragEvent extends Event {
   }
 }
 
-export class CanvasViewPortRightClickEvent extends Event {
+export class TilemapViewportRightClickEvent extends Event {
   pos: Point;
 
   constructor(pos: Point) {
@@ -70,7 +71,7 @@ export class CanvasViewPortRightClickEvent extends Event {
   }
 }
 
-export class CanvasViewPortMousePosEvent extends Event {
+export class TilemapViewportMousePosEvent extends Event {
   pos: Point;
 
   constructor(pos: Point) {
@@ -79,11 +80,22 @@ export class CanvasViewPortMousePosEvent extends Event {
   }
 }
 
-export default class CanvasViewport extends EventTarget {
+/**
+ * @class TilemapViewport
+ * 
+ * Handles:   
+ * 
+ * - Pan
+ * - Zoom
+ * - Selection
+ * - Grid
+ */
+export default class TilemapViewport extends EventTarget {
   private canvas: HTMLCanvasElement;
   private overlayCanvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private ctxOverlay: CanvasRenderingContext2D;
+
 
   zoom: number;
   private translation: Point;
@@ -92,7 +104,6 @@ export default class CanvasViewport extends EventTarget {
   private panSettings: PanSettings | null;
   private isSelectionEnabled: boolean;
   private gridSettings: GridSettings;
-  private drawLoop: boolean;
   private cursor: string;
 
   private isPanKeyDown: boolean;
@@ -104,13 +115,11 @@ export default class CanvasViewport extends EventTarget {
 
   private isDraggingSelection: boolean;
 
-  private isDirty: boolean;
+  private lastPaint: Cell;
 
-  private transformHasChanged: boolean;
+  private drawCb: (ctx: CanvasRenderingContext2D, clear: boolean) => void;
 
-  private drawFunc: (ctx: CanvasRenderingContext2D, clear: boolean) => void;
-
-  constructor(container: HTMLElement, options: CanvasViewportOptions) {
+  constructor(container: HTMLElement, options: TilemapViewportOptions) {
     super();
 
     container.style.position = "relative";
@@ -121,44 +130,41 @@ export default class CanvasViewport extends EventTarget {
     this.canvas.style.imageRendering = "pixelated";
     this.canvas.style.width = "100%";
     this.canvas.style.height = "100%";
+    this.canvas.style.background = container.style.background;
 
     this.canvas.style.position = "absolute";
     this.canvas.style.zIndex = this.overlayCanvas.style.imageRendering =
       "pixelated";
     this.overlayCanvas.style.width = "100%";
     this.overlayCanvas.style.height = "100%";
-
+ this.overlayCanvas.style.background = container.style.background;
     this.overlayCanvas.style.position = "absolute";
     this.overlayCanvas.style.zIndex = "1";
+
     container.appendChild(this.overlayCanvas);
     container.appendChild(this.canvas);
 
-    const ctx = this.canvas.getContext("2d");
+    const ctx = this.canvas.getContext("2d", {alpha: false});
     if (ctx === null) throw new Error("Canvas ctx is null");
     const ctxOverlay = this.overlayCanvas.getContext("2d");
     if (ctxOverlay === null) throw new Error("Canvas ctx is null");
     this.ctx = ctx;
     this.ctxOverlay = ctxOverlay;
-
     this.ctx.imageSmoothingEnabled = false;
 
-    this.zoom = 1;
-
-    this.translation = { x: 0, y: 0 };
 
     this.panPos = { x: 0, y: 0 };
 
     this.zoomSettings = options.zoom ?? null;
-
     this.gridSettings = options.grid;
-
     this.panSettings = options.pan ?? null;
+
+    this.zoom = 1;
+    this.translation = { x: 0, y: 0 };
 
     this.isSelectionEnabled = options.selection ?? false;
 
-    this.drawLoop = options.drawLoop ?? true;
-
-    this.drawFunc = options.draw;
+    this.drawCb = options.draw;
 
     this.isPanKeyDown = false;
     this.isMouseDown = false;
@@ -171,8 +177,8 @@ export default class CanvasViewport extends EventTarget {
 
     this.isDraggingSelection = false;
 
-    this.isDirty = true;
-    this.transformHasChanged = true;
+    this.lastPaint = { row: 0, col: 0 };
+
   }
 
   get width(): number {
@@ -185,7 +191,7 @@ export default class CanvasViewport extends EventTarget {
     this.overlayCanvas.width = rounded;
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
-   
+
   }
 
   get height(): number {
@@ -198,7 +204,7 @@ export default class CanvasViewport extends EventTarget {
     this.overlayCanvas.height = rounded;
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
-   
+
   }
 
   set gridColor(gridColor: string) {
@@ -221,31 +227,23 @@ export default class CanvasViewport extends EventTarget {
     this.isSelectionEnabled = false;
   }
 
-  init() {
+  init(center: boolean = false) {
     this.addEventListeners();
-
     this.width = this.canvas.clientWidth;
     this.height = this.canvas.clientHeight;
     this.canvas.style.cursor = this.cursor;
+    this.overlayCanvas.style.cursor = this.cursor;
+    if (center) this.translation = { x: this.canvas.clientWidth / 2 - this.gridSettings.width / 2, y: this.canvas.clientHeight / 2 - this.gridSettings.height / 2 };
 
-    if (this.drawLoop) {
-      this.loop();
-    } 
+    this.update();
+
   }
 
-  loop() {
-    if (this.transformHasChanged) {
-      this.clear();
-      this.drawFunc(this.ctx, this.transformHasChanged);
-      this.drawOverlay();
-      this.transformHasChanged = false;
-    } else if (this.isDirty) {
-      this.drawFunc(this.ctx, false);
-      this.drawOverlay();
-      this.isDirty = false;
-    }
-
-    requestAnimationFrame(() => this.loop());
+  update() {
+    this.clear();
+    this.drawCb(this.ctx, false);
+    this.drawOverlay();
+    requestAnimationFrame(() => this.update());
   }
 
   private clear() {
@@ -256,50 +254,46 @@ export default class CanvasViewport extends EventTarget {
   }
 
   private drawOverlay() {
+
     this.ctxOverlay.resetTransform();
     this.ctxOverlay.clearRect(0, 0, this.width, this.height);
     this.ctxOverlay.translate(this.translation.x, this.translation.y);
     this.ctxOverlay.scale(this.zoom, this.zoom);
+
     this.drawGrid();
-    if (this.selectionRect !== null) {
-      this.ctxOverlay.strokeStyle = "lime";
-      this.ctxOverlay.setLineDash([4, 4]);
-      this.ctxOverlay.strokeRect(
-        this.selectionRect.x1,
-        this.selectionRect.y1,
-        this.selectionRect.x2 - this.selectionRect.x1,
-        this.selectionRect.y2 - this.selectionRect.y1,
-      );
-      this.ctxOverlay.setLineDash([]);
-    }
+    this.drawSelectionRect();
   }
 
   private drawGrid() {
     // Draw grid if not to zoomed out bc of performance
-    if (this.zoom >= 0.25 && this.gridSettings.showGrid) {
+    if (this.gridSettings.showGrid) {
       const tileSize = this.gridSettings.tileSize;
 
       this.ctxOverlay.beginPath();
 
       this.ctxOverlay.strokeStyle = "white";
 
+      this.ctxOverlay.lineWidth = 1;
+
       // Draws horisontal lines
-      for (let y = 0; y < 256 * tileSize; y += tileSize) {
+      for (let y = -0.5; y <= this.gridSettings.height; y += tileSize) {
         this.ctxOverlay.moveTo(0, y);
-        this.ctxOverlay.lineTo(256 * tileSize, y);
+        this.ctxOverlay.lineTo(this.gridSettings.width, y);
       }
 
       // Draws vertical lines
-      for (let x = 0; x < 256 * tileSize; x += tileSize) {
+      for (let x = -0.5; x <= this.gridSettings.width; x += tileSize) {
         this.ctxOverlay.moveTo(x, 0);
-        this.ctxOverlay.lineTo(x, 256 * tileSize);
+        this.ctxOverlay.lineTo(x, this.gridSettings.height);
       }
 
       this.ctxOverlay.stroke();
+    } else {
+      this.ctxOverlay.strokeRect(0, 0, this.gridSettings.width, this.gridSettings.height);
     }
   }
 
-  private drawSelection() {
+  private drawSelectionRect() {
     if (this.selectionRect !== null) {
       this.ctxOverlay.strokeStyle = "lime";
       this.ctxOverlay.setLineDash([4, 4]);
@@ -328,7 +322,10 @@ export default class CanvasViewport extends EventTarget {
   private addEventListeners() {
     if (this.isZoomEnabled(this.zoomSettings)) {
       addEventListener("wheel", (e: WheelEvent) => {
-        if (e.target !== this.overlayCanvas) return;
+        if (e.target !== this.overlayCanvas) {
+          e.stopPropagation();
+          return;
+        }
 
         if (!this.isZoomEnabled(this.zoomSettings)) return;
 
@@ -378,7 +375,6 @@ export default class CanvasViewport extends EventTarget {
         }
 
         e.stopPropagation();
-        this.transformHasChanged = true;
       });
     }
 
@@ -414,34 +410,41 @@ export default class CanvasViewport extends EventTarget {
 
         const { x, y } = this.getWorldPos({ x: canvasX, y: canvasY });
 
+        const isWithinGridBounds = x >= 0 && x <= this.gridSettings.width && y >= 0 && y <= this.gridSettings.height;
+
         if (this.isPanKeyDown) {
           this.panPos.x = canvasX;
           this.panPos.y = canvasY;
-        } else if (this.isSelectionEnabled) {
-          if (
-            this.selectionRect !== null &&
-            isPointInRect(
-              { x, y },
-              {
-                x: this.selectionRect.x1,
-                y: this.selectionRect.y1,
-                height: this.selectionRect.y2 - this.selectionRect.y1,
-                width: this.selectionRect.x2 - this.selectionRect.x1,
-              },
-            )
-          ) {
-            this.isDraggingSelection = true;
-            this.panPos.x = canvasX;
-            this.panPos.y = canvasY;
-          } else {
-            this.dispatchEvent(new CanvasViewPortSelectEvent(null));
-            this.selectionStartPos = { x, y };
-            this.selectionRect = this.getSelectionRect({ x, y }, { x, y });
-            this.isDirty = true;
+        }
+        else if (isWithinGridBounds) {
+
+          if (this.isSelectionEnabled) {
+            if (
+              this.selectionRect !== null &&
+              isPointInRect(
+                { x, y },
+                {
+                  x: this.selectionRect.x1,
+                  y: this.selectionRect.y1,
+                  height: this.selectionRect.y2 - this.selectionRect.y1,
+                  width: this.selectionRect.x2 - this.selectionRect.x1,
+                },
+              )
+            ) {
+              this.isDraggingSelection = true;
+              this.panPos.x = canvasX;
+              this.panPos.y = canvasY;
+            } else {
+              this.dispatchEvent(new TilemapViewportSelectEvent(null));
+              this.selectionStartPos = { x, y };
+              this.selectionRect = this.getSelectionRect({ x, y }, { x, y });
+            }
+          } else if (e.button === 0) {
+            const row = Math.floor(y / this.gridSettings.tileSize);
+            const col = Math.floor(x / this.gridSettings.tileSize);
+            this.lastPaint = { row, col };
+            this.dispatchEvent(new TilemapViewportPaintEvent({ row, col }));
           }
-        } else if (e.button === 0) {
-          this.dispatchEvent(new CanvasViewPortPaintEvent({ x, y }));
-          this.isDirty = true;
         }
       });
 
@@ -456,7 +459,12 @@ export default class CanvasViewport extends EventTarget {
 
         const worldPos = this.getWorldPos({ x: canvasX, y: canvasY });
 
-        this.dispatchEvent(new CanvasViewPortMousePosEvent(worldPos));
+        const row = Math.floor(worldPos.y / this.gridSettings.tileSize);
+        const col = Math.floor(worldPos.x / this.gridSettings.tileSize);
+
+        this.dispatchEvent(new TilemapViewportMousePosEvent(worldPos));
+
+        const isWithinGridBounds = worldPos.x >= 0 && worldPos.x <= this.gridSettings.width && worldPos.y >= 0 && worldPos.y <= this.gridSettings.height;
 
         if (this.isMouseDown) {
           if (this.isPanKeyDown) {
@@ -466,55 +474,57 @@ export default class CanvasViewport extends EventTarget {
 
             this.panPos = { x: canvasX, y: canvasY };
 
-            this.transformHasChanged = true;
-          } else if (this.isSelectionEnabled && this.selectionRect !== null) {
-            if (this.isDraggingSelection) {
-              const deltaX = canvasX - this.panPos.x;
-              const deltaY = canvasY - this.panPos.y;
+          } else if (isWithinGridBounds) {
 
-              let shouldemitDeltaX = false;
-              let shouldemitDeltaY = false;
+            if (this.isSelectionEnabled && this.selectionRect !== null) {
+              if (this.isDraggingSelection) {
+                const deltaX = canvasX - this.panPos.x;
+                const deltaY = canvasY - this.panPos.y;
 
-              if (Math.abs(deltaX) >= this.gridSettings.tileSize) {
-                this.selectionRect.x1 += deltaX;
-                this.selectionRect.x2 += deltaX;
-                this.panPos.x = canvasX;
-                shouldemitDeltaX = true;
-              }
+                let shouldemitDeltaX = false;
+                let shouldemitDeltaY = false;
 
-              if (Math.abs(deltaY) >= this.gridSettings.tileSize) {
-                this.selectionRect.y1 += deltaY;
-                this.selectionRect.y2 += deltaY;
-                this.panPos.y = canvasY;
-                shouldemitDeltaY = true;
-              }
+                if (Math.abs(deltaX) >= this.gridSettings.tileSize) {
+                  this.selectionRect.x1 += deltaX;
+                  this.selectionRect.x2 += deltaX;
+                  this.panPos.x = canvasX;
+                  shouldemitDeltaX = true;
+                }
 
-              if (shouldemitDeltaX && shouldemitDeltaY) {
-                this.dispatchEvent(
-                  new CanvasViewPortSelectionDragEvent({
-                    x: deltaX,
-                    y: deltaY,
-                  }),
+                if (Math.abs(deltaY) >= this.gridSettings.tileSize) {
+                  this.selectionRect.y1 += deltaY;
+                  this.selectionRect.y2 += deltaY;
+                  this.panPos.y = canvasY;
+                  shouldemitDeltaY = true;
+                }
+
+                if (shouldemitDeltaX && shouldemitDeltaY) {
+                  this.dispatchEvent(
+                    new TilemapViewportSelectionDragEvent({
+                      x: deltaX,
+                      y: deltaY,
+                    }),
+                  );
+                } else if (shouldemitDeltaX) {
+                  this.dispatchEvent(
+                    new TilemapViewportSelectionDragEvent({ x: deltaX, y: 0 }),
+                  );
+                } else if (shouldemitDeltaY) {
+                  this.dispatchEvent(
+                    new TilemapViewportSelectionDragEvent({ x: 0, y: deltaY }),
+                  );
+                }
+              } else {
+                this.selectionRect = this.getSelectionRect(
+                  this.selectionStartPos,
+                  worldPos,
                 );
-              } else if (shouldemitDeltaX) {
-                this.dispatchEvent(
-                  new CanvasViewPortSelectionDragEvent({ x: deltaX, y: 0 }),
-                );
-              } else if (shouldemitDeltaY) {
-                this.dispatchEvent(
-                  new CanvasViewPortSelectionDragEvent({ x: 0, y: deltaY }),
-                );
               }
-            } else {
-              this.selectionRect = this.getSelectionRect(
-                this.selectionStartPos,
-                worldPos,
-              );
-              this.isDirty = true;
+            } else if (row !== this.lastPaint.row || col !== this.lastPaint.col) {
+
+              this.dispatchEvent(new TilemapViewportPaintEvent({ row, col }));
+              this.lastPaint = { row, col };
             }
-          } else {
-            this.dispatchEvent(new CanvasViewPortPaintEvent(worldPos));
-            this.isDirty = true;
           }
         }
       });
@@ -526,26 +536,8 @@ export default class CanvasViewport extends EventTarget {
         this.isDraggingSelection = false;
 
         if (this.selectionRect !== null) {
-          this.dispatchEvent(new CanvasViewPortSelectEvent(this.selectionRect));
+          this.dispatchEvent(new TilemapViewportSelectEvent(this.selectionRect));
         }
-      });
-
-      this.overlayCanvas.addEventListener("click", (e: MouseEvent) => {
-        if (e.target !== this.overlayCanvas) return;
-
-        const rect = this.canvas.getBoundingClientRect();
-
-        const x = Math.round(e.clientX - rect.left);
-        const y = Math.round(e.clientY - rect.top);
-
-        const worldPos = this.getWorldPos({
-          x,
-          y,
-        });
-
-        this.dispatchEvent(
-          new CustomEvent("click", { detail: { pos: worldPos } }),
-        );
       });
 
       this.overlayCanvas.addEventListener("contextmenu", (e: MouseEvent) => {
@@ -561,29 +553,12 @@ export default class CanvasViewport extends EventTarget {
           y,
         });
 
-        this.dispatchEvent(new CanvasViewPortRightClickEvent(worldPos));
+        this.dispatchEvent(new TilemapViewportRightClickEvent(worldPos));
 
         e.preventDefault();
         e.stopPropagation();
       });
     }
-  }
-
-  private getWorldBounds() {
-    const m = this.ctx.getTransform().invertSelf();
-
-    const topLeft = new DOMPoint(0, 0).matrixTransform(m);
-    const bottomRight = new DOMPoint(
-      this.ctx.canvas.width,
-      this.ctx.canvas.height,
-    ).matrixTransform(m);
-
-    return {
-      x0: topLeft.x,
-      y0: topLeft.y,
-      x1: bottomRight.x,
-      y1: bottomRight.y,
-    };
   }
 
   private getSelectionRect(

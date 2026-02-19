@@ -138,6 +138,8 @@ export const projectState = (() => {
   let projectState: ProjectState = $state({
     projectName: "My project",
     tileSize: 16,
+    width: 80 * 16,
+    height: 45 * 16,
     layers: [
       DEFAULT_LAYER,
       {
@@ -165,14 +167,11 @@ export const projectState = (() => {
     attributes: new Map()
   });
 
-  // getProjectStateFromLocalStorage().then((res) => {
-
-  //   if (res !== null) projectState = res;
-  //   isInitialized = true;
-  // });
-
+  // Inte reaktivt
   const api = {
     tileSize: projectState.tileSize,
+    width: projectState.width,
+    height: projectState.height,
     projectName: projectState.projectName,
     isInitialized,
     tilesets: {

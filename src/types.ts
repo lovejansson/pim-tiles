@@ -1,6 +1,8 @@
 type ProjectState = {
   projectName: string;
   tileSize: number;
+  width: number;
+  height: number;
   layers: Layer[];
   tilesets: Tileset[];
   autoTiles: AutoTile[];
