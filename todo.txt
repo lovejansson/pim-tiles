@@ -1,21 +1,22 @@
-# Todo
+# Todo 
 
-Before GB town can be done 
+* Save As .ptm 
 
-* Select tool ->
-    Move, 
-    Delete,
-    Copy and paste 
+* Load .ptm
 
-FILE & Export JSON
-
-* Implement Save
-
-* Implement Save AS
+* Auto save project with browser data indexed DB or localStorage
 
 * Do testing for export and save project functions
 
-Refactoring 
+* Use proto files for binary file format 
+
+* Reactivity issue with layers and dnd action, items loose reactivity when it comes to classes/styling and become unable to interact with
+
+* Refactor / determine data structure for tilemap itself, Map's is both slower due to string manipulations and requries more memory
+
+# Backlog
+
+* Add copy paste functionality to select tool that currently only supports move and delete of selection
 
 * Weird to keep CRUD API for projectstate when GUI updates it by updating the objects directly, for example layer name
 
@@ -25,13 +26,9 @@ Refactoring
 
 * Flood fill
 
-After
-
 * Add a image next to the cursor to show selected asset that the user is painting with -> not necessary, adds clutter I think 
 
 * Generate maze 
 
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
 
-
-Canvas performance acceptable for 

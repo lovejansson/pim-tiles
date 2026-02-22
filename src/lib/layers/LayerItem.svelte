@@ -1,54 +1,43 @@
 <script lang="ts">
-  import { guiState, projectState } from "../../state.svelte";
+  import type { SlMenuItem } from "@shoelace-style/shoelace";
+  import { guiState } from "../../state.svelte";
   import { PaintType, type Layer } from "../../types";
   import ContextMenu from "../common/ContextMenu.svelte";
   import EditableText from "../common/EditableText.svelte";
 
   type LayerItemProps = {
     layer: Layer;
+    onDelete: () => void;
+    onRename: (name: string) => void;
   };
 
-  let { layer }: LayerItemProps = $props();
+  let { layer, onDelete, onRename }: LayerItemProps = $props();
 
+  let name = $state(layer.name);
   let isEditingName = $state(false);
 
-  const handleSelectMenuItem = (item: any) => {
+  const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
-      if (projectState.layers.get().length === 1) {
-        guiState.notification = {
-          variant: "danger",
-          title: "Delete layer",
-          msg: "One layer is required!",
-        };
-        return;
-      }
-
-      const layerIsSelected =
-        guiState.tilemapEditorState.selectedLayer === layer.id;
-
-      if (layerIsSelected) {
-        selectLayer();
-      }
-
-      projectState.layers.delete(layer.id);
+      onDelete();
     } else if (item.value === "rename") {
       isEditingName = true;
     }
   };
 
+  $effect(() => {
+    if (name !== layer.name) onRename(name);
+  });
+
   const selectLayer = () => {
-    if (guiState.tilemapEditorState.selectedLayer !== layer.id) {
-      guiState.tilemapEditorState.selectedLayer = layer.id;
-      guiState.tilemapEditorState.selectedAsset = null;
-      guiState.tilemapEditorState.type = layer.type;
-    }
+    guiState.tilemapEditorState.selectedLayer = layer.id;
+    guiState.tilemapEditorState.selectedAsset = null;
+    guiState.tilemapEditorState.type = layer.type;
   };
 
   const toggleVisibility = () => {
     guiState.visibleLayers[layer.id] = !guiState.visibleLayers[layer.id];
   };
 </script>
-
 
 <ContextMenu
   onSelect={handleSelectMenuItem}
@@ -57,8 +46,7 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
- 
-  <div id="layer" onclick={selectLayer}>
+  <div id="layer" onclick={selectLayer} oncontextmenu={() => console.log("CONTEXT MENU CLICK")}>
     {#if layer.type === PaintType.TILE}
       <sl-tooltip content="Tile layer">
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
@@ -73,11 +61,8 @@
       </sl-tooltip>
     {/if}
 
-    <EditableText bind:isEditing={isEditingName} bind:text={layer.name} />
+    <EditableText bind:isEditing={isEditingName} bind:text={name} />
 
-    <!-- sl handles accessability internally -->
-    
-   
     <sl-icon-button
       onclick={(e: MouseEvent) => {
         e.stopPropagation();

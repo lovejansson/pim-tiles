@@ -62,8 +62,6 @@
     </sl-option>
   </sl-select>
 
-  
- 
   <sl-button variant="primary" onclick={saveLayer}>Save</sl-button>
 </sl-dialog>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { guiState, projectState } from "../../state.svelte";
+  import {  projectState } from "../../state.svelte";
   import type { Tileset } from "../../types";
   import ContextMenu from "../common/ContextMenu.svelte";
   import EditableText from "../common/EditableText.svelte";

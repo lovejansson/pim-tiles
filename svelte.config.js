@@ -6,9 +6,11 @@ export default {
     preprocess: [vitePreprocess()],
     // Add svelte-check options here
     onwarn: (warning, handler) => {
-        // optional: suppress certain warnings
+
         if (IGNORE_SVELTE_A11Y.includes(warning.code)) return;
+        
         handler(warning);
+
     },
 };
 

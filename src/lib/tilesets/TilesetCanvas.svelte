@@ -3,7 +3,7 @@
   import { PaintType, type TileAsset, type Tileset } from "../../types";
   import { guiState, projectState } from "../../state.svelte";
   import TilemapViewport, {
-    TilemapViewportSelectEvent,
+    TilemapViewportSelectionChangeEvent,
     type SelectionRect,
   } from "../TilemapViewport";
 
@@ -29,12 +29,11 @@
         gridColor: guiState.gridColor,
         showGrid: guiState.showGrid,
         width: tileset.width,
-        height: tileset.height
+        height: tileset.height,
       },
       draw: draw,
       defaultCursor: "crosshair",
       selection: multipleSelection,
-
     });
 
     const ro = new ResizeObserver(([entry]) => {
@@ -45,8 +44,10 @@
       tilemapViewport.init();
 
       if (multipleSelection) {
-        tilemapViewport.addEventListener("select", (e) => {
-          updateSelectedTiles((e as TilemapViewportSelectEvent).selection);
+        tilemapViewport.addEventListener("selection-change", (e) => {
+          updateSelectedTiles(
+            (e as TilemapViewportSelectionChangeEvent).selection,
+          );
         });
       }
     });
@@ -95,7 +96,7 @@
   };
 
   function draw(ctx: CanvasRenderingContext2D) {
-    ctx.drawImage(tileset.spritesheet,0, 0);
+    ctx.drawImage(tileset.spritesheet, 0, 0);
   }
 </script>
 

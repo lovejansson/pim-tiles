@@ -138,8 +138,8 @@ export const projectState = (() => {
   let projectState: ProjectState = $state({
     projectName: "My project",
     tileSize: 16,
-    width: 80 * 16,
-    height: 45 * 16,
+    width: 160 * 16,
+    height: 90 * 16,
     layers: [
       DEFAULT_LAYER,
       {
@@ -540,11 +540,11 @@ export const projectState = (() => {
         }
       },
 
-      update(id: string, layer: Layer) {
+      update(id: string, name: string) {
         const idx = projectState.layers.findIndex((l) => l.id === id);
         if (idx === -1)
           throw new ProjectStateError("Layer not found", "not-found");
-        projectState.layers[idx] = layer;
+        projectState.layers[idx].name = name;
       },
       delete(id: string) {
         const idx = projectState.layers.findIndex((l) => l.id === id);
