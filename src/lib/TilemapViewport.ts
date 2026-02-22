@@ -453,10 +453,10 @@ export default class TilemapViewport extends EventTarget {
                 isPointInRect(
                   worldPos,
                   {
-                    x: this.selection.x1,
-                    y: this.selection.y1,
-                    height: this.selection.y2 - this.selection.y1,
-                    width: this.selection.x2 - this.selection.x1,
+                    x: Math.min(this.selection.x1, this.selection.x2),
+                    y: Math.min(this.selection.y1, this.selection.y2),
+                    height: Math.max(this.selection.y1, this.selection.y2) - Math.min(this.selection.y1, this.selection.y2),
+                    width: Math.max(this.selection.x1, this.selection.x2) - Math.min(this.selection.x1, this.selection.x2),
                   },
                 )
               ) {

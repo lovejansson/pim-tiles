@@ -6,10 +6,10 @@
     TilemapViewportRightClickEvent,
     TilemapViewportSelectionChangeEvent,
     TilemapViewportSelectionMoveEvent,
-    TilemapViewportSelectionMoveEndEvent,
   } from "./TilemapViewport";
   import TileAttributesDialog from "./TileAttributesDialog.svelte";
   import { onMount } from "svelte";
+  import { cellToIndex } from "../utils";
   const { tileSize, layers, areas, tilesets } = $derived(projectState);
   const { tilemapEditorState, gridColor, showGrid } = $derived(guiState);
 
@@ -216,7 +216,6 @@
     }
   };
 
-
   const handleSelectionMoveEnd = () => {
     for (const t of selectedTiles) {
       t.org.row = t.curr.row;
@@ -275,6 +274,7 @@
                     Math.floor((t.ref.tile.tilesetPos.x - minX) / tileSize);
                   dirtyTiles.add(`${r}:${c}`);
                 }
+                console.log("DIRT TILES", dirtyTiles.size)
               }
 
               break;
@@ -329,6 +329,7 @@
           }
           break;
       }
+      console.log("EK")
     }
   };
 
@@ -360,6 +361,11 @@
         }
       | undefined;
 
+    let idx = 0;
+        if(dirtyTiles.size > 0) {
+          console.log("DRAW")
+        }
+
     for (const layer of layers.get()) {
       cached = canvasCache.get(layer.id);
 
@@ -376,9 +382,14 @@
 
         switch (layer.type) {
           case PaintType.TILE:
-            const paintedTile = layer.data.get(dt);
+            idx = cellToIndex(
+              { row, col },
+              projectState.rows,
+              projectState.cols,
+            );
+            const paintedTile = layer.data[idx];
 
-            if (paintedTile !== undefined) {
+            if (paintedTile !== null) {
               const tileset = tilesets.getTileset(
                 paintedTile.ref.tile.tilesetId,
               );
@@ -400,17 +411,22 @@
 
             break;
           case PaintType.AUTO_TILE:
-            const autoTileAsset = layer.data.get(dt);
+            idx = cellToIndex(
+              { row, col },
+              projectState.rows,
+              projectState.cols,
+            );
+            const paintedAutoTile = layer.data[idx];
 
-            if (autoTileAsset !== undefined) {
+            if (paintedAutoTile !== null) {
               const tileset = tilesets.getTileset(
-                autoTileAsset.tile.ref.tile.tilesetId,
+                paintedAutoTile.tile.ref.tile.tilesetId,
               );
 
               cached.ctx.drawImage(
                 tileset.spritesheet,
-                autoTileAsset.tile.ref.tile.tilesetPos.x,
-                autoTileAsset.tile.ref.tile.tilesetPos.y,
+                paintedAutoTile.tile.ref.tile.tilesetPos.x,
+                paintedAutoTile.tile.ref.tile.tilesetPos.y,
                 tileSize,
                 tileSize,
                 x,
@@ -418,14 +434,21 @@
                 tileSize,
                 tileSize,
               );
+            } else {
+              cached.ctx.clearRect(x, y, tileSize, tileSize);
             }
 
             break;
           case PaintType.AREA:
-            const areaAsset = layer.data.get(dt);
+            idx = cellToIndex(
+              { row, col },
+              projectState.rows,
+              projectState.cols,
+            );
+            const paintedArea = layer.data[idx];
 
-            if (areaAsset !== undefined) {
-              const area = areas.getArea(areaAsset.ref.id);
+            if (paintedArea !== null) {
+              const area = areas.getArea(paintedArea.ref.id);
 
               cached.ctx.lineWidth = 1;
               cached.ctx.strokeStyle = area.color;

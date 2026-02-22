@@ -19,20 +19,35 @@ import {
   type ProjectStateJSONExport,
   type Tileset,
   type Cell,
+  type PaintedTile,
+  type AreaAsset,
+  type PaintedArea,
+  type Area,
 } from "./types";
 import {
   getNeighbours,
   createOffScreenCanvas,
   bitmapToDataURL,
   dataURLToBitmap,
+  cellToIndex,
+  indexToCell,
 } from "./utils";
+
+
+const DEFAULT_TILE_SIZE = 16;
+const DEFAULT_ROWS = 45;
+const DEFAULT_COLS = 80;
+const DEFAULT_WIDTH = DEFAULT_COLS * DEFAULT_TILE_SIZE;
+const DEFAULT_HEIGHT = DEFAULT_ROWS * DEFAULT_TILE_SIZE;
 
 const DEFAULT_LAYER: TileLayer = {
   id: crypto.randomUUID(),
   name: "bg",
-  data: new Map(),
+  data: new Array(DEFAULT_ROWS * DEFAULT_COLS).fill(null),
   type: PaintType.TILE,
 };
+
+
 
 export const guiState: GUIState = $state({
   tilemapEditorState: {
@@ -76,6 +91,10 @@ class ProjectStateEventEmitter extends EventTarget {
       new CustomEvent("project-state-change", { detail: event }),
     );
   }
+}
+export function createLayerDataArr(rows: number, cols: number) {
+  return new Array(rows * cols).fill(null);
+
 }
 
 const projectStateChangeEvents = new ProjectStateEventEmitter();
@@ -135,30 +154,48 @@ export const projectState = (() => {
 
   let isInitialized = $state(false);
 
+
+
   let projectState: ProjectState = $state({
     projectName: "My project",
-    tileSize: 16,
-    width: 160 * 16,
-    height: 90 * 16,
+    tileSize: DEFAULT_TILE_SIZE,
+    width: DEFAULT_WIDTH,
+    height: DEFAULT_HEIGHT,
+    rows: DEFAULT_ROWS,
+    cols: DEFAULT_COLS,
     layers: [
       DEFAULT_LAYER,
       {
         id: generateId(),
-        name: "zones",
-        data: new Map(),
+        name: "Ground",
+        data: new Array(DEFAULT_ROWS * DEFAULT_COLS).fill(null),
+        type: PaintType.TILE,
+      },
+      {
+        id: generateId(),
+        name: "Roads",
+        data: new Array(DEFAULT_ROWS * DEFAULT_COLS).fill(null),
+        type: PaintType.AUTO_TILE,
+      },
+      {
+        id: generateId(),
+        name: "Houses",
+        data: new Array(DEFAULT_ROWS * DEFAULT_COLS).fill(null),
+        type: PaintType.TILE,
+      },
+
+      {
+        id: generateId(),
+        name: "Details",
+        data: new Array(DEFAULT_ROWS * DEFAULT_COLS).fill(null),
+        type: PaintType.TILE,
+      },
+
+      {
+        id: generateId(),
+        name: "Zones",
+        data: new Array(DEFAULT_ROWS * DEFAULT_COLS).fill(null),
         type: PaintType.AREA,
-      },
-      {
-        id: generateId(),
-        name: "grass",
-        data: new Map(),
-        type: PaintType.AUTO_TILE,
-      },
-      {
-        id: generateId(),
-        name: "Road",
-        data: new Map(),
-        type: PaintType.AUTO_TILE,
       },
     ],
     tilesets: [],
@@ -172,6 +209,8 @@ export const projectState = (() => {
     tileSize: projectState.tileSize,
     width: projectState.width,
     height: projectState.height,
+    rows: projectState.rows,
+    cols: projectState.cols,
     projectName: projectState.projectName,
     isInitialized,
     tilesets: {
@@ -244,10 +283,9 @@ export const projectState = (() => {
             if (l.type === PaintType.TILE) {
               if (
                 l.data
-                  .values()
                   .find(
                     (a) =>
-                      a.type === PaintType.TILE &&
+                      a !== null && a.type === PaintType.TILE &&
                       a.ref.tile.tilesetId === tileset.id,
                   )
               )
@@ -325,9 +363,8 @@ export const projectState = (() => {
             if (l.type === PaintType.AREA) {
               if (
                 l.data
-                  .values()
                   .find(
-                    (a) => a.type === PaintType.AREA && a.ref.id === area.id,
+                    (a) => a !== null && a.type === PaintType.AREA && a.ref.id === area.id,
                   )
               )
                 return true;
@@ -384,9 +421,9 @@ export const projectState = (() => {
             if (l.type === PaintType.AUTO_TILE) {
               if (
                 l.data
-                  .values()
                   .find(
                     (a) =>
+                      a !== null &&
                       a.type === PaintType.AUTO_TILE &&
                       a.ref.id === autoTile.id,
                   )
@@ -518,7 +555,7 @@ export const projectState = (() => {
               id: generateId(),
               name,
               type,
-              data: new Map(),
+              data: new Array(projectState.rows * projectState.cols).fill(null),
             });
             break;
           case PaintType.AUTO_TILE:
@@ -526,7 +563,7 @@ export const projectState = (() => {
               id: generateId(),
               name,
               type,
-              data: new Map(),
+              data: new Array(projectState.rows * projectState.cols).fill(null),
             });
             break;
           case PaintType.AREA:
@@ -534,7 +571,7 @@ export const projectState = (() => {
               id: generateId(),
               name,
               type,
-              data: new Map(),
+              data: new Array(projectState.rows * projectState.cols).fill(null),
             });
             break;
         }
@@ -560,7 +597,7 @@ export const projectState = (() => {
       ): PaintedAsset | null {
         const layer = this.getLayer(layerID);
 
-        return layer.data.get(`${row}:${col}`) || null;
+        return layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)];
       },
 
       paintTile(
@@ -579,14 +616,15 @@ export const projectState = (() => {
             "type-error",
           );
 
-        const curr = layer.data.get(`${row}:${col}`) || null;
+        const curr = layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)];
 
         // Don't do anything if the same tile is being painted again
         if (api.utils.isSameAsset(curr, paint)) {
           return;
         }
 
-        layer.data.set(`${row}:${col}`, { ...paint } as any);
+
+        layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)] = { ...paint };
 
         projectStateChangeEvents.emit({
           prev: {
@@ -617,7 +655,7 @@ export const projectState = (() => {
             "type mismatch between layer and asset",
             "type-error",
           );
-
+         
         const tileSize = projectState.tileSize;
 
         const prevTiles = [];
@@ -633,14 +671,15 @@ export const projectState = (() => {
           const c =
             col + Math.floor((t.ref.tile.tilesetPos.x - minX) / tileSize);
 
-          const curr = layer.data.get(`${r}:${c}`) || null;
+          const curr = layer.data[cellToIndex({ row: r, col: c }, projectState.rows, projectState.cols)];
 
           // Don't do anything if the same tile is being painted again
-          if (api.utils.isSameAsset(curr, t)) {
-            return;
-          }
+          // if (api.utils.isSameAsset(curr, t)) {
+          //   return;
+          // }
 
-          layer.data.set(`${r}:${c}`, { ...t } as any);
+
+          layer.data[cellToIndex({ row: r, col: c }, projectState.rows, projectState.cols)] = { ...t };
 
           prevTiles.push({
             data: curr ? ({ ...curr } as any) : null,
@@ -651,7 +690,7 @@ export const projectState = (() => {
             pos: { row: r, col: c },
           });
         }
-
+     
         projectStateChangeEvents.emit({
           prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
           next: { type: layer.type, layer: { id: layerID }, items: nextTiles },
@@ -668,28 +707,29 @@ export const projectState = (() => {
 
         // TODO: can this be done better with typescript generics?
         if (paint === null) {
-          layer.data.delete(`${row}:${col}`);
+
+          layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)] = null;
         } else {
           if (layer.type !== paint.type)
             throw new ProjectStateError(
               "type mismatch between layer and asset",
               "type-error",
             );
-          layer.data.set(`${row}:${col}`, { ...paint } as any);
+          layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)] = { ...paint };
         }
       },
 
       eraseTile(row: number, col: number, layerID: string) {
         const layer = this.getLayer(layerID);
 
-        const curr = layer.data.get(`${row}:${col}`) || null;
+        const curr = layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)];
 
         // Don't do anything if the tile is already erased
         if (api.utils.isSameAsset(curr, null)) {
           return;
         }
 
-        layer.data.delete(`${row}:${col}`);
+        layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)] = null;
 
         projectStateChangeEvents.emit({
           prev: {
@@ -772,7 +812,7 @@ export const projectState = (() => {
         }
 
         const prevTiles = filledTiles.map((ft) => {
-          const curr = layer.data.get(`${ft.row}:${ft.col}`) || null;
+          const curr = layer.data[cellToIndex(ft, projectState.rows, projectState.cols)];
           return {
             data: curr ? ({ ...curr } as any) : null,
             pos: { row: ft.row, col: ft.col },
@@ -788,9 +828,10 @@ export const projectState = (() => {
 
         for (const ft of filledTiles) {
           if (paint === null) {
-            layer.data.delete(`${ft.row}:${ft.col}`);
+            layer.data[cellToIndex(ft, projectState.rows, projectState.cols)] = null;
           } else {
-            layer.data.set(`${ft.row}:${ft.col}`, { ...paint } as any);
+
+            layer.data[cellToIndex(ft, projectState.rows, projectState.cols)] = { ...paint };
             // If is auto tile layer, this will have to take into account the same procedure as in auto tile paint
           }
         }
@@ -841,11 +882,13 @@ export const projectState = (() => {
           pos: { row, col },
           data: { type: PaintType.AUTO_TILE, ref: { id: autoTileID }, tile },
         });
-        layer.data.set(`${row}:${col}`, {
+
+
+        layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)] = {
           type: PaintType.AUTO_TILE,
           ref: { id: autoTileID },
           tile,
-        });
+        };
 
         const neighbours = getNeighbours({ row, col }, true);
 
@@ -876,11 +919,12 @@ export const projectState = (() => {
                 tile,
               },
             });
-            layer.data.set(`${n.row}:${n.col}`, {
+
+            layer.data[cellToIndex({ row: n.row, col: n.col }, projectState.rows, projectState.cols)] = {
               type: PaintType.AUTO_TILE,
               ref: { id: autoTileID },
               tile,
-            });
+            };
           }
         }
 
@@ -919,7 +963,8 @@ export const projectState = (() => {
 
         prevTiles.push({ pos: { row, col }, data: { ...currTile } });
 
-        layer.data.delete(`${row}:${col}`);
+
+        layer.data[cellToIndex({ row, col }, projectState.rows, projectState.cols)] = null;
         paintedTiles.push({ pos: { row: row, col: col }, data: null });
 
         const neighbours = getNeighbours({ row, col }, true);
@@ -950,7 +995,7 @@ export const projectState = (() => {
               data: { ...currTile, tile },
             });
 
-            layer.data.set(`${n.row}:${n.col}`, { ...currTile, tile });
+            layer.data[cellToIndex({ row: n.row, col: n.col }, projectState.rows, projectState.cols)] = { ...currTile, tile };
           }
         }
 
@@ -966,6 +1011,7 @@ export const projectState = (() => {
     },
 
     utils: {
+
       isSameAsset(a: AssetRef | null, b: AssetRef | null): boolean {
         if (a === null && b === null) return true;
 
@@ -993,102 +1039,111 @@ export const projectState = (() => {
 
       const tileSize = projectState.tileSize;
 
-      const tilemapBounds: { x1: number; x2: number; y1: number; y2: number } =
-        projectState.layers.reduce(
-          (acc, l) => {
-            for (const key of l.data.keys()) {
-              const [row, col] = key.split(":").map(Number);
-
-              acc.y1 = Math.min(row * tileSize, acc.y1);
-              acc.y2 = Math.max(row * tileSize, acc.y2);
-              acc.x1 = Math.min(col * tileSize, acc.x1);
-              acc.x2 = Math.max(col * tileSize, acc.x2);
-            }
-
-            return acc;
-          },
-          { x1: Infinity, x2: -Infinity, y1: Infinity, y2: -Infinity },
-        );
-
       const ctx = createOffScreenCanvas(
-        tilemapBounds.x2 - tilemapBounds.x1,
-        tilemapBounds.y2 - tilemapBounds.y1,
+        projectState.width, projectState.height
       );
 
+      // Paint tile and auto tile layers on canvas 
+
       for (const layer of api.layers.get()) {
-        if (guiState.visibleLayers[layer.id]) {
-          switch (layer.type) {
-            case PaintType.TILE:
-              for (const [key, tileAsset] of layer.data) {
-                const tileset = api.tilesets.getTileset(
-                  tileAsset.ref.tile.tilesetId,
-                );
+        switch (layer.type) {
+          case PaintType.TILE:
+            {
+              let cell: Cell = { row: 0, col: 0 };
+              let tile: PaintedTile | null = null;
 
-                const [row, col] = key.split(":").map(Number);
+              for (let i = 0; i < layer.data.length; ++i) {
+                tile = layer.data[i];
+                if (tile !== null) {
+                  cell = indexToCell(i, projectState.rows, projectState.cols);
+                  const tileset = api.tilesets.getTileset(
+                    tile.ref.tile.tilesetId,
+                  );
 
-                ctx.drawImage(
-                  tileset.spritesheet,
-                  tileAsset.ref.tile.tilesetPos.x,
-                  tileAsset.ref.tile.tilesetPos.y,
-                  tileSize,
-                  tileSize,
-                  col * tileSize,
-                  row * tileSize,
-                  tileSize,
-                  tileSize,
-                );
+                  ctx.drawImage(
+                    tileset.spritesheet,
+                    tile.ref.tile.tilesetPos.x,
+                    tile.ref.tile.tilesetPos.y,
+                    tileSize,
+                    tileSize,
+                    cell.col * tileSize,
+                    cell.row * tileSize,
+                    tileSize,
+                    tileSize,
+                  );
+                }
+              }
+            }
+
+            break;
+          case PaintType.AUTO_TILE:
+            {
+              let cell: Cell = { row: 0, col: 0 };
+              let autoTileAsset: PaintedAutoTile | null = null;
+
+              for (let i = 0; i < layer.data.length; ++i) {
+                autoTileAsset = layer.data[i];
+
+                if (autoTileAsset !== null) {
+                  cell = indexToCell(i, projectState.rows, projectState.cols);
+                  const tileset = api.tilesets.getTileset(
+                    autoTileAsset.tile.ref.tile.tilesetId,
+                  );
+
+                  ctx.drawImage(
+                    tileset.spritesheet,
+                    autoTileAsset.tile.ref.tile.tilesetPos.x,
+                    autoTileAsset.tile.ref.tile.tilesetPos.y,
+                    tileSize,
+                    tileSize,
+                    cell.col * tileSize,
+                    cell.row * tileSize,
+                    tileSize,
+                    tileSize,
+                  );
+
+                }
+
               }
               break;
-            case PaintType.AUTO_TILE:
-              for (const [key, autoTileAsset] of layer.data) {
-                const [row, col] = key.split(":").map(Number);
-                const tileset = api.tilesets.getTileset(
-                  autoTileAsset.tile.ref.tile.tilesetId,
-                );
-
-                ctx.drawImage(
-                  tileset.spritesheet,
-                  autoTileAsset.tile.ref.tile.tilesetPos.x,
-                  autoTileAsset.tile.ref.tile.tilesetPos.y,
-                  tileSize,
-                  tileSize,
-                  col * tileSize,
-                  row * tileSize,
-                  tileSize,
-                  tileSize,
-                );
-              }
-              break;
-          }
+            }
         }
       }
+
+      // Create areas array 
 
       const areas: { name: string; tiles: Point[] }[] = projectState.layers
         .filter((l) => l.type === PaintType.AREA)
         .reduce(
           (acc, curr) => {
-            for (const [key, areaAsset] of curr.data) {
-              const area = api.areas.getArea(areaAsset.ref.id);
 
-              const [row, col] = key.split(":").map(Number);
+            let areaAsset: PaintedArea | null = null;
+            let cell: Cell = { row: 0, col: 0 };
 
-              const areaItem = acc.find((a) => a.name === area.name);
 
-              if (areaItem !== undefined) {
-                areaItem.tiles.push({
-                  x: col * projectState.tileSize - tilemapBounds.x1,
-                  y: row * projectState.tileSize - tilemapBounds.y1,
-                });
-              } else {
-                acc.push({
-                  name: area.name,
-                  tiles: [
-                    {
-                      x: col * projectState.tileSize - tilemapBounds.x1,
-                      y: row * projectState.tileSize - tilemapBounds.y1,
-                    },
-                  ],
-                });
+            for (let i = 0; i < curr.data.length; ++i) {
+              areaAsset = curr.data[i];
+              if (areaAsset !== null) {
+                cell = indexToCell(i, projectState.rows, projectState.cols);
+                const area = api.areas.getArea(areaAsset.ref.id);
+                const areaItem = acc.find((a) => a.name === area.name);
+
+                if (areaItem !== undefined) {
+                  areaItem.tiles.push({
+                    x: cell.col * projectState.tileSize,
+                    y: cell.row * projectState.tileSize,
+                  });
+                } else {
+                  acc.push({
+                    name: area.name,
+                    tiles: [
+                      {
+                        x: cell.col * projectState.tileSize,
+                        y: cell.row * projectState.tileSize,
+                      },
+                    ],
+                  });
+                }
               }
             }
 
@@ -1097,7 +1152,8 @@ export const projectState = (() => {
           [] as { name: string; tiles: Point[] }[],
         );
 
-      // TODO: add tileAttributes: [{x, y, attributes: {key: value, key: value, key: value}}]
+
+      // Create attributes array 
 
       const attributes: { pos: Point, attributes: { [k: string]: string } }[] = Array.from(projectState.attributes.entries()).map(e => {
 

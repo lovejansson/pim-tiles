@@ -2,7 +2,9 @@ type ProjectState = {
   projectName: string;
   tileSize: number;
   width: number;
-  height: number;
+  height: number
+  rows: number;
+  cols: number;
   layers: Layer[];
   tilesets: Tileset[];
   autoTiles: AutoTile[];
@@ -73,7 +75,7 @@ type LayerT<T extends PaintType> = {
     id: string;
     type: T;
     name: string;
-    data: Map<string, PaintedAssetT<T>>;
+    data: (PaintedAssetT<T> | null)[];
 };
 
 type PaintedTile = PaintedAssetT<PaintType.TILE>;
