@@ -24,8 +24,6 @@
   let fileInput: HTMLInputElement;
 </script>
 
-
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <sl-button onclick={() => fileInput?.showPicker()}>
   <sl-icon label="Load file" library="pixelarticons" name="upload"></sl-icon>
 </sl-button>

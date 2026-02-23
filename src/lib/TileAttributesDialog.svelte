@@ -23,7 +23,7 @@
   // Using an array of tuples since the Map is not reactive!
   let attributes: [string, string][] = $state(
     Array.from(
-      projectState.attributes.getTileAttributes(cell)?.entries() ?? [],
+      projectState.getTileAttributes(cell)?.entries() ?? [],
     ),
   );
 
@@ -34,7 +34,7 @@
   $effect(() => {
     if (!isSameCell(cell, tile)) {
       tile = cell;
-      const tileAttributes = projectState.attributes.getTileAttributes(tile);
+      const tileAttributes = projectState.getTileAttributes(tile);
       attributes = tileAttributes ? Array.from(tileAttributes.entries()) : [];
     }
   });
@@ -48,9 +48,9 @@
 
   const save = () => {
     if (attributes.length > 0) {
-      projectState.attributes.update(tile, new Map(attributes));
-    } else if (projectState.attributes.getTileAttributes(tile)) {
-      projectState.attributes.delete(tile);
+      projectState.update(tile, new Map(attributes));
+    } else if (projectState.getTileAttributes(tile)) {
+      projectState.delete(tile);
     }
 
     hide();

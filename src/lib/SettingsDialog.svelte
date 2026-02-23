@@ -16,14 +16,14 @@
   let tileSize = $state(projectState.tileSize);
   let width = $state(projectState.width);
   let height = $state(projectState.height);
-  let name = $state(projectState.projectName);
+  let name = $state(projectState.name);
 
   let hasChanges = $derived.by(() => {
     return (
       tileSize !== projectState.tileSize ||
       width !== projectState.width ||
       height !== projectState.height ||
-      name !== projectState.projectName
+      name !== projectState.name
     );
   });
 
@@ -31,7 +31,7 @@
 
   const handleConfirm = () => {
     projectState.tileSize = tileSize;
-    projectState.projectName = name;
+    projectState.name = name;
     projectState.width = width;
     projectState.height = height;
     confirmDialogIsOpen = false;
@@ -51,7 +51,7 @@
     } 
 
     projectState.tileSize = tileSize;
-    projectState.projectName = name;
+    projectState.name = name;
     projectState.width = width;
     projectState.height = height;
  

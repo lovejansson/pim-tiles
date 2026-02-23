@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { guiState, projectState, setSelectedTiles } from "../../state.svelte";
+  import { guiState, projectState } from "../../state.svelte";
   import FilePicker from "../common/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
   import TilesCanvas from "./TilesetCanvas.svelte";
@@ -13,16 +13,15 @@
       const name = file.name.split(".")[0];
       const bitmap = await createImageBitmap(file);
 
-      const numSameName = projectState.tilesets
-        .get()
+      const numSameName = projectState.getTilesets()
         .reduce((count, t) => (t.name === name ? (count += 1) : count), 0);
 
-      projectState.tilesets.add(
+      projectState.addTileset(
         numSameName > 0 ? `${name} (${numSameName})` : name,
         bitmap,
       );
 
-      selectedTilesetIdx = projectState.tilesets.get().length - 1;
+      selectedTilesetIdx = projectState.getTilesets().length - 1;
 
     } catch (e) {
       console.error(e);
@@ -46,9 +45,9 @@
     <FilePicker accept="image/png, image/jpeg" onFile={loadTileset} />
   </header>
 
-  {#if projectState.tilesets.get().length > 0}
+  {#if projectState.getTilesets().length > 0}
     <sl-tab-group on>
-      {#each projectState.tilesets.get() as tileset}
+      {#each projectState.getTilesets() as tileset}
         <sl-tab slot="nav" panel={tileset.name}>
           <TilesetTab {tileset} /></sl-tab
         >

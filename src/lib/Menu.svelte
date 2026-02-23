@@ -24,7 +24,7 @@
         const blob = new Blob([json], {
           type: "application/json",
         });
-        download(blob, projectState.projectName, "json");
+        download(blob, projectState.name, "json");
         break;
       case "settings":
         settingsDialogIsOpen = true;

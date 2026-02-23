@@ -12,7 +12,7 @@ function detectOS() {
     }
 }
 
-function createOffScreenCanvas(width: number, height: number) {
+function createCanvas(width: number, height: number) {
 
     const canvas = document.createElement("canvas");
 
@@ -45,7 +45,7 @@ function roundToDecimal(num: number, decimalPlaces: number) {
 }
 
 function bitmapToDataURL(bitmap: ImageBitmap) {
-    const ctx = createOffScreenCanvas(bitmap.width, bitmap.height);
+    const ctx = createCanvas(bitmap.width, bitmap.height);
     ctx.drawImage(bitmap, 0, 0);
     return ctx.canvas.toDataURL('image/png');
 }
@@ -83,7 +83,7 @@ function getNeighbours(cell: { row: number, col: number }, rows: number, cols: n
 }
 
 function isTransparent(bitmap: ImageBitmap) {
-    const ctx = createOffScreenCanvas(bitmap.width, bitmap.height);
+    const ctx = createCanvas(bitmap.width, bitmap.height);
 
     ctx.drawImage(bitmap, 0, 0);
 
@@ -111,4 +111,4 @@ function isSameCell(cell1: Cell, cell2: Cell) {
     return cell1.row === cell2.row && cell1.col === cell2.col;
 }
 
-export { isSameCell, dataURLToBitmap, splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas, download }
+export { isSameCell, dataURLToBitmap, splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createCanvas as createOffScreenCanvas, download }

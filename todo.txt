@@ -1,9 +1,13 @@
 # Todo 
 
 
-* Project API refactor: Some properties of project is manipulated directly via UI binds for example the name of each layer, make a clean and good API for updating the project state but make sure that the properties are 
-still reactive according to svelte, review Error handling, how will GUI or other clients receive errors, is it via throws? Most errors are "not found", "type mismatch between layer and data" and "asset in use",
+* Project API refactor: Some properties of project is manipulated directly via UI binds for example the name of each layer, make a clean and good API 
+for updating the project state but make sure that the properties are 
+still reactive according to svelte, review Error handling, how will GUI or other clients receive errors, is it via throws? 
+Most errors are "not found", "type mismatch between layer and data" and "asset in use",
  API för projectstate tydligare att "areas" är en modul och inte listan av areas 
+
+Errors: Gör koder i enums istället för 
 
 * Flood fill
 

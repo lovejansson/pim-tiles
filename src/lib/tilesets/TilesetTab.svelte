@@ -15,7 +15,7 @@
   const handleSelectMenuItem = (item: any) => {
 
     if (item.value === "delete") {
-      projectState.tilesets.delete(tileset.id);
+      projectState.deleteTileset(tileset.id);
 
     } else if (item.value === "rename") {
         isEditingName = true;
