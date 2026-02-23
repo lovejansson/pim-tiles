@@ -69,6 +69,12 @@ export class TilemapViewportSelectionMoveEndEvent extends Event {
   }
 }
 
+export class TilemapViewportSelectionCopyEvent extends Event {
+  constructor() {
+    super("selection-copy");
+  }
+}
+
 export class TilemapViewportSelectionDeleteEvent extends Event {
   constructor() {
     super("selection-delete");
@@ -85,11 +91,11 @@ export class TilemapViewportRightClickEvent extends Event {
 }
 
 export class TilemapViewportMousePosEvent extends Event {
-  pos: Point;
+  cell: Cell;
 
-  constructor(pos: Point) {
+  constructor(cell: Cell) {
     super("mouse-pos");
-    this.pos = pos;
+    this.cell = cell;
   }
 }
 
@@ -129,7 +135,7 @@ export default class TilemapViewport extends EventTarget {
   private ctx: CanvasRenderingContext2D;
   private ctxOverlay: CanvasRenderingContext2D;
 
-   zoom: number;
+  zoom: number;
   private translation: Point;
 
   private zoomSettings: ZoomSettings | null;
@@ -139,6 +145,7 @@ export default class TilemapViewport extends EventTarget {
   private cursor: string;
 
   private isPanKeyDown: boolean;
+  private isCtrlKeyDown: boolean;
   private mouseAction: MouseAction | null;
   private selection: SelectionRect | null;
 
@@ -156,10 +163,9 @@ export default class TilemapViewport extends EventTarget {
     this.canvas.style.width = "100%";
     this.canvas.style.height = "100%";
     this.canvas.style.background = container.style.background;
-
     this.canvas.style.position = "absolute";
-    this.canvas.style.zIndex = this.overlayCanvas.style.imageRendering =
-      "pixelated";
+
+    this.overlayCanvas.style.imageRendering = "pixelated";
     this.overlayCanvas.style.width = "100%";
     this.overlayCanvas.style.height = "100%";
     this.overlayCanvas.style.background = container.style.background;
@@ -176,10 +182,8 @@ export default class TilemapViewport extends EventTarget {
     this.ctx = ctx;
     this.ctxOverlay = ctxOverlay;
     this.ctx.imageSmoothingEnabled = false;
-
-
-
-
+    this.ctxOverlay.imageSmoothingEnabled = false;
+    this.isCtrlKeyDown = false;
     this.zoomSettings = options.zoom ?? null;
     this.gridSettings = options.grid;
     this.panSettings = options.pan ?? null;
@@ -202,9 +206,11 @@ export default class TilemapViewport extends EventTarget {
   }
 
   set width(width: number) {
+
     const rounded = Math.round(width);
     this.canvas.width = rounded;
     this.overlayCanvas.width = rounded;
+
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
 
@@ -215,9 +221,11 @@ export default class TilemapViewport extends EventTarget {
   }
 
   set height(height: number) {
+
     const rounded = Math.round(height);
     this.canvas.height = rounded;
     this.overlayCanvas.height = rounded;
+
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
 
@@ -267,19 +275,24 @@ export default class TilemapViewport extends EventTarget {
   }
 
   private clear() {
+
+
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, this.width, this.height);
+
     this.ctx.translate(this.translation.x, this.translation.y);
     this.ctx.scale(this.zoom, this.zoom);
-  }
-
-  private drawOverlay() {
 
     this.ctxOverlay.resetTransform();
     this.ctxOverlay.clearRect(0, 0, this.width, this.height);
+
     this.ctxOverlay.translate(this.translation.x, this.translation.y);
     this.ctxOverlay.scale(this.zoom, this.zoom);
 
+
+  }
+
+  private drawOverlay() {
     this.drawGrid();
     this.drawSelectionRect();
   }
@@ -288,7 +301,7 @@ export default class TilemapViewport extends EventTarget {
     // Draw grid if not to zoomed out bc of performance
     if (this.gridSettings.showGrid) {
 
-      const dpr = window.devicePixelRatio || 1;
+
 
       const tileSize = this.gridSettings.tileSize;
 
@@ -296,7 +309,7 @@ export default class TilemapViewport extends EventTarget {
 
       this.ctxOverlay.strokeStyle = "black";
 
-      this.ctxOverlay.lineWidth = 1 / (this.zoom * dpr);
+      this.ctxOverlay.lineWidth = 1;
 
       // Draws horisontal lines
       for (let y = -0.5; y <= this.gridSettings.height; y += tileSize) {
@@ -318,18 +331,30 @@ export default class TilemapViewport extends EventTarget {
 
   private drawSelectionRect() {
     if (this.selection !== null) {
-      this.ctxOverlay.strokeStyle = "lime";
-      this.ctxOverlay.fillStyle = "rgba(138, 210, 122, 0.25)"
+
+
+
+      const gradient = this.ctxOverlay.createLinearGradient(this.selection.x1, this.selection.y1, this.selection.x2, this.selection.y2);
+
+      gradient.addColorStop(0, "lime");
+      gradient.addColorStop(0.5, "cyan");
+      gradient.addColorStop(1, "fuchsia");
+
+      this.ctxOverlay.strokeStyle = gradient;
+
+      this.ctxOverlay.fillStyle = "rgba(138, 210, 122, 0.25)";
+
+
       this.ctxOverlay.lineWidth = 2;
       this.ctxOverlay.setLineDash([4, 4]);
       this.ctxOverlay.strokeRect(
-        this.selection.x1,
-        this.selection.y1,
+        this.selection.x1 - 0.5,
+        this.selection.y1 - 0.5,
         this.selection.x2 - this.selection.x1,
         this.selection.y2 - this.selection.y1,
       );
-      this.ctxOverlay.fillRect(this.selection.x1,
-        this.selection.y1,
+      this.ctxOverlay.fillRect(this.selection.x1 - 0.5,
+        this.selection.y1 - 0.5,
         this.selection.x2 - this.selection.x1,
         this.selection.y2 - this.selection.y1,);
       this.ctxOverlay.setLineDash([]);
@@ -414,6 +439,7 @@ export default class TilemapViewport extends EventTarget {
     }
 
     if (this.isPanEnabled(this.panSettings) || this.isSelectionEnabled) {
+
       addEventListener("keydown", (e: KeyboardEvent) => {
         if (!this.isPanEnabled(this.panSettings)) return;
 
@@ -424,7 +450,12 @@ export default class TilemapViewport extends EventTarget {
           this.dispatchEvent(new TilemapViewportSelectionDeleteEvent());
           this.selection = null;
           this.mouseAction = null
+        } else if (e.key === "Meta" || e.key === "Control") {
+          this.isCtrlKeyDown = true;
+        } else if (e.key.toLocaleLowerCase() === "c" && this.isCtrlKeyDown && this.selection !== null) {
+          this.dispatchEvent(new TilemapViewportSelectionCopyEvent());
         }
+
       });
 
       addEventListener("keyup", (e: KeyboardEvent) => {
@@ -433,7 +464,10 @@ export default class TilemapViewport extends EventTarget {
         if (e.key === this.panSettings.key) {
           this.overlayCanvas.style.cursor = this.cursor;
           this.isPanKeyDown = false;
+        } else if (e.key === "Meta" || e.key === "Control") {
+          this.isCtrlKeyDown = false;
         }
+
       });
 
       this.overlayCanvas.addEventListener("mousedown", (e: MouseEvent) => {
@@ -446,7 +480,6 @@ export default class TilemapViewport extends EventTarget {
           if (this.isPanKeyDown) {
             this.mouseAction = { type: MouseActionType.PAN, data: { startPos: { ...canvasPos }, startTranslation: { ...this.translation } } };
           } else {
-
 
             if (this.isSelectionEnabled) {
 
@@ -472,19 +505,10 @@ export default class TilemapViewport extends EventTarget {
                 this.selection = this.getSelectionRect(worldPos, worldPos);
               }
             } else {
-
               if (isWithinGridBounds) {
-
-
-
                 this.mouseAction = { type: MouseActionType.PAINT, data: { lastPaintedTile: { ...tile } } };
-
                 this.dispatchEvent(new TilemapViewportPaintEvent(tile));
-
               }
-
-
-
             }
 
           }
@@ -496,7 +520,7 @@ export default class TilemapViewport extends EventTarget {
 
         const { canvasPos, worldPos, isWithinGridBounds, tile } = this.getMouseCoordinates(e.clientX, e.clientY)
 
-        this.dispatchEvent(new TilemapViewportMousePosEvent(worldPos));
+        this.dispatchEvent(new TilemapViewportMousePosEvent(tile));
 
         if (this.isMouseDown(this.mouseAction)) {
 
@@ -587,6 +611,7 @@ export default class TilemapViewport extends EventTarget {
     const x = Math.round(clientX - rect.left);
     const y = Math.round(clientY - rect.top);
 
+
     const worldPos = this.getWorldPos({
       x,
       y,
@@ -634,7 +659,7 @@ export default class TilemapViewport extends EventTarget {
   private getWorldPos(pos: Point) {
     // Uses the inverse translation matrix to convert a position on the canvas/screen to the world.
     const inv = this.ctx.getTransform().invertSelf();
-    const p = new DOMPoint(pos.x, pos.y).matrixTransform(inv);
+    const p = new DOMPoint(pos.x , pos.y ).matrixTransform(inv);
     return { x: p.x, y: p.y };
   }
 }

@@ -59,7 +59,7 @@ function isPointInRect(point: Point, rect: Rect) {
     return point.x > rect.x && point.x < rect.x + rect.width && point.y > rect.y && point.y < rect.y + rect.height;
 }
 
-function getNeighbours(cell: { row: number, col: number }, includeDiagonalNeighbours: boolean = false) {
+function getNeighbours(cell: { row: number, col: number }, rows: number, cols: number, includeDiagonalNeighbours: boolean = false) {
 
     const neighbours = [];
 
@@ -72,8 +72,11 @@ function getNeighbours(cell: { row: number, col: number }, includeDiagonalNeighb
         [[-1, 0], [0, 1], [1, 0], [0, -1]]
 
     for (const [r, c] of neighbourDiffs) {
-        const n = { row: cell.row + r, col: cell.col + c };
-        neighbours.push(n);
+        if (cell.row + r > 0 && cell.row + r <= rows && cell.col + c >= 0 && cell.col + c <= cols) {
+            const n = { row: cell.row + r, col: cell.col + c };
+            neighbours.push(n);
+        }
+
     }
 
     return neighbours;

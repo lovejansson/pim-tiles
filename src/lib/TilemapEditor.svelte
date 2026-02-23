@@ -10,6 +10,7 @@
     type PaintedTile,
   } from "../types";
   import TilemapViewport, {
+    TilemapViewportMousePosEvent,
     TilemapViewportPaintEvent,
     TilemapViewportRightClickEvent,
     TilemapViewportSelectionChangeEvent,
@@ -36,8 +37,8 @@
     { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }
   > = new Map();
 
+
   $effect(() => {
-    
     // Sync canvasCache with update layers
     const addedLayers = layers.get().filter((l) => !canvasCache.has(l.id));
 
@@ -85,6 +86,8 @@
 
     tilemapViewport.addEventListener("selection-delete", handleSelectionDelete);
 
+    tilemapViewport.addEventListener("selection-copy", handleSelectionCopy);
+
     tilemapViewport.addEventListener("selection-move", handleSelectionMove);
 
     tilemapViewport.addEventListener(
@@ -120,6 +123,7 @@
   });
 
   const handleSelectionChange = (e: Event) => {
+    // If we have previously selected tiles we will paint them back to the tilemap wherever they are currently placed
     if (selectedTiles.length > 0) {
       for (const t of selectedTiles) {
         switch (t.tile.type) {
@@ -130,7 +134,12 @@
               tilemapEditorState.selectedLayer,
               t.tile,
             );
-            dirtyTiles.push({ ...t.curr });
+            if (
+              t.curr.row <= projectState.rows &&
+              t.curr.col <= projectState.cols
+            ) {
+              dirtyTiles.push({ ...t.curr });
+            }
             break;
 
           case PaintType.AREA:
@@ -141,7 +150,13 @@
               t.tile,
             );
 
-            dirtyTiles.push({ ...t.curr });
+            if (
+              t.curr.row <= projectState.rows &&
+              t.curr.col <= projectState.cols
+            ) {
+              dirtyTiles.push({ ...t.curr });
+            }
+
             break;
 
           case PaintType.AUTO_TILE:
@@ -236,12 +251,55 @@
     selectedTiles = [];
   };
 
-  const handleMousePosChange = (e: Event) => {
-    const pos = (e as TilemapViewportRightClickEvent).pos;
-    const row = Math.floor(pos.y / tileSize);
-    const col = Math.floor(pos.x / tileSize);
+  const handleSelectionCopy = () => {
+    // If we have selected tiles they will be copied, i.e. painted where they are currently placed
+    if (selectedTiles.length > 0) {
+      for (const t of selectedTiles) {
+        switch (t.tile.type) {
+          case PaintType.TILE:
+            layers.paintTile(
+              t.curr.row,
+              t.curr.col,
+              tilemapEditorState.selectedLayer,
+              t.tile,
+            );
+            if (
+              t.curr.row <= projectState.rows &&
+              t.curr.col <= projectState.cols
+            ) {
+              dirtyTiles.push({ ...t.curr });
+            }
+            break;
 
-    guiState.mouseTilePos = { row, col };
+          case PaintType.AREA:
+            layers.paintTile(
+              t.curr.row,
+              t.curr.col,
+              tilemapEditorState.selectedLayer,
+              t.tile,
+            );
+
+            if (
+              t.curr.row <= projectState.rows &&
+              t.curr.col <= projectState.cols
+            ) {
+              dirtyTiles.push({ ...t.curr });
+            }
+
+            break;
+
+          case PaintType.AUTO_TILE:
+            // WHAT TODOs
+            break;
+        }
+      }
+    }
+  };
+
+  const handleMousePosChange = (e: Event) => {
+    const cell = (e as TilemapViewportMousePosEvent).cell;
+
+    guiState.mouseTilePos = cell;
   };
 
   const handleCanvasPaint = (e: Event) => {
@@ -262,11 +320,24 @@
                   tilemapEditorState.selectedAsset,
                 );
 
+                const minX = Math.min(
+                  ...tilemapEditorState.selectedAsset.map(
+                    (t) => t.ref.tile.tilesetPos.x,
+                  ),
+                );
+                const minY = Math.min(
+                  ...tilemapEditorState.selectedAsset.map(
+                    (t) => t.ref.tile.tilesetPos.y,
+                  ),
+                );
+
                 for (const t of tilemapEditorState.selectedAsset) {
                   const r =
-                    row + Math.floor(t.ref.tile.tilesetPos.y / tileSize);
+                    row +
+                    Math.floor((t.ref.tile.tilesetPos.y - minY) / tileSize);
                   const c =
-                    col + Math.floor(t.ref.tile.tilesetPos.x / tileSize);
+                    col +
+                    Math.floor((t.ref.tile.tilesetPos.x - minX) / tileSize);
 
                   if (r >= projectState.rows || c >= projectState.cols)
                     continue;

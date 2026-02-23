@@ -25,16 +25,16 @@
     if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
 
     switch (e.key.toLowerCase()) {
-      case "e":
-        tilemapEditorState.selectedTool = Tool.ERASE;
-        break;
-      case "t":
+      case "q":
         tilemapEditorState.selectedTool = Tool.PAINT;
         break;
-      case "s":
+      case "w":
+        tilemapEditorState.selectedTool = Tool.ERASE;
+        break;
+      case "e":
         tilemapEditorState.selectedTool = Tool.SELECT;
         break;
-      case "f":
+      case "r":
         tilemapEditorState.fillToolIsActive =
           !tilemapEditorState.fillToolIsActive;
         break;
@@ -46,10 +46,9 @@
 
 <div>
   <sl-button-group label="Tools">
-    <sl-tooltip content="Tile paint (T)">
+    <sl-tooltip content="Tile paint (Q)">
       <!-- Svelte wants an aria role but shoelace has handled this internally -->
-      
-     
+
       <sl-button
         class:selected-tool={tilemapEditorState.selectedTool === Tool.PAINT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.PAINT)}
@@ -58,10 +57,9 @@
       >
     </sl-tooltip>
 
-    <sl-tooltip content="Erase (E)">
+    <sl-tooltip content="Erase (W)">
       <!-- Svelte wants an aria role   but shoelace has handled this internally -->
-      
-     
+
       <sl-button
         class:selected-tool={tilemapEditorState.selectedTool === Tool.ERASE}
         onclick={() => (tilemapEditorState.selectedTool = Tool.ERASE)}
@@ -73,10 +71,9 @@
       >
     </sl-tooltip>
 
-    <sl-tooltip content="Selection (S)">
+    <sl-tooltip content="Selection (E)">
       <!-- Svelte wants an aria role   but shoelace has handled this internally -->
-      
-     
+
       <sl-button
         class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
@@ -86,9 +83,9 @@
     </sl-tooltip>
   </sl-button-group>
 
-  <sl-button-group label="Modifiers">
-    <sl-tooltip content="Fill tool (F)">
-      <!-- Svelte wants an aria role but shoelace has handled this internally -->
+  <!-- <sl-button-group label="Modifiers">
+    <sl-tooltip content="Fill tool (R)">
+      
       
      
       <sl-button
@@ -100,7 +97,7 @@
         ></sl-icon></sl-button
       >
     </sl-tooltip>
-  </sl-button-group>
+  </sl-button-group> -->
 </div>
 
 <style lang="postcss">

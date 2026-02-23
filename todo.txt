@@ -17,11 +17,9 @@ still reactive according to svelte, review Error handling, how will GUI or other
 
 * Reactivity issue with layers and dnd action, items loose reactivity when it comes to classes/styling and become unable to interact with
 
-
+* Adjust canvas scale to dpr to avoid blurry lines
 
 # Backlog
-
-* Add copy paste functionality to select tool that currently only supports move and delete of selection
 
 * Add a image next to the cursor to show selected asset that the user is painting with -> not necessary, adds clutter I think 
 

@@ -597,12 +597,15 @@ export const projectState = (() => {
         const prevTiles = [];
         const nextTiles = [];
 
+        const minX = Math.min(...tiles.map(t => t.ref.tile.tilesetPos.x));
+        const minY = Math.min(...tiles.map(t => t.ref.tile.tilesetPos.y));
+
         for (const t of tiles) {
 
           const r =
-            row + Math.floor(t.ref.tile.tilesetPos.y / tileSize);
+            row + Math.floor((t.ref.tile.tilesetPos.y - minY) / tileSize);
           const c =
-            col + Math.floor(t.ref.tile.tilesetPos.x / tileSize);
+            col + Math.floor((t.ref.tile.tilesetPos.x - minX)/ tileSize);
 
 
           if (r >= projectState.rows || c >= projectState.cols) continue; // out of bounds
@@ -701,12 +704,7 @@ export const projectState = (() => {
           );
 
         const clickedTile = this.getTileAt(row, col, layerID);
-        const BOUNDARY = 100;
-        const minRow = row - BOUNDARY;
-        const maxRow = row + BOUNDARY;
-        const minCol = col - BOUNDARY;
-        const maxCol = col + BOUNDARY;
-
+  
         const stack = [{ row, col }];
 
         const visited = new Set();
@@ -718,21 +716,10 @@ export const projectState = (() => {
         while (stack.length > 0) {
           const tile = stack.pop()!;
 
-          if (
-            tile.row < minRow ||
-            tile.row > maxRow ||
-            tile.col < minCol ||
-            tile.col > maxCol
-          ) {
-            throw new ProjectStateError(
-              "Flood fill exceeded boundary limits",
-              "boundary-exceeded",
-            );
-          }
-
-          const neighbours = getNeighbours({ row: tile.row, col: tile.col });
+          const neighbours = getNeighbours({ row: tile.row, col: tile.col }, projectState.rows, projectState.cols);
 
           for (const n of neighbours) {
+
             const visitedKey = `${n.row}:${n.col}`;
 
             if (
@@ -830,7 +817,7 @@ export const projectState = (() => {
           tile,
         };
 
-        const neighbours = getNeighbours({ row, col }, true);
+        const neighbours = getNeighbours({ row, col }, projectState.rows, projectState.cols, true);
 
         for (const n of neighbours) {
           const currTile = api.layers.getTileAt(n.row, n.col, layerID);
@@ -909,7 +896,7 @@ export const projectState = (() => {
 
         paintedTiles.push({ pos: { row: row, col: col }, data: null });
 
-        const neighbours = getNeighbours({ row, col }, true);
+        const neighbours = getNeighbours({ row, col }, projectState.rows, projectState.cols, true);
 
         for (const n of neighbours) {
           const currTile = api.layers.getTileAt(n.row, n.col, layerID);
