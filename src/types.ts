@@ -71,11 +71,15 @@ type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE
   ? AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> }
   : AssetRefT<T>;
 
+
+type LayerDataT<T extends PaintType> = (PaintedAssetT<T> | null)[][];
+
+type LayerData = LayerDataT<PaintType.TILE> | LayerDataT<PaintType.AUTO_TILE> | LayerDataT<PaintType.AREA>;
+
 type LayerT<T extends PaintType> = {
     id: string;
     type: T;
     name: string;
-    data: (PaintedAssetT<T> | null)[];
 };
 
 type PaintedTile = PaintedAssetT<PaintType.TILE>;
@@ -165,8 +169,6 @@ type GUIState = {
   tilemapEditorState: TilemapEditorState;
   showGrid: boolean;
   gridColor: string;
-  history: HistoryEntry[];
-  historyIdx: number;
   mouseTilePos: { row: number; col: number };
   visibleLayers: { [key: string]: boolean };
 };
@@ -221,6 +223,7 @@ export {
   type AreaHistoryEntryItem,
   type AutoTileHistoryEntryItem,
   type TileHistoryEntryItem,
+  type LayerData,
   PaintType,
   Tool,
   TileRequirement,

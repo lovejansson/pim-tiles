@@ -1,30 +1,27 @@
 # Todo 
 
+
+* Project API refactor: Some properties of project is manipulated directly via UI binds for example the name of each layer, make a clean and good API for updating the project state but make sure that the properties are 
+still reactive according to svelte, review Error handling, how will GUI or other clients receive errors, is it via throws? Most errors are "not found", "type mismatch between layer and data" and "asset in use",
+ API för projectstate tydligare att "areas" är en modul och inte listan av areas 
+
+* Flood fill
+
 * Save As .ptm 
 
 * Load .ptm
 
 * Auto save project with browser data indexed DB or localStorage
 
-* Do testing for export and save project functions
-
 * Use proto files for binary file format 
 
 * Reactivity issue with layers and dnd action, items loose reactivity when it comes to classes/styling and become unable to interact with
 
-* Refactor / determine data structure for tilemap itself, Map's is both slower due to string manipulations and requries more memory
+
 
 # Backlog
 
 * Add copy paste functionality to select tool that currently only supports move and delete of selection
-
-* Weird to keep CRUD API for projectstate when GUI updates it by updating the objects directly, for example layer name
-
-* Errors from updates of project state, don't want to throw in the console
-
-* API för projectstate tydligare att "areas" är en modul och inte listan av areas 
-
-* Flood fill
 
 * Add a image next to the cursor to show selected asset that the user is painting with -> not necessary, adds clutter I think 
 

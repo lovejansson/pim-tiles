@@ -1,6 +1,14 @@
 <script lang="ts">
   import { guiState, projectState, HistoryStack } from "../state.svelte";
-  import { PaintType, Tool, type Cell, type PaintedAsset } from "../types";
+  import {
+    PaintType,
+    Tool,
+    type Cell,
+    type PaintedArea,
+    type PaintedAsset,
+    type PaintedAutoTile,
+    type PaintedTile,
+  } from "../types";
   import TilemapViewport, {
     TilemapViewportPaintEvent,
     TilemapViewportRightClickEvent,
@@ -9,7 +17,6 @@
   } from "./TilemapViewport";
   import TileAttributesDialog from "./TileAttributesDialog.svelte";
   import { onMount } from "svelte";
-  import { cellToIndex } from "../utils";
   const { tileSize, layers, areas, tilesets } = $derived(projectState);
   const { tilemapEditorState, gridColor, showGrid } = $derived(guiState);
 
@@ -18,7 +25,7 @@
 
   let ctrlKeyIsDown = false;
 
-  const dirtyTiles: Set<string> = new Set();
+  const dirtyTiles: Cell[] = [];
   let selectedTiles: { org: Cell; curr: Cell; tile: PaintedAsset }[] = [];
 
   let container!: HTMLElement;
@@ -30,8 +37,8 @@
   > = new Map();
 
   $effect(() => {
+    
     // Sync canvasCache with update layers
-
     const addedLayers = layers.get().filter((l) => !canvasCache.has(l.id));
 
     const deletedLayers = Array.from(canvasCache.keys()).filter(
@@ -58,7 +65,7 @@
     if (container === undefined) return;
 
     tilemapViewport = new TilemapViewport(container, {
-      zoom: { min: 0.75, max: 5.0, speed: 0.375 },
+      zoom: { min: 0.25, max: 5.0, speed: 0.125 },
       pan: { key: " " },
       grid: {
         tileSize: tileSize,
@@ -123,7 +130,7 @@
               tilemapEditorState.selectedLayer,
               t.tile,
             );
-            dirtyTiles.add(`${t.curr.row}:${t.curr.col}`);
+            dirtyTiles.push({ ...t.curr });
             break;
 
           case PaintType.AREA:
@@ -133,7 +140,8 @@
               tilemapEditorState.selectedLayer,
               t.tile,
             );
-            dirtyTiles.add(`${t.curr.row}:${t.curr.col}`);
+
+            dirtyTiles.push({ ...t.curr });
             break;
 
           case PaintType.AUTO_TILE:
@@ -175,12 +183,13 @@
                   col,
                   tilemapEditorState.selectedLayer,
                 );
-                dirtyTiles.add(`${row}:${col}`);
+
+                dirtyTiles.push({ row, col });
                 break;
               case PaintType.TILE:
               case PaintType.AREA:
                 layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
-                dirtyTiles.add(`${row}:${col}`);
+                dirtyTiles.push({ row, col });
             }
 
             selectedTiles.push({
@@ -253,34 +262,24 @@
                   tilemapEditorState.selectedAsset,
                 );
 
-                const minX = Math.min(
-                  ...tilemapEditorState.selectedAsset.map(
-                    (t) => t.ref.tile.tilesetPos.x,
-                  ),
-                );
-
-                const minY = Math.min(
-                  ...tilemapEditorState.selectedAsset.map(
-                    (t) => t.ref.tile.tilesetPos.y,
-                  ),
-                );
-
                 for (const t of tilemapEditorState.selectedAsset) {
                   const r =
-                    row +
-                    Math.floor((t.ref.tile.tilesetPos.y - minY) / tileSize);
+                    row + Math.floor(t.ref.tile.tilesetPos.y / tileSize);
                   const c =
-                    col +
-                    Math.floor((t.ref.tile.tilesetPos.x - minX) / tileSize);
-                  dirtyTiles.add(`${r}:${c}`);
+                    col + Math.floor(t.ref.tile.tilesetPos.x / tileSize);
+
+                  if (r >= projectState.rows || c >= projectState.cols)
+                    continue;
+
+                  dirtyTiles.push({ row: r, col: c });
                 }
-                console.log("DIRT TILES", dirtyTiles.size)
               }
 
               break;
             case Tool.ERASE:
               layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
-              dirtyTiles.add(`${row}:${col}`);
+
+              dirtyTiles.push({ row, col });
               break;
           }
 
@@ -319,17 +318,17 @@
                   tilemapEditorState.selectedAsset,
                 );
 
-                dirtyTiles.add(`${row}:${col}`);
+                dirtyTiles.push({ row, col });
               }
               break;
             case Tool.ERASE:
               layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
-              dirtyTiles.add(`${row}:${col}`);
+
+              dirtyTiles.push({ row, col });
               break;
           }
           break;
       }
-      console.log("EK")
     }
   };
 
@@ -361,20 +360,15 @@
         }
       | undefined;
 
-    let idx = 0;
-        if(dirtyTiles.size > 0) {
-          console.log("DRAW")
-        }
-
     for (const layer of layers.get()) {
+      const data = projectState.layers.getData(layer.id);
       cached = canvasCache.get(layer.id);
 
       if (cached === undefined)
         throw new Error("Cached canvas for layer doesn't exist!");
       let x = 0;
       let y = 0;
-      for (const dt of dirtyTiles) {
-        const [row, col] = dt.split(":").map(Number);
+      for (const { row, col } of dirtyTiles) {
         x = col * tileSize;
         y = row * tileSize;
 
@@ -382,12 +376,7 @@
 
         switch (layer.type) {
           case PaintType.TILE:
-            idx = cellToIndex(
-              { row, col },
-              projectState.rows,
-              projectState.cols,
-            );
-            const paintedTile = layer.data[idx];
+            const paintedTile = data[row][col] as PaintedTile | null;
 
             if (paintedTile !== null) {
               const tileset = tilesets.getTileset(
@@ -411,12 +400,7 @@
 
             break;
           case PaintType.AUTO_TILE:
-            idx = cellToIndex(
-              { row, col },
-              projectState.rows,
-              projectState.cols,
-            );
-            const paintedAutoTile = layer.data[idx];
+            const paintedAutoTile = data[row][col] as PaintedAutoTile | null;
 
             if (paintedAutoTile !== null) {
               const tileset = tilesets.getTileset(
@@ -440,27 +424,30 @@
 
             break;
           case PaintType.AREA:
-            idx = cellToIndex(
-              { row, col },
-              projectState.rows,
-              projectState.cols,
-            );
-            const paintedArea = layer.data[idx];
+            const paintedArea = data[row][col] as PaintedArea | null;
 
             if (paintedArea !== null) {
               const area = areas.getArea(paintedArea.ref.id);
 
+              // TODO: fix lines of areas when I know if I want areas
+
               cached.ctx.lineWidth = 1;
+
               cached.ctx.strokeStyle = area.color;
 
               cached.ctx.strokeRect(
-                x + 4 - 0.5,
-                y + 4 - 0.5,
-                tileSize - 8,
-                tileSize - 8,
+                x - 0.5,
+                y - 0.5,
+                tileSize + 0.5,
+                tileSize + 0.5,
               );
             } else {
-              cached.ctx.clearRect(x, y, tileSize, tileSize);
+              cached.ctx.clearRect(
+                x - 0.5,
+                y - 0.5,
+                tileSize + 0.5,
+                tileSize + 0.5,
+              );
             }
 
             break;
@@ -514,7 +501,7 @@
       }
     }
 
-    dirtyTiles.clear();
+    dirtyTiles.length = 0;
   }
 </script>
 

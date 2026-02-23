@@ -129,7 +129,7 @@ export default class TilemapViewport extends EventTarget {
   private ctx: CanvasRenderingContext2D;
   private ctxOverlay: CanvasRenderingContext2D;
 
-  private zoom: number;
+   zoom: number;
   private translation: Point;
 
   private zoomSettings: ZoomSettings | null;
@@ -287,13 +287,16 @@ export default class TilemapViewport extends EventTarget {
   private drawGrid() {
     // Draw grid if not to zoomed out bc of performance
     if (this.gridSettings.showGrid) {
+
+      const dpr = window.devicePixelRatio || 1;
+
       const tileSize = this.gridSettings.tileSize;
 
       this.ctxOverlay.beginPath();
 
       this.ctxOverlay.strokeStyle = "black";
 
-      this.ctxOverlay.lineWidth = 1;
+      this.ctxOverlay.lineWidth = 1 / (this.zoom * dpr);
 
       // Draws horisontal lines
       for (let y = -0.5; y <= this.gridSettings.height; y += tileSize) {
@@ -471,9 +474,13 @@ export default class TilemapViewport extends EventTarget {
             } else {
 
               if (isWithinGridBounds) {
+
+
+
                 this.mouseAction = { type: MouseActionType.PAINT, data: { lastPaintedTile: { ...tile } } };
 
                 this.dispatchEvent(new TilemapViewportPaintEvent(tile));
+
               }
 
 
@@ -549,7 +556,7 @@ export default class TilemapViewport extends EventTarget {
 
             this.dispatchEvent(new TilemapViewportSelectionChangeEvent(this.selection));
           } else if (this.mouseAction.type === MouseActionType.MOVE_SELECTION) {
-              this.dispatchEvent(new TilemapViewportSelectionMoveEndEvent());
+            this.dispatchEvent(new TilemapViewportSelectionMoveEndEvent());
           }
 
           this.mouseAction = null;

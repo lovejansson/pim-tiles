@@ -59,14 +59,6 @@ function isPointInRect(point: Point, rect: Rect) {
     return point.x > rect.x && point.x < rect.x + rect.width && point.y > rect.y && point.y < rect.y + rect.height;
 }
 
-function indexToCell(index: number, rows: number, cols: number): Cell {
-    return {row: (index / cols),  col: (index % cols)};
-}
-
-function cellToIndex(cell: Cell, rows: number, cols: number): number {
-    return cell.row * cols + cell.col;
-}
-
 function getNeighbours(cell: { row: number, col: number }, includeDiagonalNeighbours: boolean = false) {
 
     const neighbours = [];
@@ -116,4 +108,4 @@ function isSameCell(cell1: Cell, cell2: Cell) {
     return cell1.row === cell2.row && cell1.col === cell2.col;
 }
 
-export {indexToCell, cellToIndex, isSameCell, dataURLToBitmap, splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas, download }
+export { isSameCell, dataURLToBitmap, splitIntoTiles, bitmapToDataURL, roundToDecimal, isPointInRect, getNeighbours, detectOS, isTransparent, createOffScreenCanvas, download }
