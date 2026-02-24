@@ -1,7 +1,7 @@
 <script lang="ts">
   import { projectState } from "../../state.svelte";
   import AreaItem from "./AreaItem.svelte";
-  import CreateNewAreaDialog from "./CreateNewAreaDialog.svelte";
+  import AreaDialog from "./AreaDialog.svelte";
 
   let createNewAreaDialogIsOpen = $state(false);
 </script>
@@ -9,8 +9,7 @@
 <section id="areas">
   <header>
     <h2>Areas</h2>
-    
-    
+
     <sl-button
       onclick={() => {
         createNewAreaDialogIsOpen = true;
@@ -21,9 +20,9 @@
     >
   </header>
 
-  {#if projectState.areas.get().length > 0}
+  {#if projectState.getAreas().length > 0}
     <ul>
-      {#each projectState.areas.get() as area}
+      {#each projectState.getAreas() as area}
         <li>
           <AreaItem {area} />
         </li>
@@ -36,7 +35,7 @@
   {/if}
 </section>
 
-<CreateNewAreaDialog bind:open={createNewAreaDialogIsOpen} />
+<AreaDialog bind:open={createNewAreaDialogIsOpen} />
 
 <style lang="postcss">
   header {

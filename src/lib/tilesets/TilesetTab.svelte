@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {  projectState } from "../../state.svelte";
+  import { projectState } from "../../state.svelte";
   import type { Tileset } from "../../types";
   import ContextMenu from "../common/ContextMenu.svelte";
   import EditableText from "../common/EditableText.svelte";
@@ -13,12 +13,10 @@
   let isEditingName = $state(false);
 
   const handleSelectMenuItem = (item: any) => {
-
     if (item.value === "delete") {
       projectState.deleteTileset(tileset.id);
-
     } else if (item.value === "rename") {
-        isEditingName = true;
+      isEditingName = true;
     }
   };
 </script>

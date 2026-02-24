@@ -35,7 +35,6 @@
     projectState.width = width;
     projectState.height = height;
     confirmDialogIsOpen = false;
-  
   };
 
   const handleCancel = () => {
@@ -43,19 +42,21 @@
   };
 
   const save = () => {
-    if(!hasChanges) return;
+    if (!hasChanges) return;
 
-    if(tileSize !== projectState.tileSize || width !== projectState.width || height !== projectState.height) {
+    if (
+      tileSize !== projectState.tileSize ||
+      width !== projectState.width ||
+      height !== projectState.height
+    ) {
       confirmDialogIsOpen = true;
       return;
-    } 
+    }
 
     projectState.tileSize = tileSize;
     projectState.name = name;
     projectState.width = width;
     projectState.height = height;
- 
-
   };
 </script>
 

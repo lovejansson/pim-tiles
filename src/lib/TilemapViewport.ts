@@ -11,6 +11,13 @@ type PanSettings = {
   key?: string;
 };
 
+type SelectionSettings = {
+  isActive: boolean;
+  delete?: boolean;
+  move?: boolean;
+  copy?: boolean;
+};
+
 type GridSettings = {
   showGrid: boolean;
   gridColor: string;
@@ -29,7 +36,7 @@ export type SelectionRect = {
 export type TilemapViewportOptions = {
   zoom?: ZoomSettings;
   pan?: PanSettings;
-  selection?: boolean;
+  selection?: SelectionSettings;
   grid: GridSettings;
   draw: (ctx: CanvasRenderingContext2D) => void;
   defaultCursor?: string;
@@ -63,7 +70,6 @@ export class TilemapViewportSelectionMoveEvent extends Event {
 }
 
 export class TilemapViewportSelectionMoveEndEvent extends Event {
-
   constructor() {
     super("selection-move-end");
   }
@@ -103,27 +109,39 @@ enum MouseActionType {
   SELECT,
   MOVE_SELECTION,
   PAN,
-  PAINT
+  PAINT,
 }
 
-type MouseActionData<T> = T extends MouseActionType.SELECT ? { pos: Point, selection: SelectionRect }
-  : T extends MouseActionType.PAN ? { startPos: Point, startTranslation: Point }
-  : T extends MouseActionType.PAINT ? { lastPaintedTile: Cell }
-  : T extends MouseActionType.MOVE_SELECTION ? { startPos: Point, selection: SelectionRect, startSelection: SelectionRect }
-  : never;
+type MouseActionData<T> = T extends MouseActionType.SELECT
+  ? { pos: Point; selection: SelectionRect }
+  : T extends MouseActionType.PAN
+    ? { startPos: Point; startTranslation: Point }
+    : T extends MouseActionType.PAINT
+      ? { lastPaintedTile: Cell }
+      : T extends MouseActionType.MOVE_SELECTION
+        ? {
+            startPos: Point;
+            selection: SelectionRect;
+            startSelection: SelectionRect;
+          }
+        : never;
 
 type MouseActionT<T> = {
-  type: T,
-  data: MouseActionData<T>
-}
+  type: T;
+  data: MouseActionData<T>;
+};
 
-type MouseAction = MouseActionT<MouseActionType.PAINT> | MouseActionT<MouseActionType.PAN> | MouseActionT<MouseActionType.SELECT> | MouseActionT<MouseActionType.MOVE_SELECTION>;
+type MouseAction =
+  | MouseActionT<MouseActionType.PAINT>
+  | MouseActionT<MouseActionType.PAN>
+  | MouseActionT<MouseActionType.SELECT>
+  | MouseActionT<MouseActionType.MOVE_SELECTION>;
 
 /**
  * @class TilemapViewport
- * 
- * Handles:   
- * 
+ *
+ * Handles:
+ *
  * - Pan
  * - Zoom
  * - Selection
@@ -140,8 +158,8 @@ export default class TilemapViewport extends EventTarget {
 
   private zoomSettings: ZoomSettings | null;
   private panSettings: PanSettings | null;
-  private isSelectionEnabled: boolean;
   private gridSettings: GridSettings;
+  private selectionSettings: SelectionSettings | null;
   private cursor: string;
 
   private isPanKeyDown: boolean;
@@ -187,18 +205,17 @@ export default class TilemapViewport extends EventTarget {
     this.zoomSettings = options.zoom ?? null;
     this.gridSettings = options.grid;
     this.panSettings = options.pan ?? null;
+    this.selectionSettings = options.selection ?? null;
 
     this.zoom = 1;
     this.translation = { x: 0, y: 0 };
     this.selection = null;
-    this.isSelectionEnabled = options.selection ?? false;
 
     this.drawCb = options.draw;
 
     this.isPanKeyDown = false;
     this.mouseAction = null;
     this.cursor = options.defaultCursor ?? "default";
-
   }
 
   get width(): number {
@@ -206,14 +223,12 @@ export default class TilemapViewport extends EventTarget {
   }
 
   set width(width: number) {
-
     const rounded = Math.round(width);
     this.canvas.width = rounded;
     this.overlayCanvas.width = rounded;
 
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
-
   }
 
   get height(): number {
@@ -221,14 +236,12 @@ export default class TilemapViewport extends EventTarget {
   }
 
   set height(height: number) {
-
     const rounded = Math.round(height);
     this.canvas.height = rounded;
     this.overlayCanvas.height = rounded;
 
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
-
   }
 
   set gridColor(gridColor: string) {
@@ -244,12 +257,16 @@ export default class TilemapViewport extends EventTarget {
   }
 
   enableSelection() {
-    this.isSelectionEnabled = true;
+    if (this.isSelectionEnabled(this.selectionSettings)) {
+      this.selectionSettings.isActive = true;
+    }
   }
 
   disabledSelection() {
-    this.selection = null;
-    this.isSelectionEnabled = false;
+    if (this.isSelectionEnabled(this.selectionSettings)) {
+      this.selectionSettings.isActive = false;
+      this.selection = null;
+    }
   }
 
   init(center: boolean = false) {
@@ -259,12 +276,13 @@ export default class TilemapViewport extends EventTarget {
     this.canvas.style.cursor = this.cursor;
     this.overlayCanvas.style.cursor = this.cursor;
     if (this.gridSettings.width > 100) this.zoom = 0.5;
-    if (center) this.translation = { x: this.canvas.clientWidth / 2 - this.gridSettings.width / 4, y: this.canvas.clientHeight / 2 - this.gridSettings.height / 4 };
-
-
+    if (center)
+      this.translation = {
+        x: this.canvas.clientWidth / 2 - this.gridSettings.width / 4,
+        y: this.canvas.clientHeight / 2 - this.gridSettings.height / 4,
+      };
 
     this.update();
-
   }
 
   update() {
@@ -275,8 +293,6 @@ export default class TilemapViewport extends EventTarget {
   }
 
   private clear() {
-
-
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, this.width, this.height);
 
@@ -288,8 +304,6 @@ export default class TilemapViewport extends EventTarget {
 
     this.ctxOverlay.translate(this.translation.x, this.translation.y);
     this.ctxOverlay.scale(this.zoom, this.zoom);
-
-
   }
 
   private drawOverlay() {
@@ -300,9 +314,6 @@ export default class TilemapViewport extends EventTarget {
   private drawGrid() {
     // Draw grid if not to zoomed out bc of performance
     if (this.gridSettings.showGrid) {
-
-
-
       const tileSize = this.gridSettings.tileSize;
 
       this.ctxOverlay.beginPath();
@@ -325,16 +336,23 @@ export default class TilemapViewport extends EventTarget {
 
       this.ctxOverlay.stroke();
     } else {
-      this.ctxOverlay.strokeRect(0, 0, this.gridSettings.width, this.gridSettings.height);
+      this.ctxOverlay.strokeRect(
+        0,
+        0,
+        this.gridSettings.width,
+        this.gridSettings.height,
+      );
     }
   }
 
   private drawSelectionRect() {
     if (this.selection !== null) {
-
-
-
-      const gradient = this.ctxOverlay.createLinearGradient(this.selection.x1, this.selection.y1, this.selection.x2, this.selection.y2);
+      const gradient = this.ctxOverlay.createLinearGradient(
+        this.selection.x1,
+        this.selection.y1,
+        this.selection.x2,
+        this.selection.y2,
+      );
 
       gradient.addColorStop(0, "lime");
       gradient.addColorStop(0.5, "cyan");
@@ -344,7 +362,6 @@ export default class TilemapViewport extends EventTarget {
 
       this.ctxOverlay.fillStyle = "rgba(138, 210, 122, 0.25)";
 
-
       this.ctxOverlay.lineWidth = 2;
       this.ctxOverlay.setLineDash([4, 4]);
       this.ctxOverlay.strokeRect(
@@ -353,10 +370,12 @@ export default class TilemapViewport extends EventTarget {
         this.selection.x2 - this.selection.x1,
         this.selection.y2 - this.selection.y1,
       );
-      this.ctxOverlay.fillRect(this.selection.x1 - 0.5,
+      this.ctxOverlay.fillRect(
+        this.selection.x1 - 0.5,
         this.selection.y1 - 0.5,
         this.selection.x2 - this.selection.x1,
-        this.selection.y2 - this.selection.y1,);
+        this.selection.y2 - this.selection.y1,
+      );
       this.ctxOverlay.setLineDash([]);
     }
   }
@@ -367,7 +386,39 @@ export default class TilemapViewport extends EventTarget {
     return mouseAction !== null;
   }
 
+  private isSelectionActive() {
+    return (
+      this.isSelectionEnabled(this.selectionSettings) &&
+      this.selectionSettings.isActive
+    );
+  }
 
+  private isSelectionDeleteEnabled() {
+    return (
+      this.isSelectionEnabled(this.selectionSettings) &&
+      this.selectionSettings.delete
+    );
+  }
+
+  private isSelectionCopyEnabled() {
+    return (
+      this.isSelectionEnabled(this.selectionSettings) &&
+      this.selectionSettings.copy
+    );
+  }
+
+  private isSelectionMoveEnabled() {
+    return (
+      this.isSelectionEnabled(this.selectionSettings) &&
+      this.selectionSettings.move
+    );
+  }
+
+  private isSelectionEnabled(
+    selectionSettings: SelectionSettings | null,
+  ): selectionSettings is SelectionSettings {
+    return selectionSettings !== null;
+  }
 
   private isZoomEnabled(
     zoomSettings: ZoomSettings | null,
@@ -382,10 +433,8 @@ export default class TilemapViewport extends EventTarget {
   }
 
   private addEventListeners() {
-
     if (this.isZoomEnabled(this.zoomSettings)) {
-
-      addEventListener("wheel", (e: WheelEvent) => {
+      this.overlayCanvas.addEventListener("wheel", (e: WheelEvent) => {
         if (e.target !== this.overlayCanvas) return;
         if (!this.isZoomEnabled(this.zoomSettings)) return;
 
@@ -438,27 +487,38 @@ export default class TilemapViewport extends EventTarget {
       });
     }
 
-    if (this.isPanEnabled(this.panSettings) || this.isSelectionEnabled) {
-
+    if (
+      this.isPanEnabled(this.panSettings) ||
+      this.isSelectionEnabled(this.selectionSettings)
+    ) {
       addEventListener("keydown", (e: KeyboardEvent) => {
         if (!this.isPanEnabled(this.panSettings)) return;
 
         if (e.key === this.panSettings.key) {
           this.overlayCanvas.style.cursor = "grab";
           this.isPanKeyDown = true;
-        } else if ((e.key === "Delete" || e.key === "Backspace") && this.selection !== null) {
+        } else if (
+          (e.key === "Delete" || e.key === "Backspace") &&
+          this.isSelectionDeleteEnabled() &&
+          this.selection !== null
+        ) {
           this.dispatchEvent(new TilemapViewportSelectionDeleteEvent());
           this.selection = null;
-          this.mouseAction = null
+          this.mouseAction = null;
         } else if (e.key === "Meta" || e.key === "Control") {
           this.isCtrlKeyDown = true;
-        } else if (e.key.toLocaleLowerCase() === "c" && this.isCtrlKeyDown && this.selection !== null) {
+        } else if (
+          e.key.toLocaleLowerCase() === "c" &&
+          this.isCtrlKeyDown &&
+          this.selection !== null &&
+          this.isSelectionCopyEnabled()
+        ) {
           this.dispatchEvent(new TilemapViewportSelectionCopyEvent());
         }
-
       });
 
       addEventListener("keyup", (e: KeyboardEvent) => {
+        if (e.target !== this.overlayCanvas) return;
         if (!this.isPanEnabled(this.panSettings)) return;
 
         if (e.key === this.panSettings.key) {
@@ -467,50 +527,69 @@ export default class TilemapViewport extends EventTarget {
         } else if (e.key === "Meta" || e.key === "Control") {
           this.isCtrlKeyDown = false;
         }
-
       });
 
       this.overlayCanvas.addEventListener("mousedown", (e: MouseEvent) => {
-        if (e.target !== this.overlayCanvas) return;
-
         if (e.button === 0) {
-
-          const { canvasPos, worldPos, isWithinGridBounds, tile } = this.getMouseCoordinates(e.clientX, e.clientY)
+          const { canvasPos, worldPos, isWithinGridBounds, tile } =
+            this.getMouseCoordinates(e.clientX, e.clientY);
 
           if (this.isPanKeyDown) {
-            this.mouseAction = { type: MouseActionType.PAN, data: { startPos: { ...canvasPos }, startTranslation: { ...this.translation } } };
+            this.mouseAction = {
+              type: MouseActionType.PAN,
+              data: {
+                startPos: { ...canvasPos },
+                startTranslation: { ...this.translation },
+              },
+            };
           } else {
-
-            if (this.isSelectionEnabled) {
-
+            if (this.isSelectionActive()) {
               // If mouse is down on selected rect
-              if (
+              if ( this.isSelectionMoveEnabled() &&
                 this.selection !== null &&
-                isPointInRect(
-                  worldPos,
-                  {
-                    x: Math.min(this.selection.x1, this.selection.x2),
-                    y: Math.min(this.selection.y1, this.selection.y2),
-                    height: Math.max(this.selection.y1, this.selection.y2) - Math.min(this.selection.y1, this.selection.y2),
-                    width: Math.max(this.selection.x1, this.selection.x2) - Math.min(this.selection.x1, this.selection.x2),
-                  },
-                )
+                isPointInRect(worldPos, {
+                  x: Math.min(this.selection.x1, this.selection.x2),
+                  y: Math.min(this.selection.y1, this.selection.y2),
+                  height:
+                    Math.max(this.selection.y1, this.selection.y2) -
+                    Math.min(this.selection.y1, this.selection.y2),
+                  width:
+                    Math.max(this.selection.x1, this.selection.x2) -
+                    Math.min(this.selection.x1, this.selection.x2),
+                })
               ) {
-                this.mouseAction = { type: MouseActionType.MOVE_SELECTION, data: { startPos: { ...worldPos }, selection: this.selection, startSelection: { ...this.selection } } }
+                this.mouseAction = {
+                  type: MouseActionType.MOVE_SELECTION,
+                  data: {
+                    startPos: { ...worldPos },
+                    selection: this.selection,
+                    startSelection: { ...this.selection },
+                  },
+                };
 
                 // Else start new selection
               } else {
-                this.dispatchEvent(new TilemapViewportSelectionChangeEvent(null));
-                this.mouseAction = { type: MouseActionType.SELECT, data: { pos: { ...worldPos }, selection: this.getSelectionRect(worldPos, worldPos) } }
+                this.dispatchEvent(
+                  new TilemapViewportSelectionChangeEvent(null),
+                );
+                this.mouseAction = {
+                  type: MouseActionType.SELECT,
+                  data: {
+                    pos: { ...worldPos },
+                    selection: this.getSelectionRect(worldPos, worldPos),
+                  },
+                };
                 this.selection = this.getSelectionRect(worldPos, worldPos);
               }
             } else {
               if (isWithinGridBounds) {
-                this.mouseAction = { type: MouseActionType.PAINT, data: { lastPaintedTile: { ...tile } } };
+                this.mouseAction = {
+                  type: MouseActionType.PAINT,
+                  data: { lastPaintedTile: { ...tile } },
+                };
                 this.dispatchEvent(new TilemapViewportPaintEvent(tile));
               }
             }
-
           }
         }
       });
@@ -518,15 +597,14 @@ export default class TilemapViewport extends EventTarget {
       this.overlayCanvas.addEventListener("mousemove", (e: MouseEvent) => {
         if (e.target !== this.overlayCanvas) return;
 
-        const { canvasPos, worldPos, isWithinGridBounds, tile } = this.getMouseCoordinates(e.clientX, e.clientY)
+        const { canvasPos, worldPos, isWithinGridBounds, tile } =
+          this.getMouseCoordinates(e.clientX, e.clientY);
 
         this.dispatchEvent(new TilemapViewportMousePosEvent(tile));
 
         if (this.isMouseDown(this.mouseAction)) {
-
           switch (this.mouseAction.type) {
             case MouseActionType.SELECT:
-
               this.selection = this.getSelectionRect(
                 this.mouseAction.data.pos,
                 worldPos,
@@ -542,15 +620,28 @@ export default class TilemapViewport extends EventTarget {
                 const dx = worldPos.x - this.mouseAction.data.startPos.x;
                 const dy = worldPos.y - this.mouseAction.data.startPos.y;
 
-                const dxSnapped = Math.round(dx / this.gridSettings.tileSize) * this.gridSettings.tileSize;
-                this.mouseAction.data.selection.x1 = this.mouseAction.data.startSelection.x1 + dxSnapped;
-                this.mouseAction.data.selection.x2 = this.mouseAction.data.startSelection.x2 + dxSnapped;
+                const dxSnapped =
+                  Math.round(dx / this.gridSettings.tileSize) *
+                  this.gridSettings.tileSize;
+                this.mouseAction.data.selection.x1 =
+                  this.mouseAction.data.startSelection.x1 + dxSnapped;
+                this.mouseAction.data.selection.x2 =
+                  this.mouseAction.data.startSelection.x2 + dxSnapped;
 
-                const dySnapped = Math.round(dy / this.gridSettings.tileSize) * this.gridSettings.tileSize;
-                this.mouseAction.data.selection.y1 = this.mouseAction.data.startSelection.y1 + dySnapped;
-                this.mouseAction.data.selection.y2 = this.mouseAction.data.startSelection.y2 + dySnapped;
+                const dySnapped =
+                  Math.round(dy / this.gridSettings.tileSize) *
+                  this.gridSettings.tileSize;
+                this.mouseAction.data.selection.y1 =
+                  this.mouseAction.data.startSelection.y1 + dySnapped;
+                this.mouseAction.data.selection.y2 =
+                  this.mouseAction.data.startSelection.y2 + dySnapped;
 
-                this.dispatchEvent(new TilemapViewportSelectionMoveEvent({ x: dxSnapped, y: dySnapped }))
+                this.dispatchEvent(
+                  new TilemapViewportSelectionMoveEvent({
+                    x: dxSnapped,
+                    y: dySnapped,
+                  }),
+                );
               }
 
               break;
@@ -558,13 +649,19 @@ export default class TilemapViewport extends EventTarget {
               const dx = canvasPos.x - this.mouseAction.data.startPos.x;
               const dy = canvasPos.y - this.mouseAction.data.startPos.y;
 
-              this.translation.x = this.mouseAction.data.startTranslation.x + dx;
+              this.translation.x =
+                this.mouseAction.data.startTranslation.x + dx;
 
-              this.translation.y = this.mouseAction.data.startTranslation.y + dy;
+              this.translation.y =
+                this.mouseAction.data.startTranslation.y + dy;
 
               break;
             case MouseActionType.PAINT:
-              if (isWithinGridBounds && (tile.row !== this.mouseAction.data.lastPaintedTile.row || tile.col !== this.mouseAction.data.lastPaintedTile.col)) {
+              if (
+                isWithinGridBounds &&
+                (tile.row !== this.mouseAction.data.lastPaintedTile.row ||
+                  tile.col !== this.mouseAction.data.lastPaintedTile.col)
+              ) {
                 this.dispatchEvent(new TilemapViewportPaintEvent(tile));
                 this.mouseAction.data.lastPaintedTile = tile;
               }
@@ -574,24 +671,26 @@ export default class TilemapViewport extends EventTarget {
       });
 
       addEventListener("mouseup", (_: MouseEvent) => {
-
         if (this.isMouseDown(this.mouseAction)) {
           if (this.mouseAction.type === MouseActionType.SELECT) {
-
-            this.dispatchEvent(new TilemapViewportSelectionChangeEvent(this.selection));
+            this.dispatchEvent(
+              new TilemapViewportSelectionChangeEvent(this.selection),
+            );
           } else if (this.mouseAction.type === MouseActionType.MOVE_SELECTION) {
             this.dispatchEvent(new TilemapViewportSelectionMoveEndEvent());
           }
 
           this.mouseAction = null;
         }
-
       });
 
       this.overlayCanvas.addEventListener("contextmenu", (e: MouseEvent) => {
         if (e.target !== this.overlayCanvas) return;
 
-        const { worldPos, isWithinGridBounds } = this.getMouseCoordinates(e.clientX, e.clientY);
+        const { worldPos, isWithinGridBounds } = this.getMouseCoordinates(
+          e.clientX,
+          e.clientY,
+        );
 
         if (isWithinGridBounds) {
           this.dispatchEvent(new TilemapViewportRightClickEvent(worldPos));
@@ -600,17 +699,22 @@ export default class TilemapViewport extends EventTarget {
         e.preventDefault();
         e.stopPropagation();
       });
-
-
     }
   }
 
-  private getMouseCoordinates(clientX: number, clientY: number): { canvasPos: Point, worldPos: Point, tile: Cell, isWithinGridBounds: boolean } {
+  private getMouseCoordinates(
+    clientX: number,
+    clientY: number,
+  ): {
+    canvasPos: Point;
+    worldPos: Point;
+    tile: Cell;
+    isWithinGridBounds: boolean;
+  } {
     const rect = this.canvas.getBoundingClientRect();
 
     const x = Math.round(clientX - rect.left);
     const y = Math.round(clientY - rect.top);
-
 
     const worldPos = this.getWorldPos({
       x,
@@ -620,13 +724,18 @@ export default class TilemapViewport extends EventTarget {
     const row = Math.floor(worldPos.y / this.gridSettings.tileSize);
     const col = Math.floor(worldPos.x / this.gridSettings.tileSize);
 
-    const isWithinGridBounds = worldPos.x >= 0 && worldPos.x <= this.gridSettings.width && worldPos.y >= 0 && worldPos.y <= this.gridSettings.height;
+    const isWithinGridBounds =
+      worldPos.x >= 0 &&
+      worldPos.x <= this.gridSettings.width &&
+      worldPos.y >= 0 &&
+      worldPos.y <= this.gridSettings.height;
 
     return {
-      canvasPos: { x, y }, worldPos,
-      isWithinGridBounds, tile: { row, col }
-    }
-
+      canvasPos: { x, y },
+      worldPos,
+      isWithinGridBounds,
+      tile: { row, col },
+    };
   }
   private getSelectionRect(
     startPos: { x: number; y: number },
@@ -652,14 +761,13 @@ export default class TilemapViewport extends EventTarget {
       rect.y2 = Math.floor(mousePos.y / tileSize) * tileSize;
     }
 
-
     return rect;
   }
 
   private getWorldPos(pos: Point) {
     // Uses the inverse translation matrix to convert a position on the canvas/screen to the world.
     const inv = this.ctx.getTransform().invertSelf();
-    const p = new DOMPoint(pos.x , pos.y ).matrixTransform(inv);
+    const p = new DOMPoint(pos.x, pos.y).matrixTransform(inv);
     return { x: p.x, y: p.y };
   }
 }

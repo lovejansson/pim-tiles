@@ -6,19 +6,33 @@
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
   import { projectState } from "../../state.svelte";
+  import type { Area } from "../../types";
 
-  let { open = $bindable() } = $props();
+  type AreaDialogProps = {
+    area?: Area;
+    open: boolean;
+  };
+  let { open = $bindable(), area }: AreaDialogProps = $props();
+
+  const isEditMode = (area: Area | undefined): area is Area => {
+    return area !== undefined;
+  };
 
   const hide = () => {
     open = false;
   };
 
-  let name = $state("New area");
-  let color = $state("lime");
-  let isWalkable = $state(false);
+  let name = $state(isEditMode(area) ? area.name : "New Area");
+  let color = $state(isEditMode(area) ? area.color : "lime");
+  let isWalkable = $state(isEditMode(area) ? area.isWalkable : false);
 
   const saveArea = () => {
-    projectState.areas.add(name, color, isWalkable);
+    if (isEditMode(area)) {
+      projectState.updateArea({ id: area.id, name, color, isWalkable });
+    } else {
+      projectState.createArea(name, color, isWalkable);
+    }
+
     open = false;
   };
 </script>
@@ -58,8 +72,6 @@
     checked={isWalkable}>Is Walkable</sl-checkbox
   >
 
-  
- 
   <sl-button variant="primary" onclick={saveArea}>Save</sl-button>
 </sl-dialog>
 

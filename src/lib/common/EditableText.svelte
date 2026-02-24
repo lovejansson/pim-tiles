@@ -24,9 +24,6 @@
   });
 </script>
 
-
-
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 {#if isEditing}
   <sl-input
     style={`width:${inputWidth}px`}

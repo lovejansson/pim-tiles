@@ -5,12 +5,8 @@
 <sl-dialog {label} onsl-after-hide={cancel} {open}>
   <p>{msg}</p>
 
-  
- 
   <sl-button onclick={cancel} slot="footer" variant="default">Cancel</sl-button>
 
-  
- 
   <sl-button onclick={confirm} slot="footer" variant="primary">Yes</sl-button>
 </sl-dialog>
 

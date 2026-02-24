@@ -18,7 +18,7 @@
   } from "./TilemapViewport";
   import TileAttributesDialog from "./TileAttributesDialog.svelte";
   import { onMount } from "svelte";
-  const { tileSize, layers, areas, tilesets } = $derived(projectState);
+  const { tileSize } = $derived(projectState);
   const { tilemapEditorState, gridColor, showGrid } = $derived(guiState);
 
   let tileAttributesDialogIsOpen = $state(false);
@@ -37,13 +37,14 @@
     { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }
   > = new Map();
 
-
   $effect(() => {
     // Sync canvasCache with update layers
-    const addedLayers = layers.get().filter((l) => !canvasCache.has(l.id));
+    const addedLayers = projectState
+      .getLayers()
+      .filter((l) => !canvasCache.has(l.id));
 
     const deletedLayers = Array.from(canvasCache.keys()).filter(
-      (k) => layers.get().find((l) => l.id === k) === undefined,
+      (k) => projectState.getLayers().find((l) => l.id === k) === undefined,
     );
 
     for (const l of addedLayers) {
@@ -77,7 +78,12 @@
       },
       draw: draw,
       defaultCursor: "crosshair",
-      selection: tilemapEditorState.selectedTool === Tool.SELECT,
+      selection: {
+        isActive: tilemapEditorState.selectedTool === Tool.SELECT,
+        move: true,
+        copy: true,
+        delete: true,
+      },
     });
 
     tilemapViewport.addEventListener("paint", handleCanvasPaint);
@@ -128,7 +134,7 @@
       for (const t of selectedTiles) {
         switch (t.tile.type) {
           case PaintType.TILE:
-            layers.paintTile(
+            projectState.paintTile(
               t.curr.row,
               t.curr.col,
               tilemapEditorState.selectedLayer,
@@ -143,7 +149,7 @@
             break;
 
           case PaintType.AREA:
-            layers.paintTile(
+            projectState.paintTile(
               t.curr.row,
               t.curr.col,
               tilemapEditorState.selectedLayer,
@@ -184,7 +190,7 @@
           row = Math.floor(y / tileSize);
           col = Math.floor(x / tileSize);
 
-          const tile = layers.getTileAt(
+          const tile = projectState.getTileAt(
             row,
             col,
             tilemapEditorState.selectedLayer,
@@ -193,7 +199,7 @@
           if (tile !== null) {
             switch (tile.type) {
               case PaintType.AUTO_TILE:
-                layers.eraseAutoTile(
+                projectState.eraseAutoTile(
                   row,
                   col,
                   tilemapEditorState.selectedLayer,
@@ -203,7 +209,11 @@
                 break;
               case PaintType.TILE:
               case PaintType.AREA:
-                layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
+                projectState.eraseTile(
+                  row,
+                  col,
+                  tilemapEditorState.selectedLayer,
+                );
                 dirtyTiles.push({ row, col });
             }
 
@@ -257,7 +267,7 @@
       for (const t of selectedTiles) {
         switch (t.tile.type) {
           case PaintType.TILE:
-            layers.paintTile(
+            projectState.paintTile(
               t.curr.row,
               t.curr.col,
               tilemapEditorState.selectedLayer,
@@ -272,7 +282,7 @@
             break;
 
           case PaintType.AREA:
-            layers.paintTile(
+            projectState.paintTile(
               t.curr.row,
               t.curr.col,
               tilemapEditorState.selectedLayer,
@@ -313,7 +323,7 @@
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                layers.paintTiles(
+                projectState.paintTiles(
                   row,
                   col,
                   tilemapEditorState.selectedLayer,
@@ -348,7 +358,11 @@
 
               break;
             case Tool.ERASE:
-              layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
+              projectState.eraseTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer,
+              );
 
               dirtyTiles.push({ row, col });
               break;
@@ -360,7 +374,7 @@
             case Tool.PAINT: {
               // TODO: update dirty Tiles
               if (tilemapEditorState.selectedAsset !== null) {
-                layers.paintWithAutoTile(
+                projectState.paintWithAutoTile(
                   row,
                   col,
                   tilemapEditorState.selectedAsset.ref.id,
@@ -371,7 +385,11 @@
               break;
             }
             case Tool.ERASE: {
-              layers.eraseAutoTile(row, col, tilemapEditorState.selectedLayer);
+              projectState.eraseAutoTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer,
+              );
               break;
             }
           }
@@ -382,7 +400,7 @@
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                layers.paintTile(
+                projectState.paintTile(
                   row,
                   col,
                   tilemapEditorState.selectedLayer,
@@ -393,7 +411,11 @@
               }
               break;
             case Tool.ERASE:
-              layers.eraseTile(row, col, tilemapEditorState.selectedLayer);
+              projectState.eraseTile(
+                row,
+                col,
+                tilemapEditorState.selectedLayer,
+              );
 
               dirtyTiles.push({ row, col });
               break;
@@ -431,8 +453,8 @@
         }
       | undefined;
 
-    for (const layer of layers.get()) {
-      const data = projectState.layers.getData(layer.id);
+    for (const layer of projectState.getLayers()) {
+      const data = projectState.getLayerData(layer.id);
       cached = canvasCache.get(layer.id);
 
       if (cached === undefined)
@@ -450,7 +472,7 @@
             const paintedTile = data[row][col] as PaintedTile | null;
 
             if (paintedTile !== null) {
-              const tileset = tilesets.getTileset(
+              const tileset = projectState.getTileset(
                 paintedTile.ref.tile.tilesetId,
               );
 
@@ -474,7 +496,7 @@
             const paintedAutoTile = data[row][col] as PaintedAutoTile | null;
 
             if (paintedAutoTile !== null) {
-              const tileset = tilesets.getTileset(
+              const tileset = projectState.getTileset(
                 paintedAutoTile.tile.ref.tile.tilesetId,
               );
 
@@ -498,7 +520,7 @@
             const paintedArea = data[row][col] as PaintedArea | null;
 
             if (paintedArea !== null) {
-              const area = areas.getArea(paintedArea.ref.id);
+              const area = projectState.getArea(paintedArea.ref.id);
 
               // TODO: fix lines of areas when I know if I want areas
 
@@ -537,7 +559,9 @@
             y = t.curr.row * tileSize;
             switch (t.tile.type) {
               case PaintType.TILE:
-                const tileset = tilesets.getTileset(t.tile.ref.tile.tilesetId);
+                const tileset = projectState.getTileset(
+                  t.tile.ref.tile.tilesetId,
+                );
 
                 ctx.drawImage(
                   tileset.spritesheet,
@@ -552,7 +576,7 @@
                 );
                 break;
               case PaintType.AREA:
-                const area = areas.getArea(t.tile.ref.id);
+                const area = projectState.getArea(t.tile.ref.id);
 
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = area.color;

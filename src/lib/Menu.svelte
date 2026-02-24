@@ -1,8 +1,7 @@
 <script lang="ts">
   import { projectState } from "../state.svelte";
-    import { detectOS, download } from "../utils";
+  import { detectOS, download } from "../utils";
   import SettingsDialog from "./SettingsDialog.svelte";
-
 
   const OS = detectOS();
   const isMac = OS === "Mac";
@@ -16,8 +15,6 @@
       case "open":
         break;
       case "save":
-        break;
-      case "save-as":
         break;
       case "export-json":
         const json = projectState.getJSONExport();
@@ -37,16 +34,12 @@
       (e.metaKey && isMac) ||
       (e.ctrlKey && (OS === "Windows" || OS === "Other"));
 
-    const isSaveAsCommand =
-      e.key.toLowerCase() === "s" && e.shiftKey && ctrlOrCommandKeyIsDown;
     const isSaveCommand = e.key.toLowerCase() === "s" && ctrlOrCommandKeyIsDown;
     const isCreateCommand =
       e.key.toLowerCase() === "c" && ctrlOrCommandKeyIsDown;
     const isOpenCommand = e.key.toLowerCase() === "o" && ctrlOrCommandKeyIsDown;
 
-    if (isSaveAsCommand) {
-      e.preventDefault();
-    } else if (isSaveCommand) {
+    if (isSaveCommand) {
       e.preventDefault();
     } else if (isOpenCommand) {
       e.preventDefault();
@@ -61,7 +54,7 @@
 <sl-dropdown>
   <sl-button size="small" variant="primary" slot="trigger">Project</sl-button>
   <sl-menu onsl-select={handleMenuSelect}>
-    <p>{projectState.projectName}</p>
+    <p>{projectState.name}</p>
     <sl-menu-item value="create"
       >Create
       <span class="command" slot="suffix">
@@ -94,17 +87,7 @@
         S
       </span>
     </sl-menu-item>
-    <sl-menu-item value="save-as"
-      >Save As <span class="command" slot="suffix">
-        {#if isMac}
-          <sl-icon library="pixelarticons" name={"command"}></sl-icon>
-        {:else}
-          Ctrl
-        {/if}
-        <sl-icon library="pixelarticons" name="arrow-up"></sl-icon>
-        S</span
-      >
-    </sl-menu-item>
+
     <sl-menu-item value="export-json">Export JSON</sl-menu-item>
     <sl-menu-item value="settings"
       >Settings <sl-icon slot="suffix" name="gear"></sl-icon></sl-menu-item
@@ -118,7 +101,6 @@
 <style>
   sl-menu {
     width: 300px;
-    
   }
   p {
     padding: 0px 1.8rem;

@@ -19,7 +19,7 @@
   let layerType: PaintType = $state(PaintType.TILE);
 
   const saveLayer = () => {
-    projectState.layers.add(name, layerType);
+    projectState.createLayer(name, layerType);
     open = false;
   };
 </script>

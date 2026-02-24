@@ -11,14 +11,14 @@
   // Need a separate state for layers here since dnd lib replaces items on drag and at the same time requires the user to update the items list which means that if we update project state it will
   // contain shadow items and miss real items for a short while.
   // IMPORTANTE that this syncs well with the SOT projectState, delete, update of name and reordering is done only in this component.
-  let layers = $state(projectState.layers.get());
+  let layers = $state(projectState.getLayers());
 
   const handleDndConsider = (e: CustomEvent<DndEvent<Layer>>) => {
     layers = e.detail.items; // Update only UI state here since it isn't finalized
   };
 
   const handleDndFinalize = (e: CustomEvent<DndEvent<Layer>>) => {
-    projectState.layers.set(e.detail.items); // Update the SOT state here
+    projectState.setReorderedLayers(e.detail.items); // Update the SOT state here
     layers = e.detail.items; // Sync UI state with SOT state
     //updateSelectedStyles();
   };
@@ -53,11 +53,11 @@
   };
 
   const renameLayer = (id: string, name: string) => {
-    projectState.layers.update(id, name);
+    projectState.updateLayer(id, name);
   };
 
   const deleteLayer = (id: string) => {
-    if (projectState.layers.get().length === 1) {
+    if (projectState.getLayers().length === 1) {
       guiState.notification = {
         variant: "danger",
         title: "Delete layer",
@@ -68,7 +68,7 @@
 
     const idx = layers.findIndex((l) => l.id === id);
 
-    projectState.layers.delete(id);
+    projectState.deleteLayer(id);
 
     if (idx === -1) throw new Error("Layer not found");
 

@@ -54,17 +54,17 @@ export const guiState: GUIState = $state({
   visibleLayers: {},
 });
 
-enum ErrorCode {
+export enum ProjectStateErrorCode {
   NOT_FOUND = "not-found",
   BAD_REQUEST = "bad-request",
   TYPE_ERROR = "type-error",
   OUT_OF_BOUNDS = "out-of-bounds",
 }
 
-class ProjectStateError extends Error {
+export class ProjectStateError extends Error {
   constructor(
     msg: string,
-    public code: ErrorCode,
+    public code: ProjectStateErrorCode,
   ) {
     super(msg);
     this.name = "ProjectStateError";
@@ -123,7 +123,7 @@ class ProjectState {
     if (![16, 32, 48, 64].includes(px))
       throw new ProjectStateError(
         "Tile size must be 16, 32, 48 or 64",
-        ErrorCode.BAD_REQUEST,
+        ProjectStateErrorCode.BAD_REQUEST,
       );
 
     this._tileSize = px;
@@ -141,7 +141,7 @@ class ProjectState {
     if (px > MAX_TILES)
       throw new ProjectStateError(
         "Maximum allowed height for tilemap is " + MAX_TILES * this.tileSize,
-        ErrorCode.BAD_REQUEST,
+        ProjectStateErrorCode.BAD_REQUEST,
       );
 
     this._height = px;
@@ -155,7 +155,7 @@ class ProjectState {
     if (px > MAX_TILES)
       throw new ProjectStateError(
         "Maximum allowed width for tilemap is " + MAX_TILES * this.tileSize,
-        ErrorCode.BAD_REQUEST,
+        ProjectStateErrorCode.BAD_REQUEST,
       );
 
     this._width = px;
@@ -176,7 +176,7 @@ class ProjectState {
   getTileset(id: string) {
     const tileset = this.tilesets.find((t) => t.id === id);
     if (tileset === undefined)
-      throw new ProjectStateError("Tileset not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Tileset not found", ProjectStateErrorCode.NOT_FOUND);
     return tileset;
   }
 
@@ -184,7 +184,7 @@ class ProjectState {
     const tileset = this.tilesets.find((ts) => ts.id === tile.tilesetId);
 
     if (tileset === undefined)
-      throw new ProjectStateError("Tileset not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Tileset not found", ProjectStateErrorCode.NOT_FOUND);
 
     if (
       tile.tilesetPos.x < 0 ||
@@ -194,7 +194,7 @@ class ProjectState {
     )
       throw new ProjectStateError(
         "Tile pos out of bounds",
-        ErrorCode.OUT_OF_BOUNDS,
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
     const ctxTile = createOffScreenCanvas(this.tileSize, this.tileSize);
@@ -213,7 +213,7 @@ class ProjectState {
     return ctxTile.canvas.toDataURL();
   }
 
-  addTileset(name: string, bitmap: ImageBitmap) {
+  createTileset(name: string, bitmap: ImageBitmap) {
     const tileset: Tileset = {
       id: this.generateId(),
       name,
@@ -229,7 +229,7 @@ class ProjectState {
     const idx = this.tilesets.findIndex((t) => t.id === id);
 
     if (idx === -1)
-      throw new ProjectStateError("Tileset not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Tileset not found", ProjectStateErrorCode.NOT_FOUND);
 
     const tileset = this.tilesets[idx];
 
@@ -262,8 +262,8 @@ class ProjectState {
 
     if (isUsedInTileLayer || isUsedInAutoTile)
       throw new ProjectStateError(
-        "Tileset is referenced in project",
-        ErrorCode.BAD_REQUEST,
+        "Tileset is used in project, can't be deleted",
+        ProjectStateErrorCode.BAD_REQUEST,
       );
 
     this.tilesets.splice(idx, 1);
@@ -276,11 +276,11 @@ class ProjectState {
   getArea(id: string) {
     const area = this.areas.find((a) => a.id === id);
     if (area === undefined)
-      throw new ProjectStateError("Area not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Area not found", ProjectStateErrorCode.NOT_FOUND);
     return area;
   }
 
-  addArea(name: string, color: string, isWalkable: boolean) {
+  createArea(name: string, color: string, isWalkable: boolean) {
     this.areas.push({
       id: this.generateId(),
       name,
@@ -292,14 +292,14 @@ class ProjectState {
   updateArea(area: Area) {
     const idx = this.areas.findIndex((a) => a.id === area.id);
     if (idx === -1)
-      throw new ProjectStateError("Area not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Area not found", ProjectStateErrorCode.NOT_FOUND);
     this.areas[idx] = area;
   }
 
   deleteArea(id: string) {
     const idx = this.areas.findIndex((a) => a.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Area not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Area not found", ProjectStateErrorCode.NOT_FOUND);
     const area = this.areas[idx];
 
     const isUsed =
@@ -324,8 +324,8 @@ class ProjectState {
 
     if (isUsed)
       throw new ProjectStateError(
-        "Area is referenced in project",
-        ErrorCode.BAD_REQUEST,
+        "Area is used in project, can't be deleted!",
+        ProjectStateErrorCode.BAD_REQUEST,
       );
 
     this.areas.splice(idx, 1);
@@ -338,11 +338,11 @@ class ProjectState {
   getAutoTile(id: string) {
     const autoTile = this.autoTiles.find((at) => at.id === id);
     if (autoTile === undefined)
-      throw new ProjectStateError("Autotile not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Autotile not found", ProjectStateErrorCode.NOT_FOUND);
     return autoTile;
   }
 
-  addAutoTile(name: string, rules: TileRule[], defaultTile: TileAsset) {
+  createAutoTile(name: string, rules: TileRule[], defaultTile: TileAsset) {
     this.autoTiles.push({
       id: this.generateId(),
       name: name,
@@ -353,14 +353,14 @@ class ProjectState {
   updateAutoTile(autoTile: AutoTile) {
     const idx = this.autoTiles.findIndex((at) => at.id === autoTile.id);
     if (idx === -1)
-      throw new ProjectStateError("Autotile not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Autotile not found", ProjectStateErrorCode.NOT_FOUND);
     this.autoTiles[idx] = autoTile;
   }
 
   deleteAutoTile(id: string) {
     const idx = this.autoTiles.findIndex((at) => at.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Autotile not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Autotile not found", ProjectStateErrorCode.NOT_FOUND);
 
     const autoTile = this.autoTiles[idx];
 
@@ -384,8 +384,8 @@ class ProjectState {
       }) !== undefined;
     if (isUsed)
       throw new ProjectStateError(
-        "Autotile is referenced in project",
-        ErrorCode.BAD_REQUEST,
+        "Autotile is used in project, can't be deleted.",
+        ProjectStateErrorCode.BAD_REQUEST,
       );
     this.autoTiles.splice(idx, 1);
   }
@@ -397,7 +397,7 @@ class ProjectState {
   getTileAttributes(cell: Cell) {
     const attributes = this.attributes.get(`${cell.row}:${cell.col}`);
     if (attributes === undefined)
-      throw new ProjectStateError("Attributes not found", ErrorCode.NOT_FOUND); // TODO: errors????
+      throw new ProjectStateError("Attributes not found", ProjectStateErrorCode.NOT_FOUND); // TODO: errors????
 
     return attributes;
   }
@@ -423,18 +423,18 @@ class ProjectState {
   getLayer(id: string): Layer {
     const layer = this.layers.find((l) => l.id === id);
     if (layer === undefined)
-      throw new ProjectStateError("Layer not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
     return layer;
   }
   getLayerData(id: string): LayerData {
     const data = this.layerData.get(id);
 
     if (data === undefined)
-      throw new ProjectStateError("Layer not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
 
     return data;
   }
-  addLayer(name: string, type: PaintType) {
+  createLayer(name: string, type: PaintType) {
     const id = this.generateId();
 
     this.layerData.set(
@@ -472,14 +472,14 @@ class ProjectState {
   updateLayer(id: string, name: string) {
     const idx = this.layers.findIndex((l) => l.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Layer not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
     this.layers[idx].name = name;
   }
 
   deleteLayer(id: string) {
     const idx = this.layers.findIndex((l) => l.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Layer not found", ErrorCode.NOT_FOUND);
+      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
     this.layers.splice(idx, 1);
   }
 
@@ -496,7 +496,7 @@ class ProjectState {
     if (layer.type !== paint.type)
       throw new ProjectStateError(
         "type mismatch between layer and asset",
-        ErrorCode.TYPE_ERROR,
+        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     const data = this.getLayerData(layerID);
@@ -532,7 +532,7 @@ class ProjectState {
     if (layer.type !== PaintType.TILE)
       throw new ProjectStateError(
         "type mismatch between layer and asset",
-        ErrorCode.TYPE_ERROR,
+        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     const tileSize = this.tileSize;
@@ -590,7 +590,7 @@ class ProjectState {
       if (layer.type !== paint.type)
         throw new ProjectStateError(
           "type mismatch between layer and asset",
-          ErrorCode.TYPE_ERROR,
+          ProjectStateErrorCode.TYPE_ERROR,
         );
       data[row][col] = { ...paint };
     }
@@ -636,7 +636,7 @@ class ProjectState {
     if (paint !== null && layer.type !== paint.type)
       throw new ProjectStateError(
         "type mismatch between layer and asset",
-        ErrorCode.TYPE_ERROR,
+        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     const clickedTile = this.getTileAt(row, col, layerID);
@@ -715,7 +715,7 @@ class ProjectState {
     if (layer.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
         "paintWithAutoTile only supported for auto-tile layers",
-        ErrorCode.TYPE_ERROR,
+        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     const currTile = this.getTileAt(row, col, layerID);
@@ -723,7 +723,7 @@ class ProjectState {
     if (currTile !== null && currTile.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
         "Painted asset is not of type auto tile",
-        ErrorCode.TYPE_ERROR,
+        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     // Don't paint if the tile is already painted with auto tile
@@ -802,7 +802,7 @@ class ProjectState {
     if (currTile.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
         "Tile is not painted with auto tile asset",
-        ErrorCode.TYPE_ERROR,
+        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     const autoTile = this.getAutoTile(currTile.ref.id);
@@ -813,7 +813,7 @@ class ProjectState {
     if (layer.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
         "eraseAutoTile only supported for auto-tile layers",
-        ErrorCode.TYPE_ERROR,
+        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     const prevTiles: AutoTileHistoryEntryItem[] = [];
@@ -1102,7 +1102,7 @@ class ProjectState {
   }
 
   private createDefaultLayers() {
-    const layers: Layer[] = [DEFAULT_LAYER];
+
     this.layerData.set(
       DEFAULT_LAYER.id,
       new Array(DEFAULT_ROWS)
@@ -1110,26 +1110,16 @@ class ProjectState {
         .map((_) => new Array(DEFAULT_COLS).fill(null)),
     );
 
+    this.layers.push(DEFAULT_LAYER);
+
     for (const { name, type } of [
       { name: "Ground", type: PaintType.AUTO_TILE },
       { name: "Fg", type: PaintType.TILE },
       { name: "Zones", type: PaintType.AREA },
     ]) {
-      const id = this.generateId();
-      this.layerData.set(
-        id,
-        new Array(DEFAULT_ROWS)
-          .fill(null)
-          .map((_) => new Array(DEFAULT_COLS).fill(null)),
-      );
+      this.createLayer(name, type);
 
-      layers.push({
-        id,
-        name,
-        type,
-      });
     }
-    this.layers = layers;
   }
 
   private generateId() {

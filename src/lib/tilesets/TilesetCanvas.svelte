@@ -33,7 +33,9 @@
       },
       draw: draw,
       defaultCursor: "crosshair",
-      selection: multipleSelection,
+      selection:  {
+        isActive: multipleSelection ?? false,
+      },
     });
 
     const ro = new ResizeObserver(([entry]) => {
@@ -72,6 +74,8 @@
   });
 
   const updateSelectedTiles = (selection: SelectionRect | null) => {
+
+
     if (selection !== null) {
       const selectedTiles: TileAsset[] = [];
 

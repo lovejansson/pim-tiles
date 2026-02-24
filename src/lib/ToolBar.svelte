@@ -1,10 +1,5 @@
 <script lang="ts">
-  import {
-    SlCheckbox,
-    SlInput,
-    type SlChangeEvent,
-    type SlHideEvent,
-  } from "@shoelace-style/shoelace";
+  import { SlCheckbox, type SlChangeEvent } from "@shoelace-style/shoelace";
   import { guiState } from "../state.svelte";
   import { PaintType } from "../types";
   import Areas from "./areas/Areas.svelte";
@@ -27,8 +22,7 @@
         }}
         checked={guiState.showGrid}>Show grid</sl-checkbox
       >
-   
-      <!-- <sl-icon name="sharp-corner" library="pixelarticons" style="font-size: 1em;"></sl-icon> -->
+
       <div class="stats-wrapper">
         <p>r{guiState.mouseTilePos.row} c{guiState.mouseTilePos.col}</p>
       </div>

@@ -2,12 +2,13 @@
   import { SlMenuItem } from "@shoelace-style/shoelace";
   import { guiState, projectState } from "../../state.svelte";
   import ContextMenu from "../common/ContextMenu.svelte";
-  import EditAreaDialog from "./EditAreaDialog.svelte";
+  import AreaDialog from "./AreaDialog.svelte";
   import { PaintType, type Area, type AreaLayerState } from "../../types";
 
   type AreaItemProps = {
     area: Area;
   };
+
   const tilemapEditorState = $derived.by((): AreaLayerState => {
     if (guiState.tilemapEditorState.type === PaintType.AREA)
       return guiState.tilemapEditorState;
@@ -21,7 +22,7 @@
 
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
-      projectState.areas.delete(area.id);
+      projectState.deleteArea(area.id);
     } else if (item.value === "edit") {
       editAreaDialogOpen = true;
     }
@@ -33,6 +34,7 @@
       ref: { id: area.id },
     };
   };
+
 </script>
 
 <ContextMenu
@@ -60,7 +62,7 @@
   </sl-button>
 </ContextMenu>
 
-<EditAreaDialog bind:open={editAreaDialogOpen} {area} />
+<AreaDialog bind:open={editAreaDialogOpen} {area} />
 
 <style lang="postcss">
   #color {

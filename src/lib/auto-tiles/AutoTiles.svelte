@@ -1,69 +1,68 @@
 <script lang="ts">
-    import CreateAutoTileDialog from "./AutoTileDialog.svelte";
-    import { projectState } from "../../state.svelte";
-    import AutoTileItem from "./AutoTileItem.svelte";
+  import CreateAutoTileDialog from "./AutoTileDialog.svelte";
+  import { projectState } from "../../state.svelte";
+  import AutoTileItem from "./AutoTileItem.svelte";
 
-    let createDialogIsOpen = $state(false);
+  let createDialogIsOpen = $state(false);
 </script>
 
 <section id="auto-tiles">
-    <header>
-        <h2>Auto tiles</h2>
-        
-       
-        <sl-button
-            onclick={() => {
-                createDialogIsOpen = true;
-            }}
-            ><sl-icon label="New auto tile" library="pixelarticons" name="plus"
-            ></sl-icon></sl-button
-        >
-    </header>
+  <header>
+    <h2>Auto tiles</h2>
 
-    {#if projectState.autoTiles.get().length > 0}
-        <ul>
-            {#each projectState.autoTiles.get() as autoTile, idx}
-                <li>
-                    <AutoTileItem {autoTile} {idx} />
-                </li>
-            {/each}
-        </ul>
-    {:else}
-        <div id="div-empty">
-            <sl-icon library="pixelarticons" name="chess"></sl-icon>
-        </div>
-    {/if}
+    <sl-button
+      onclick={() => {
+        createDialogIsOpen = true;
+      }}
+      ><sl-icon label="New auto tile" library="pixelarticons" name="plus"
+      ></sl-icon></sl-button
+    >
+  </header>
 
-    <CreateAutoTileDialog bind:open={createDialogIsOpen} />
+  {#if projectState.getAutoTiles().length > 0}
+    <ul>
+      {#each projectState.getAutoTiles() as autoTile, idx}
+        <li>
+          <AutoTileItem {autoTile} {idx} />
+        </li>
+      {/each}
+    </ul>
+  {:else}
+    <div id="div-empty">
+      <sl-icon library="pixelarticons" name="chess"></sl-icon>
+    </div>
+  {/if}
+
+  <CreateAutoTileDialog bind:open={createDialogIsOpen} />
 </section>
 
 <style>
-    header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    #auto-tiles {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-    }
+  #auto-tiles {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
 
-    #div-empty {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
+  #div-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
 
-    ul {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
+  ul {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 </style>

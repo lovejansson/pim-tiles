@@ -20,11 +20,18 @@
 
   let tile = $state(cell);
 
+  const getTileAttributesArray = (cell: Cell) => {
+    try {
+      const attributes = projectState.getTileAttributes(cell);
+      return Array.from(attributes.entries());
+    } catch (e) {
+      return [];
+    }
+  };
+
   // Using an array of tuples since the Map is not reactive!
   let attributes: [string, string][] = $state(
-    Array.from(
-      projectState.getTileAttributes(cell)?.entries() ?? [],
-    ),
+    cell !== undefined ? getTileAttributesArray(cell) : [],
   );
 
   let deleteButtons: SlIconButton[] = $state([]);
@@ -48,9 +55,9 @@
 
   const save = () => {
     if (attributes.length > 0) {
-      projectState.update(tile, new Map(attributes));
+      projectState.updateTileAttributes(tile, new Map(attributes));
     } else if (projectState.getTileAttributes(tile)) {
-      projectState.delete(tile);
+      projectState.deleteTileAttributes(tile);
     }
 
     hide();

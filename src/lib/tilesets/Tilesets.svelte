@@ -16,7 +16,7 @@
       const numSameName = projectState.getTilesets()
         .reduce((count, t) => (t.name === name ? (count += 1) : count), 0);
 
-      projectState.addTileset(
+      projectState.createTileset(
         numSameName > 0 ? `${name} (${numSameName})` : name,
         bitmap,
       );

@@ -2,7 +2,12 @@
   import { SlMenuItem } from "@shoelace-style/shoelace";
   import { guiState, projectState } from "../../state.svelte";
   import ContextMenu from "../common/ContextMenu.svelte";
-  import { type AutoTileLayerState, type AutoTile, type IdRef, PaintType } from "../../types";
+  import {
+    type AutoTileLayerState,
+    type AutoTile,
+    type IdRef,
+    PaintType,
+  } from "../../types";
   import CreateAutoTileDialog from "./AutoTileDialog.svelte";
 
   type AreaItemProps = {
@@ -22,28 +27,7 @@
 
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
-      const usedInTileLayer = projectState.layers.get().some((layer) => {
-        if (layer.type === PaintType.AUTO_TILE) {
-          for (const tile of layer.data.values()) {
-            if (tile.ref.id === autoTile.id) {
-              return true;
-            }
-          }
-        }
-        return false;
-      });
-
-      if (usedInTileLayer) {
-        guiState.notification = {
-          variant: "danger",
-          title: "Delete auto tile",
-          msg: "This auto tile is used in one or more area layers and cannot be deleted.",
-        };
-
-        return;
-      }
-
-      projectState.autoTiles.delete(autoTile.id);
+      projectState.deleteAutoTile(autoTile.id);
     } else if (item.value === "edit") {
       editAutoTileDialogIsOpen = true;
     }
@@ -64,7 +48,6 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
-
   <sl-button
     id="auto-tile-item"
     variant="text"
@@ -75,7 +58,7 @@
   </sl-button>
 </ContextMenu>
 
-<CreateAutoTileDialog bind:open={editAutoTileDialogIsOpen} {autoTile} {idx} />
+<CreateAutoTileDialog bind:open={editAutoTileDialogIsOpen} {autoTile} />
 
 <style lang="postcss">
   #auto-tile-item {

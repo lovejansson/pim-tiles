@@ -7,5 +7,8 @@ export default defineConfig({
    optimizeDeps: {
     exclude: ['react', 'react-dom'] 
   },
+  build: {
+    sourcemap: true
+  }
 
 })
