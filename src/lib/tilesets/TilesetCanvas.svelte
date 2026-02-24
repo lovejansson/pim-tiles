@@ -33,8 +33,8 @@
       },
       draw: draw,
       defaultCursor: "crosshair",
-      selection:  {
-        isActive: multipleSelection ?? false,
+      selection: {
+        isActive: true,
       },
     });
 
@@ -45,13 +45,11 @@
       ro.disconnect();
       tilemapViewport.init();
 
-      if (multipleSelection) {
-        tilemapViewport.addEventListener("selection-change", (e) => {
-          updateSelectedTiles(
-            (e as TilemapViewportSelectionChangeEvent).selection,
-          );
-        });
-      }
+      tilemapViewport.addEventListener("selection-change", (e) => {
+        updateSelectedTiles(
+          (e as TilemapViewportSelectionChangeEvent).selection,
+        );
+      });
     });
 
     ro.observe(container);
@@ -74,7 +72,7 @@
   });
 
   const updateSelectedTiles = (selection: SelectionRect | null) => {
-
+    console.log("ON SELECT");
 
     if (selection !== null) {
       const selectedTiles: TileAsset[] = [];

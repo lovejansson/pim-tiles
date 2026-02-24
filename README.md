@@ -10,7 +10,7 @@ A tilemap editor for creating pixel worlds!
 - Rule based 8-direction auto tiles
 - Mark tiles with user defined areas
 - Manage tile attributes
-- Download and Upload project
+- Download and Upload project (.ptm)
 - Export to JSON
 
 ## Tech stack 

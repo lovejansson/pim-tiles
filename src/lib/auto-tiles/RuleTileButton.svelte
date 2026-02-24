@@ -18,6 +18,8 @@
     onDelete,
   }: RuleTileButtonProps = $props();
 
+  
+
   const getNextReq = (connection: TileRequirement) => {
     switch (connection) {
       case TileRequirement.REQUIRED:
@@ -47,8 +49,6 @@
 </script>
 
 <div id="wrapper">
-  <!-- sl button handles it internally -->
-
   <div id="btns-directions">
     {#each entries as [direction, connectionReq]}
       <sl-button
@@ -66,15 +66,20 @@
 
   <sl-button
     onclick={() => {
+
       if (selectedTile !== null) {
-        ruleTile.tile = { ...selectedTile };
+
+         ruleTile.tile = { ...selectedTile };
       }
     }}
     class="tile"
     aria-label="Place tile here"
   >
     {#if ruleTile.tile !== null}
-      <img src={projectState.getTileDataUrl(ruleTile.tile.ref.tile)} alt="tile" />
+      <img
+        src={projectState.getTileDataUrl(ruleTile.tile.ref.tile)}
+        alt="tile"
+      />
     {/if}</sl-button
   >
 

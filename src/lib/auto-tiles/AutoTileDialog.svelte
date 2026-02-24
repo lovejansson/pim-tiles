@@ -32,7 +32,22 @@
   let hasAddedTileRulesByTemplate = $state(false);
 
   let rules: (Omit<TileRule, "tile"> & { tile: TileAsset | null })[] = $state(
-    autoTile?.rules ?? [],
+    autoTile?.rules ?? [
+      {
+        id: crypto.randomUUID(),
+        connections: {
+          n: TileRequirement.OPTIONAL,
+          ne: TileRequirement.OPTIONAL,
+          e: TileRequirement.OPTIONAL,
+          se: TileRequirement.OPTIONAL,
+          s: TileRequirement.OPTIONAL,
+          sw: TileRequirement.OPTIONAL,
+          w: TileRequirement.OPTIONAL,
+          nw: TileRequirement.OPTIONAL,
+        },
+        tile: null,
+      },
+    ],
   );
 
   let isValid = $derived.by(() => {
@@ -165,11 +180,15 @@
 
     hasAddedTileRulesByTemplate = true;
   };
+
+  $effect(() => {
+    console.log($state.snapshot(defaultTile));
+  });
 </script>
 
 <sl-dialog onsl-after-hide={hide} label="Create auto tile" {open}>
-  <div id="content-wrapper">
-    <section id="add-rules">
+  <div id="wrapper">
+    <section id="section-controls">
       <sl-input
         onsl-change={(e: SlChangeEvent) => {
           if (e.target) {
@@ -187,6 +206,7 @@
         <sl-icon label="Add rule" library="pixelarticons" name="plus"
         ></sl-icon></sl-button
       >
+
       <div>
         <sl-button
           disabled={hasAddedTileRulesByTemplate}
@@ -215,7 +235,9 @@
           {/each}
         </ul>
       </section>
+    </section>
 
+    <ul id="rules">
       <sl-button
         onclick={() => {
           if (selectedTile !== null) {
@@ -232,41 +254,44 @@
           />
         {/if}
       </sl-button>
-
-      <ul id="rules">
-        {#each rules as rule, idx}
+      {#each rules as _, idx}
+        <li>
           <RuleTileButton
             onDelete={() => deleteRule(idx)}
             {selectedTile}
             bind:ruleTile={rules[idx]}
           />
-        {/each}
-      </ul>
-    </section>
+        </li>
+      {/each}
+    </ul>
 
-    {#if projectState.getTilesets().length > 0}
-      <sl-tab-group id="tilesets">
-        {#each projectState.getTilesets() as tileset}
-          <sl-tab slot="nav" panel={tileset.name}>{tileset.name}</sl-tab>
-          <sl-tab-panel name={tileset.name}>
-            <TilesCanvas
-              {tileset}
-              onSelect={(selectedTiles) => (selectedTile = selectedTiles[0])}
-            />
+    <section id="section-tilesets">
+      {#if projectState.getTilesets().length > 0}
+        <sl-tab-group>
+          {#each projectState.getTilesets() as tileset}
+            <sl-tab slot="nav" panel={tileset.name}>{tileset.name}</sl-tab>
+            <sl-tab-panel name={tileset.name}>
+              <TilesCanvas
+                {tileset}
+                onSelect={(selectedTiles) => {
+                  selectedTile = selectedTiles[0];
+                }}
+              />
+            </sl-tab-panel>
+          {/each}
+        </sl-tab-group>
+      {:else}
+        <sl-tab-group>
+          <sl-tab slot="nav" panel={"empty"}>Load tileset</sl-tab>
+          <sl-tab-panel name={"empty"}>
+            <div id="div-empty">
+              <sl-icon library="pixelarticons" name="chess"></sl-icon>
+              <p>Load a tileset in main toolbar.</p>
+            </div>
           </sl-tab-panel>
-        {/each}
-      </sl-tab-group>
-    {:else}
-      <sl-tab-group id="tilesets">
-        <sl-tab slot="nav" panel={"empty"}>Load tileset</sl-tab>
-        <sl-tab-panel name={"empty"}>
-          <div id="div-empty">
-            <sl-icon library="pixelarticons" name="chess"></sl-icon>
-            <p>Load a tileset in main toolbar.</p>
-          </div>
-        </sl-tab-panel>
-      </sl-tab-group>
-    {/if}
+        </sl-tab-group>
+      {/if}
+    </section>
   </div>
 
   <sl-button disabled={!isValid} slot="footer" variant="primary" onclick={save}>
@@ -319,35 +344,27 @@
   }
 
   sl-dialog {
-    --width: 60%;
-    height: 50%;
+    --width: 90dvw;
   }
 
-  sl-dialog::part(body) {
-    outline: none;
-  }
-
-  #content-wrapper {
+  #wrapper {
     display: flex;
     flex-direction: row;
     justify-content: stretch;
-
-    height: 60dvh;
-    width: 100%;
-    gap: 1rem;
+    align-items: flex-start;
+    gap: 2rem;
   }
-  #add-rules {
+
+  #section-controls {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    overflow-y: auto;
-    flex: 1;
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
-  #tilesets {
-    padding: 1rem;
+  #section-tilesets {
     flex: 1;
+  
   }
 
   #div-empty {
@@ -363,6 +380,8 @@
     flex-direction: column;
     gap: 1rem;
     overflow-y: auto;
+    height: 55dvh;
+    padding: 1rem;
   }
 
   .tiles {
@@ -370,7 +389,6 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     margin: 0;
     width: 100%;
-
     gap: 1px;
   }
 
@@ -400,16 +418,14 @@
   }
 
   sl-tab-panel::part(base) {
-    height: 100%;
-    width: 100%;
+    width: 400px;
     height: 55dvh;
+    overflow-y: auto;
   }
 
   sl-tab-panel {
     background-color: var(--color-4);
     --padding: 0;
     height: 100%;
-
-    /* height: 240px; */
   }
 </style>

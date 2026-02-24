@@ -3,7 +3,8 @@
 * Test through all functions and error states for stuff Areas, Tilesets, AutoTiles, Tile attributes (just project state part to make sure that is
 working correctly)
 
-* Flood fill (implement for both auto tile, tile and area)
+* Flood fill (implement for both auto tile, tile and area) ( useful for single tile eller single auto tile or single area, så
+välj tile 1 av selected tiles,  )
 
 * Save As .ptm 
 
