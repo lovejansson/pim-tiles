@@ -256,6 +256,14 @@ export default class TilemapViewport extends EventTarget {
     this.gridSettings.tileSize = tileSize;
   }
 
+  set gridWidth(width: number) {
+    this.gridSettings.width = width;
+  }
+
+  set gridHeight(height: number) {
+    this.gridSettings.height = height;
+  }
+
   enableSelection() {
     if (this.isSelectionEnabled(this.selectionSettings)) {
       this.selectionSettings.isActive = true;
@@ -318,7 +326,7 @@ export default class TilemapViewport extends EventTarget {
 
       this.ctxOverlay.beginPath();
 
-      this.ctxOverlay.strokeStyle = "black";
+      this.ctxOverlay.strokeStyle = this.gridSettings.gridColor;
 
       this.ctxOverlay.lineWidth = 1;
 

@@ -17,13 +17,17 @@
   let width = $state(projectState.width);
   let height = $state(projectState.height);
   let name = $state(projectState.name);
+  let gridColor = $state(guiState.gridColor);
 
   let hasChanges = $derived.by(() => {
+
     return (
       tileSize !== projectState.tileSize ||
       width !== projectState.width ||
       height !== projectState.height ||
       name !== projectState.name
+      || gridColor !== guiState.gridColor
+      
     );
   });
 
@@ -34,6 +38,7 @@
     projectState.name = name;
     projectState.width = width;
     projectState.height = height;
+    guiState.gridColor = gridColor;
     confirmDialogIsOpen = false;
   };
 
@@ -53,10 +58,13 @@
       return;
     }
 
+    console.log(width)
+
     projectState.tileSize = tileSize;
     projectState.name = name;
     projectState.width = width;
     projectState.height = height;
+    guiState.gridColor = gridColor;
   };
 </script>
 
@@ -121,10 +129,10 @@
       onsl-after-hide={(e: SlHideEvent) => e.stopPropagation()}
       swatches="#000000; #FFFFFF; #2ada64; #bb46eb; #FFD700; #00BFFF;
     "
-      value={guiState.gridColor}
+      value={gridColor}
       onsl-change={(e: SlChangeEvent) => {
         if (e.target) {
-          guiState.gridColor = (e.target as SlInput).value;
+          gridColor = (e.target as SlInput).value;
         }
         e.stopPropagation();
       }}

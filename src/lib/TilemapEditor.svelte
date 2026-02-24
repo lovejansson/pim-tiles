@@ -38,7 +38,15 @@
   > = new Map();
 
   $effect(() => {
+    // Reset cache whenever dimensions of project change
+    if (projectState.width || projectState.height || projectState.tileSize) {
+      canvasCache = new Map();
+    }
+  });
+
+  $effect(() => {
     // Sync canvasCache with update layers
+
     const addedLayers = projectState
       .getLayers()
       .filter((l) => !canvasCache.has(l.id));
@@ -110,14 +118,13 @@
 
   $effect(() => {
     tilemapViewport.tileSize = tileSize;
+    tilemapViewport.gridWidth = projectState.width;
+    tilemapViewport.gridHeight = projectState.height;
+    tilemapViewport.gridColor = gridColor;
   });
 
   $effect(() => {
     tilemapViewport.showGrid = showGrid;
-  });
-
-  $effect(() => {
-    tilemapViewport.gridColor = gridColor;
   });
 
   $effect(() => {

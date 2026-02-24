@@ -126,6 +126,7 @@ class ProjectState {
         ProjectStateErrorCode.BAD_REQUEST,
       );
 
+    this.clearLayerData();
     this._tileSize = px;
   }
 
@@ -138,12 +139,13 @@ class ProjectState {
   }
 
   set height(px: number) {
-    if (px > MAX_TILES)
+    if (px > MAX_TILES * this.tileSize)
       throw new ProjectStateError(
         "Maximum allowed height for tilemap is " + MAX_TILES * this.tileSize,
         ProjectStateErrorCode.BAD_REQUEST,
       );
 
+    this.clearLayerData();
     this._height = px;
   }
 
@@ -152,12 +154,13 @@ class ProjectState {
   }
 
   set width(px: number) {
-    if (px > MAX_TILES)
+    if (px > MAX_TILES * this.tileSize)
       throw new ProjectStateError(
         "Maximum allowed width for tilemap is " + MAX_TILES * this.tileSize,
         ProjectStateErrorCode.BAD_REQUEST,
       );
 
+    this.clearLayerData();
     this._width = px;
   }
 
@@ -176,7 +179,10 @@ class ProjectState {
   getTileset(id: string) {
     const tileset = this.tilesets.find((t) => t.id === id);
     if (tileset === undefined)
-      throw new ProjectStateError("Tileset not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Tileset not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     return tileset;
   }
 
@@ -184,7 +190,10 @@ class ProjectState {
     const tileset = this.tilesets.find((ts) => ts.id === tile.tilesetId);
 
     if (tileset === undefined)
-      throw new ProjectStateError("Tileset not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Tileset not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
 
     if (
       tile.tilesetPos.x < 0 ||
@@ -229,7 +238,10 @@ class ProjectState {
     const idx = this.tilesets.findIndex((t) => t.id === id);
 
     if (idx === -1)
-      throw new ProjectStateError("Tileset not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Tileset not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
 
     const tileset = this.tilesets[idx];
 
@@ -276,7 +288,10 @@ class ProjectState {
   getArea(id: string) {
     const area = this.areas.find((a) => a.id === id);
     if (area === undefined)
-      throw new ProjectStateError("Area not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Area not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     return area;
   }
 
@@ -292,14 +307,20 @@ class ProjectState {
   updateArea(area: Area) {
     const idx = this.areas.findIndex((a) => a.id === area.id);
     if (idx === -1)
-      throw new ProjectStateError("Area not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Area not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     this.areas[idx] = area;
   }
 
   deleteArea(id: string) {
     const idx = this.areas.findIndex((a) => a.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Area not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Area not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     const area = this.areas[idx];
 
     const isUsed =
@@ -338,7 +359,10 @@ class ProjectState {
   getAutoTile(id: string) {
     const autoTile = this.autoTiles.find((at) => at.id === id);
     if (autoTile === undefined)
-      throw new ProjectStateError("Autotile not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Autotile not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     return autoTile;
   }
 
@@ -353,14 +377,20 @@ class ProjectState {
   updateAutoTile(autoTile: AutoTile) {
     const idx = this.autoTiles.findIndex((at) => at.id === autoTile.id);
     if (idx === -1)
-      throw new ProjectStateError("Autotile not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Autotile not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     this.autoTiles[idx] = autoTile;
   }
 
   deleteAutoTile(id: string) {
     const idx = this.autoTiles.findIndex((at) => at.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Autotile not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Autotile not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
 
     const autoTile = this.autoTiles[idx];
 
@@ -397,7 +427,10 @@ class ProjectState {
   getTileAttributes(cell: Cell) {
     const attributes = this.attributes.get(`${cell.row}:${cell.col}`);
     if (attributes === undefined)
-      throw new ProjectStateError("Attributes not found", ProjectStateErrorCode.NOT_FOUND); // TODO: errors????
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      ); // TODO: errors????
 
     return attributes;
   }
@@ -423,14 +456,20 @@ class ProjectState {
   getLayer(id: string): Layer {
     const layer = this.layers.find((l) => l.id === id);
     if (layer === undefined)
-      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Layer not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     return layer;
   }
   getLayerData(id: string): LayerData {
     const data = this.layerData.get(id);
 
     if (data === undefined)
-      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Layer not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
 
     return data;
   }
@@ -439,9 +478,9 @@ class ProjectState {
 
     this.layerData.set(
       id,
-      new Array(DEFAULT_ROWS)
+      new Array(this.rows)
         .fill(null)
-        .map((_) => new Array(DEFAULT_COLS).fill(null)),
+        .map((_) => new Array(this.cols).fill(null)),
     );
 
     switch (type) {
@@ -472,14 +511,20 @@ class ProjectState {
   updateLayer(id: string, name: string) {
     const idx = this.layers.findIndex((l) => l.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Layer not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     this.layers[idx].name = name;
   }
 
   deleteLayer(id: string) {
     const idx = this.layers.findIndex((l) => l.id === id);
     if (idx === -1)
-      throw new ProjectStateError("Layer not found", ProjectStateErrorCode.NOT_FOUND);
+      throw new ProjectStateError(
+        "Layer not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
     this.layers.splice(idx, 1);
   }
 
@@ -1017,6 +1062,17 @@ class ProjectState {
     return JSON.stringify(data);
   }
 
+  private clearLayerData() {
+    for (const l of this.layers) {
+      this.layerData.set(
+        l.id,
+        new Array(this.rows)
+          .fill(null)
+          .map((_) => new Array(this.cols).fill(null)),
+      );
+    }
+  }
+
   private pickTileFromAutoTile(
     row: number,
     col: number,
@@ -1102,7 +1158,6 @@ class ProjectState {
   }
 
   private createDefaultLayers() {
-
     this.layerData.set(
       DEFAULT_LAYER.id,
       new Array(DEFAULT_ROWS)
@@ -1118,7 +1173,6 @@ class ProjectState {
       { name: "Zones", type: PaintType.AREA },
     ]) {
       this.createLayer(name, type);
-
     }
   }
 
