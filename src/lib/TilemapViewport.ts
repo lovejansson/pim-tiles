@@ -518,7 +518,6 @@ export default class TilemapViewport extends EventTarget {
       });
 
       addEventListener("keyup", (e: KeyboardEvent) => {
-        if (e.target !== this.overlayCanvas) return;
         if (!this.isPanEnabled(this.panSettings)) return;
 
         if (e.key === this.panSettings.key) {
@@ -545,7 +544,8 @@ export default class TilemapViewport extends EventTarget {
           } else {
             if (this.isSelectionActive()) {
               // If mouse is down on selected rect
-              if ( this.isSelectionMoveEnabled() &&
+              if (
+                this.isSelectionMoveEnabled() &&
                 this.selection !== null &&
                 isPointInRect(worldPos, {
                   x: Math.min(this.selection.x1, this.selection.x2),
