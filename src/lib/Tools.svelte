@@ -35,8 +35,10 @@
         tilemapEditorState.selectedTool = Tool.SELECT;
         break;
       case "r":
-        tilemapEditorState.fillToolIsActive =
-          !tilemapEditorState.fillToolIsActive;
+        if (tilemapEditorState.type === PaintType.TILE) {
+          tilemapEditorState.fillToolIsActive =
+            !tilemapEditorState.fillToolIsActive;
+        }
         break;
     }
   };
@@ -67,28 +69,32 @@
       >
     </sl-tooltip>
 
-    <sl-tooltip content="Selection (E)">
-      <sl-button
-        class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
-        onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
-        ><sl-icon library="pixelarticons" name="drop-area" label="Select"
-        ></sl-icon></sl-button
-      >
-    </sl-tooltip>
+    {#if tilemapEditorState.type === PaintType.TILE}
+      <sl-tooltip content="Selection (E)">
+        <sl-button
+          class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
+          onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
+          ><sl-icon library="pixelarticons" name="drop-area" label="Select"
+          ></sl-icon></sl-button
+        >
+      </sl-tooltip>
+    {/if}
   </sl-button-group>
 
-  <sl-button-group label="Modifiers">
-    <sl-tooltip content="Fill tool (R)">
-      <sl-button
-        class:selected-tool={tilemapEditorState.fillToolIsActive}
-        onclick={() =>
-          (tilemapEditorState.fillToolIsActive =
-            !tilemapEditorState.fillToolIsActive)}
-        ><sl-icon library="pixelarticons" name="paint-bucket"
-        ></sl-icon></sl-button
-      >
-    </sl-tooltip>
-  </sl-button-group>
+  {#if tilemapEditorState.type === PaintType.TILE}
+    <sl-button-group label="Modifiers">
+      <sl-tooltip content="Fill tool (R)">
+        <sl-button
+          class:selected-tool={tilemapEditorState.fillToolIsActive}
+          onclick={() =>
+            (tilemapEditorState.fillToolIsActive =
+              !tilemapEditorState.fillToolIsActive)}
+          ><sl-icon library="pixelarticons" name="paint-bucket"
+          ></sl-icon></sl-button
+        >
+      </sl-tooltip>
+    </sl-button-group>
+  {/if}
 </div>
 
 <style lang="postcss">

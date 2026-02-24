@@ -1,10 +1,10 @@
 # Todo 
 
-* Test through all functions and error states for stuff Areas, Tilesets, AutoTiles, Tile attributes (just project state part to make sure that is
-working correctly)
+---> Begränsningar Fill tool finns bara för tiles och gälller första tile som är vald, Select tool gäller också bara för tiles.
 
-* Flood fill (implement for both auto tile, tile and area) ( useful for single tile eller single auto tile or single area, så
-välj tile 1 av selected tiles,  )
+* Fixa klart auto tiles 
+
+* Do testing before implement File and data persistance 
 
 * Save As .ptm 
 
@@ -24,3 +24,4 @@ välj tile 1 av selected tiles,  )
 
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
 
+* Implement select tool for areas and auto tiles

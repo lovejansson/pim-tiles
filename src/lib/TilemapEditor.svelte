@@ -27,6 +27,7 @@
   let ctrlKeyIsDown = false;
 
   const dirtyTiles: Cell[] = [];
+
   let selectedTiles: { org: Cell; curr: Cell; tile: PaintedAsset }[] = [];
 
   let container!: HTMLElement;
@@ -37,10 +38,18 @@
     { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }
   > = new Map();
 
+  const clearCache = () => {
+    canvasCache.values().forEach((c) => {
+      c.canvas.width = projectState.width;
+      c.canvas.height = projectState.height;
+      c.ctx.imageSmoothingEnabled = false;
+    });
+  };
+
   $effect(() => {
     // Reset cache whenever dimensions of project change
     if (projectState.width || projectState.height || projectState.tileSize) {
-      canvasCache = new Map();
+      clearCache();
     }
   });
 
@@ -87,7 +96,9 @@
       draw: draw,
       defaultCursor: "crosshair",
       selection: {
-        isActive: tilemapEditorState.selectedTool === Tool.SELECT,
+        isActive:
+          tilemapEditorState.selectedTool === Tool.SELECT &&
+          tilemapEditorState.type === PaintType.TILE,
         move: true,
         copy: true,
         delete: true,
@@ -128,7 +139,10 @@
   });
 
   $effect(() => {
-    if (tilemapEditorState.selectedTool === Tool.SELECT) {
+    if (
+      tilemapEditorState.selectedTool === Tool.SELECT &&
+      tilemapEditorState.type === PaintType.TILE
+    ) {
       tilemapViewport.enableSelection();
     } else {
       tilemapViewport.disabledSelection();
@@ -325,41 +339,50 @@
     if (guiState.visibleLayers[tilemapEditorState.selectedLayer]) {
       switch (tilemapEditorState.type) {
         case PaintType.TILE:
-          if (tilemapEditorState.fillToolIsActive) break;
+          if (tilemapEditorState.fillToolIsActive) {
+            switch (tilemapEditorState.selectedTool) {
+              case Tool.PAINT:
+                if (tilemapEditorState.selectedAsset !== null) {
+                  const filledTiles = projectState.floodFill(
+                    tilemapEditorState.selectedLayer,
+                    row,
+                    col,
+                    tilemapEditorState.selectedAsset[0], // Flood fill only takes first tile into account
+                  );
+
+                  for (const t of filledTiles) {
+                    dirtyTiles.push({ ...t });
+                  }
+                }
+                break;
+              case Tool.ERASE:
+                const filledTiles = projectState.floodFill(
+                  tilemapEditorState.selectedLayer,
+                  row,
+                  col,
+                  null,
+                );
+
+                for (const t of filledTiles) {
+                  dirtyTiles.push({ ...t });
+                }
+                break;
+            }
+            break;
+          }
 
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
-                projectState.paintTiles(
+                const tiles = projectState.paintTiles(
                   row,
                   col,
                   tilemapEditorState.selectedLayer,
                   tilemapEditorState.selectedAsset,
                 );
 
-                const minX = Math.min(
-                  ...tilemapEditorState.selectedAsset.map(
-                    (t) => t.ref.tile.tilesetPos.x,
-                  ),
-                );
-                const minY = Math.min(
-                  ...tilemapEditorState.selectedAsset.map(
-                    (t) => t.ref.tile.tilesetPos.y,
-                  ),
-                );
-
-                for (const t of tilemapEditorState.selectedAsset) {
-                  const r =
-                    row +
-                    Math.floor((t.ref.tile.tilesetPos.y - minY) / tileSize);
-                  const c =
-                    col +
-                    Math.floor((t.ref.tile.tilesetPos.x - minX) / tileSize);
-
-                  if (r >= projectState.rows || c >= projectState.cols)
-                    continue;
-
-                  dirtyTiles.push({ row: r, col: c });
+                for (const t of tiles) {
+                  dirtyTiles.push({ ...t });
                 }
               }
 
@@ -381,7 +404,7 @@
             case Tool.PAINT: {
               // TODO: update dirty Tiles
               if (tilemapEditorState.selectedAsset !== null) {
-                projectState.paintWithAutoTile(
+                projectState.paintAutoTile(
                   row,
                   col,
                   tilemapEditorState.selectedAsset.ref.id,
@@ -402,8 +425,6 @@
           }
           break;
         case PaintType.AREA:
-          if (tilemapEditorState.fillToolIsActive) break;
-
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT:
               if (tilemapEditorState.selectedAsset !== null) {
@@ -444,10 +465,28 @@
 
     switch (e.key.toLowerCase()) {
       case "z":
-        ctrlKeyIsDown && HistoryStack.undo();
+        if (ctrlKeyIsDown) {
+          const tiles = HistoryStack.undo();
+          if (tiles !== undefined) {
+            for (const t of tiles) {
+              dirtyTiles.push(t);
+            }
+          }
+          e.preventDefault();
+        }
+
         break;
       case "y":
-        ctrlKeyIsDown && HistoryStack.redo();
+        if (ctrlKeyIsDown) {
+          const tiles = HistoryStack.redo();
+          if (tiles !== undefined) {
+            for (const t of tiles) {
+              dirtyTiles.push(t);
+            }
+          }
+          e.preventDefault();
+        }
+
         break;
     }
   };

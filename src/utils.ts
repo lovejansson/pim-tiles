@@ -42,7 +42,7 @@ function getNeighbours(cell: { row: number, col: number }, rows: number, cols: n
         [[-1, 0], [0, 1], [1, 0], [0, -1]]
 
     for (const [r, c] of neighbourDiffs) {
-        if (cell.row + r > 0 && cell.row + r <= rows && cell.col + c >= 0 && cell.col + c <= cols) {
+        if (cell.row + r >= 0 && cell.row + r < rows && cell.col + c >= 0 && cell.col + c < cols) {
             const n = { row: cell.row + r, col: cell.col + c };
             neighbours.push(n);
         }

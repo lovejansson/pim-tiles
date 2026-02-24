@@ -98,6 +98,7 @@ class ProjectState {
   private areas: Area[];
   private attributes: Map<string, Map<string, string>>;
   private layerData: Map<string, LayerData>;
+  historyFlag: string;
 
   constructor() {
     this.name = "My project";
@@ -113,6 +114,7 @@ class ProjectState {
     this.areas = $state([]);
     this.attributes = new Map();
     this.layerData = new Map();
+    this.historyFlag = $state(this.generateId());
   }
 
   init() {
@@ -570,7 +572,7 @@ class ProjectState {
     });
   }
 
-  paintTiles(row: number, col: number, layerID: string, tiles: TileAsset[]) {
+  paintTiles(row: number, col: number, layerID: string, tiles: TileAsset[]): Cell[] {
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -596,11 +598,6 @@ class ProjectState {
 
       const curr = data[r][c];
 
-      // Don't do anything if the same tile is being painted again
-      if (this.isSameAsset(curr, t)) {
-        return;
-      }
-
       data[r][c] = { ...t };
 
       prevTiles.push({
@@ -617,6 +614,8 @@ class ProjectState {
       prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
       next: { type: layer.type, layer: { id: layerID }, items: nextTiles },
     });
+
+    return prevTiles.map(t => t.pos)
   }
 
   applyPaintTileChange(
@@ -628,7 +627,6 @@ class ProjectState {
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
-    // TODO: can this be done better with typescript generics?
     if (paint === null) {
       data[row][col] = null;
     } else {
@@ -674,7 +672,7 @@ class ProjectState {
     row: number,
     col: number,
     paint: PaintedAsset | null,
-  ) {
+  ): Cell[] {
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -746,9 +744,11 @@ class ProjectState {
       prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
       next: { type: layer.type, layer: { id: layerID }, items: nextItems },
     });
+
+    return filledTiles;
   }
 
-  paintWithAutoTile(
+  paintAutoTile(
     row: number,
     col: number,
     autoTileID: string,
@@ -1206,12 +1206,14 @@ export const HistoryStack = (() => {
 
   const repaint = () => {
     const entry = history[currIdx];
+
     if (!entry) return;
 
     const layer = projectState.getLayer(entry.layer.id);
 
     if (layer.type !== entry.type)
       throw new Error("type mismatch between layer and entry");
+
     for (const i of entry.items) {
       projectState.applyPaintTileChange(
         i.pos.row,
@@ -1220,20 +1222,23 @@ export const HistoryStack = (() => {
         i.data,
       );
     }
+    return entry.items.map((i) => ({ ...i.pos }));
   };
 
   return {
     undo() {
       if (currIdx === 0) return;
       currIdx--; // First repaint what was previously done
-      repaint();
+      const tiles = repaint();
       currIdx--; // Move to the previous state
+      return tiles;
     },
 
     redo() {
       if (currIdx === history.length - 1) return;
       currIdx += 2; // Advance by two to redo the next action
-      repaint();
+      const tiles = repaint();
+      return tiles;
     },
   };
 })();
