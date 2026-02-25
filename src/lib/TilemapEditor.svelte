@@ -48,7 +48,12 @@
 
   $effect(() => {
     // Reset cache whenever dimensions of project change
-    if (projectState.width || projectState.height || projectState.tileSize) {
+    if (
+      projectState.width ||
+      projectState.height ||
+      projectState.tileSize ||
+      projectState.getAutoTiles()
+    ) {
       clearCache();
     }
   });
@@ -153,42 +158,20 @@
     // If we have previously selected tiles we will paint them back to the tilemap wherever they are currently placed
     if (selectedTiles.length > 0) {
       for (const t of selectedTiles) {
-        switch (t.tile.type) {
-          case PaintType.TILE:
-            projectState.paintTile(
-              t.curr.row,
-              t.curr.col,
-              tilemapEditorState.selectedLayer,
-              t.tile,
-            );
-            if (
-              t.curr.row <= projectState.rows &&
-              t.curr.col <= projectState.cols
-            ) {
-              dirtyTiles.push({ ...t.curr });
-            }
-            break;
+        if (t.tile.type !== PaintType.TILE)
+          throw new Error("Selection only implemented for tile layers");
 
-          case PaintType.AREA:
-            projectState.paintTile(
-              t.curr.row,
-              t.curr.col,
-              tilemapEditorState.selectedLayer,
-              t.tile,
-            );
-
-            if (
-              t.curr.row <= projectState.rows &&
-              t.curr.col <= projectState.cols
-            ) {
-              dirtyTiles.push({ ...t.curr });
-            }
-
-            break;
-
-          case PaintType.AUTO_TILE:
-            // WHAT TODOs
-            break;
+        projectState.paintTile(
+          t.curr.row,
+          t.curr.col,
+          tilemapEditorState.selectedLayer,
+          t.tile,
+        );
+        if (
+          t.curr.row <= projectState.rows &&
+          t.curr.col <= projectState.cols
+        ) {
+          dirtyTiles.push({ ...t.curr });
         }
       }
     }
@@ -218,25 +201,11 @@
           );
 
           if (tile !== null) {
-            switch (tile.type) {
-              case PaintType.AUTO_TILE:
-                projectState.eraseAutoTile(
-                  row,
-                  col,
-                  tilemapEditorState.selectedLayer,
-                );
+            if (tile.type !== PaintType.TILE)
+              throw new Error("Selection only implemented for tile layers");
 
-                dirtyTiles.push({ row, col });
-                break;
-              case PaintType.TILE:
-              case PaintType.AREA:
-                projectState.eraseTile(
-                  row,
-                  col,
-                  tilemapEditorState.selectedLayer,
-                );
-                dirtyTiles.push({ row, col });
-            }
+            projectState.eraseTile(row, col, tilemapEditorState.selectedLayer);
+            dirtyTiles.push({ row, col });
 
             selectedTiles.push({
               org: { row, col },
@@ -286,42 +255,20 @@
     // If we have selected tiles they will be copied, i.e. painted where they are currently placed
     if (selectedTiles.length > 0) {
       for (const t of selectedTiles) {
-        switch (t.tile.type) {
-          case PaintType.TILE:
-            projectState.paintTile(
-              t.curr.row,
-              t.curr.col,
-              tilemapEditorState.selectedLayer,
-              t.tile,
-            );
-            if (
-              t.curr.row <= projectState.rows &&
-              t.curr.col <= projectState.cols
-            ) {
-              dirtyTiles.push({ ...t.curr });
-            }
-            break;
+        if (t.tile.type !== PaintType.TILE)
+          throw new Error("Selection only implemented for tile layers");
 
-          case PaintType.AREA:
-            projectState.paintTile(
-              t.curr.row,
-              t.curr.col,
-              tilemapEditorState.selectedLayer,
-              t.tile,
-            );
-
-            if (
-              t.curr.row <= projectState.rows &&
-              t.curr.col <= projectState.cols
-            ) {
-              dirtyTiles.push({ ...t.curr });
-            }
-
-            break;
-
-          case PaintType.AUTO_TILE:
-            // WHAT TODOs
-            break;
+        projectState.paintTile(
+          t.curr.row,
+          t.curr.col,
+          tilemapEditorState.selectedLayer,
+          t.tile,
+        );
+        if (
+          t.curr.row <= projectState.rows &&
+          t.curr.col <= projectState.cols
+        ) {
+          dirtyTiles.push({ ...t.curr });
         }
       }
     }
@@ -335,6 +282,8 @@
 
   const handleCanvasPaint = (e: Event) => {
     const { row, col } = (e as TilemapViewportPaintEvent).cell;
+
+    console.log("PAINT");
 
     if (guiState.visibleLayers[tilemapEditorState.selectedLayer]) {
       switch (tilemapEditorState.type) {
@@ -402,24 +351,30 @@
         case PaintType.AUTO_TILE:
           switch (tilemapEditorState.selectedTool) {
             case Tool.PAINT: {
-              // TODO: update dirty Tiles
               if (tilemapEditorState.selectedAsset !== null) {
-                projectState.paintAutoTile(
+                const tiles = projectState.paintAutoTile(
                   row,
                   col,
                   tilemapEditorState.selectedAsset.ref.id,
                   tilemapEditorState.selectedLayer,
                 );
+
+                for (const t of tiles) {
+                  dirtyTiles.push({ ...t });
+                }
               }
 
               break;
             }
             case Tool.ERASE: {
-              projectState.eraseAutoTile(
+              const tiles = projectState.eraseAutoTile(
                 row,
                 col,
                 tilemapEditorState.selectedLayer,
               );
+              for (const t of tiles) {
+                dirtyTiles.push({ ...t });
+              }
               break;
             }
           }

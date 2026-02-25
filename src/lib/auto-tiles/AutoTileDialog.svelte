@@ -428,4 +428,8 @@
     --padding: 0;
     height: 100%;
   }
+
+  sl-dialog::part(body) {
+    outline: none;
+  }
 </style>

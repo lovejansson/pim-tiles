@@ -1,8 +1,10 @@
 # Todo 
 
----> Begränsningar Fill tool finns bara för tiles och gälller första tile som är vald, Select tool gäller också bara för tiles.
 
-* Fixa klart auto tiles 
+* Fixa klart auto tiles
+
+
+History
 
 * Do testing before implement File and data persistance 
 
@@ -25,3 +27,4 @@
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
 
 * Implement select tool for areas and auto tiles
+

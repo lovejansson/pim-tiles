@@ -572,7 +572,12 @@ class ProjectState {
     });
   }
 
-  paintTiles(row: number, col: number, layerID: string, tiles: TileAsset[]): Cell[] {
+  paintTiles(
+    row: number,
+    col: number,
+    layerID: string,
+    tiles: TileAsset[],
+  ): Cell[] {
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -615,7 +620,7 @@ class ProjectState {
       next: { type: layer.type, layer: { id: layerID }, items: nextTiles },
     });
 
-    return prevTiles.map(t => t.pos)
+    return prevTiles.map((t) => t.pos);
   }
 
   applyPaintTileChange(
@@ -753,7 +758,7 @@ class ProjectState {
     col: number,
     autoTileID: string,
     layerID: string,
-  ): void {
+  ): Cell[] {
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -772,7 +777,7 @@ class ProjectState {
       );
 
     // Don't paint if the tile is already painted with auto tile
-    if (currTile !== null && currTile?.ref.id === autoTileID) return;
+    if (currTile !== null && currTile?.ref.id === autoTileID) return [];
 
     const autoTile = this.getAutoTile(autoTileID);
 
@@ -837,12 +842,14 @@ class ProjectState {
         items: paintedTiles,
       },
     });
+
+    return paintedTiles.map((t) => ({ ...t.pos }));
   }
 
-  eraseAutoTile(row: number, col: number, layerID: string): void {
+  eraseAutoTile(row: number, col: number, layerID: string): Cell[] {
     const currTile = this.getTileAt(row, col, layerID);
     // Ignore if tile already erased
-    if (currTile === null) return;
+    if (currTile === null) return [];
 
     if (currTile.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
@@ -905,6 +912,7 @@ class ProjectState {
         items: paintedTiles,
       },
     });
+    return paintedTiles.map((t) => ({ ...t.pos }));
   }
 
   isSameAsset(a: AssetRef | null, b: AssetRef | null): boolean {

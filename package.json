@@ -20,6 +20,7 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
-    "@shoelace-style/shoelace": "^2.20.1"
+    "@shoelace-style/shoelace": "^2.20.1",
+    "protobufjs": "^8.0.0"
   }
 }

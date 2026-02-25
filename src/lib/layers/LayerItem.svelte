@@ -29,9 +29,11 @@
   });
 
   const selectLayer = () => {
-    guiState.tilemapEditorState.selectedLayer = layer.id;
-    guiState.tilemapEditorState.selectedAsset = null;
-    guiState.tilemapEditorState.type = layer.type;
+    if (layer.id !== guiState.tilemapEditorState.selectedLayer) {
+      guiState.tilemapEditorState.selectedLayer = layer.id;
+      guiState.tilemapEditorState.selectedAsset = null;
+      guiState.tilemapEditorState.type = layer.type;
+    }
   };
 
   const toggleVisibility = () => {
@@ -46,7 +48,11 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
-  <div id="layer" onclick={selectLayer} oncontextmenu={() => console.log("CONTEXT MENU CLICK")}>
+  <div
+    id="layer"
+    onclick={selectLayer}
+    oncontextmenu={() => console.log("CONTEXT MENU CLICK")}
+  >
     {#if layer.type === PaintType.TILE}
       <sl-tooltip content="Tile layer">
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
