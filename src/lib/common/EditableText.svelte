@@ -4,7 +4,7 @@
   type EditableTextProps = {
     text: string;
     isEditing: boolean;
-    inputWidth?: number;
+    inputWidth?: string;
   };
 
   let {
@@ -24,24 +24,26 @@
   });
 </script>
 
-{#if isEditing}
-  <sl-input
-    style={`width:${inputWidth}px`}
-    value={text}
-    size="small"
-    bind:this={inputName}
-    onblur={() => {
-      isEditing = false;
-    }}
-    onsl-change={(e: SlChangeEvent) => {
-      text = (e.target as SlInput).value;
-    }}
-  ></sl-input>
-{:else}
-  <p>{text}</p>
-{/if}
+  {#if isEditing}
+    <sl-input
+      style={`width:${inputWidth}`}
+      value={text}
+      size="small"
+      bind:this={inputName}
+      onblur={() => {
+        isEditing = false;
+      }}
+      onsl-change={(e: SlChangeEvent) => {
+        text = (e.target as SlInput).value;
+      }}
+    ></sl-input>
+  {:else}
+    <p>{text}</p>
+  {/if}
 
 <style lang="postcss">
+
+
   p {
     margin: 0;
     margin-right: auto;

@@ -31,7 +31,10 @@
   const selectLayer = () => {
     if (layer.id !== guiState.tilemapEditorState.selectedLayer) {
       guiState.tilemapEditorState.selectedLayer = layer.id;
-      guiState.tilemapEditorState.selectedAsset = null;
+      // Clear the selected tool only if the new selected layer isn't the same type of layer so that the user can continue painting with selected tiles!
+      if (layer.type !== guiState.tilemapEditorState.type)
+        guiState.tilemapEditorState.selectedAsset = null;
+
       guiState.tilemapEditorState.type = layer.type;
     }
   };
@@ -48,11 +51,7 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
-  <div
-    id="layer"
-    onclick={selectLayer}
-    oncontextmenu={() => console.log("CONTEXT MENU CLICK")}
-  >
+  <div id="layer" onclick={selectLayer}>
     {#if layer.type === PaintType.TILE}
       <sl-tooltip content="Tile layer">
         <sl-icon library="pixelarticons" name="chess"></sl-icon>
@@ -67,7 +66,11 @@
       </sl-tooltip>
     {/if}
 
-    <EditableText bind:isEditing={isEditingName} bind:text={name} />
+    <EditableText
+      bind:isEditing={isEditingName}
+      bind:text={name}
+      inputWidth="100%"
+    />
 
     <sl-icon-button
       onclick={(e: MouseEvent) => {

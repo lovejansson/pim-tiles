@@ -70,6 +70,6 @@
 
   .selected::part(base) {
     border: 1px solid var(--color-0);
-    background-color: lime;
+    background-color: yellow;
   }
 </style>

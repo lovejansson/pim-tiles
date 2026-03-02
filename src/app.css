@@ -1,20 +1,22 @@
-
-
 :root,
 :host,
 .sl-theme-light {
-
   --font-family: "Google Sans Code", monospace;
-  
+
   --color-0: #363636;
-  --color-3: #ffffff; 
   --color-1: #ececec;
+  --color-2: #b5b7b9;
+  --color-3: #d2d3d4;
 
-  --color-4: #d2d3d4; /* intermediate for hover backgrounds */
-  --color-2: #b5b7b9; /* intermediate for hover backgrounds */
- 
+  --color-0: #2f2f4c;
+  --color-1: #e4e8f5;
+  --color-2: #a3acd3;
+  --color-3: #c8cfeb;
 
-    background-color: var(--color-1);
+  background-color: var(--color-1);
+  color: var(--color-0);
+  font-family: var(--font-family);
+
   --sl-color-primary-50: var(--color-1);
   --sl-color-primary-100: var(--color-1);
   --sl-color-primary-200: var(--color-1);
@@ -55,35 +57,31 @@
   --sl-color-danger-900: var(--sl-color-rose-900);
   --sl-color-danger-1000: var(--sl-color-rose-1000);
 
-
-  --sl-font-mono:  var(--font-family);
-  --sl-font-sans:   var(--font-family);
+  --sl-font-mono: var(--font-family);
+  --sl-font-sans: var(--font-family);
   --sl-font-serif: var(--font-family);
-  font-family: var(--font-family);
-
 
   /* Remove border radius for square style */
 
-  --sl-border-radius-small: 0; 
+  --sl-border-radius-small: 0;
   --sl-border-radius-medium: 0;
   --sl-border-radius-large: 0;
-  --sl-border-radius-x-large: 0; 
-
+  --sl-border-radius-x-large: 0;
 
   --sl-panel-background-color: var(--color-1);
   --sl-panel-border-color: var(--color-2);
   --sl-panel-border-width: 1px;
-  
 
   /* Focus rings */
   --sl-focus-ring-color: var(--color-0);
   --sl-focus-ring-style: solid;
   --sl-focus-ring-width: 2px;
-  --sl-focus-ring: var(--sl-focus-ring-style) var(--sl-focus-ring-width) var(--sl-focus-ring-color);
-  --sl-input-focus-ring-color:var(--sl-focus-ring-color);
+  --sl-focus-ring: var(--sl-focus-ring-style) var(--sl-focus-ring-width)
+    var(--sl-focus-ring-color);
+  --sl-input-focus-ring-color: var(--sl-focus-ring-color);
   --sl-focus-ring-offset: 1px;
 
-    --sl-input-color: var(--sl-color-neutral-700);
+  --sl-input-color: var(--sl-color-neutral-700);
   --sl-input-color-hover: var(--sl-color-neutral-700);
   --sl-input-color-focus: var(--sl-color-neutral-700);
   --sl-input-color-disabled: var(--sl-color-neutral-900);
@@ -94,14 +92,16 @@
   --sl-input-placeholder-color-disabled: var(--color-2);
 
   --sl-input-border-color: var(--color-2);
-
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-color: var(--color-0) var(--color-2);
+  scrollbar-width: thin;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   display: flex;
@@ -109,12 +109,15 @@ html, body {
   height: 100dvh;
   overscroll-behavior: none;
 }
+
 body {
   overflow-x: hidden;
 }
 
 * {
-    overscroll-behavior: none;
+  outline: none;
+  overscroll-behavior: none;
+  background-clip: padding-box !important; /* Cuts background of before borders to prevent it to bleed outside of the pixelated border */
 }
 
 #app {
@@ -123,7 +126,7 @@ body {
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
-  height: 100dvh; 
+  height: 100dvh;
   width: 100dvw;
 }
 
@@ -137,6 +140,4 @@ ul {
 
 li {
   list-style: none;
-
 }
-

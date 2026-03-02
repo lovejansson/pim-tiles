@@ -47,20 +47,14 @@
   };
 
   $effect(() => {
-    // Reset cache whenever dimensions of project change
-    if (
-      projectState.width ||
-      projectState.height ||
-      projectState.tileSize ||
-      projectState.getAutoTiles()
-    ) {
+    // When the dimensions of the project changes the cache is wiped
+    if (projectState.width || projectState.height || projectState.tileSize) {
       clearCache();
     }
   });
 
   $effect(() => {
     // Sync canvasCache with update layers
-
     const addedLayers = projectState
       .getLayers()
       .filter((l) => !canvasCache.has(l.id));
@@ -133,9 +127,15 @@
   });
 
   $effect(() => {
-    tilemapViewport.tileSize = tileSize;
-    tilemapViewport.gridWidth = projectState.width;
-    tilemapViewport.gridHeight = projectState.height;
+    tilemapViewport.updateGridSize(
+      projectState.width,
+      projectState.height,
+      tileSize,
+      true,
+    );
+  });
+
+  $effect(() => {
     tilemapViewport.gridColor = gridColor;
   });
 
@@ -282,8 +282,6 @@
 
   const handleCanvasPaint = (e: Event) => {
     const { row, col } = (e as TilemapViewportPaintEvent).cell;
-
-    console.log("PAINT");
 
     if (guiState.visibleLayers[tilemapEditorState.selectedLayer]) {
       switch (tilemapEditorState.type) {
@@ -446,7 +444,7 @@
     }
   };
 
-  function draw(ctx: CanvasRenderingContext2D) {
+  function drawDirtyTilesToCache() {
     let cached:
       | {
           canvas: HTMLCanvasElement;
@@ -456,17 +454,17 @@
 
     for (const layer of projectState.getLayers()) {
       const data = projectState.getLayerData(layer.id);
+
       cached = canvasCache.get(layer.id);
 
       if (cached === undefined)
         throw new Error("Cached canvas for layer doesn't exist!");
+
       let x = 0;
       let y = 0;
       for (const { row, col } of dirtyTiles) {
         x = col * tileSize;
         y = row * tileSize;
-
-        // Om inte tile finns i lager men i dirty tiles
 
         switch (layer.type) {
           case PaintType.TILE:
@@ -547,57 +545,81 @@
             break;
         }
       }
+    }
 
-      if (guiState.visibleLayers[layer.id]) {
+    dirtyTiles.length = 0;
+  }
+
+  function drawMainCanvas(ctx: CanvasRenderingContext2D) {
+    let cached:
+      | {
+          canvas: HTMLCanvasElement;
+          ctx: CanvasRenderingContext2D;
+        }
+      | undefined;
+
+    let x = 0;
+    let y = 0;
+
+    for (const l of projectState.getLayers()) {
+      cached = canvasCache.get(l.id);
+
+      if (cached === undefined)
+        throw new Error("Cached canvas for layer doesn't exist!");
+
+      if (guiState.visibleLayers[l.id]) {
         ctx.drawImage(cached.canvas, 0, 0);
+      }
 
-        if (
-          layer.id === guiState.tilemapEditorState.selectedLayer &&
-          selectedTiles.length > 0
-        ) {
-          for (const t of selectedTiles) {
-            x = t.curr.col * tileSize;
-            y = t.curr.row * tileSize;
-            switch (t.tile.type) {
-              case PaintType.TILE:
-                const tileset = projectState.getTileset(
-                  t.tile.ref.tile.tilesetId,
-                );
+      if (
+        l.id === guiState.tilemapEditorState.selectedLayer &&
+        selectedTiles.length > 0
+      ) {
+        for (const t of selectedTiles) {
+          x = t.curr.col * tileSize;
+          y = t.curr.row * tileSize;
+          switch (t.tile.type) {
+            case PaintType.TILE:
+              const tileset = projectState.getTileset(
+                t.tile.ref.tile.tilesetId,
+              );
 
-                ctx.drawImage(
-                  tileset.spritesheet,
-                  t.tile.ref.tile.tilesetPos.x,
-                  t.tile.ref.tile.tilesetPos.y,
-                  tileSize,
-                  tileSize,
-                  x,
-                  y,
-                  tileSize,
-                  tileSize,
-                );
-                break;
-              case PaintType.AREA:
-                const area = projectState.getArea(t.tile.ref.id);
+              ctx.drawImage(
+                tileset.spritesheet,
+                t.tile.ref.tile.tilesetPos.x,
+                t.tile.ref.tile.tilesetPos.y,
+                tileSize,
+                tileSize,
+                x,
+                y,
+                tileSize,
+                tileSize,
+              );
+              break;
+            case PaintType.AREA:
+              const area = projectState.getArea(t.tile.ref.id);
 
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = area.color;
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = area.color;
 
-                ctx.strokeRect(
-                  x + 4 - 0.5,
-                  y + 4 - 0.5,
-                  tileSize - 8,
-                  tileSize - 8,
-                );
-                break;
-              case PaintType.AUTO_TILE:
-                break;
-            }
+              ctx.strokeRect(
+                x + 4 - 0.5,
+                y + 4 - 0.5,
+                tileSize - 8,
+                tileSize - 8,
+              );
+              break;
+            case PaintType.AUTO_TILE:
+              break;
           }
         }
       }
     }
+  }
 
-    dirtyTiles.length = 0;
+  function draw(ctx: CanvasRenderingContext2D) {
+    drawDirtyTilesToCache();
+    drawMainCanvas(ctx);
   }
 </script>
 

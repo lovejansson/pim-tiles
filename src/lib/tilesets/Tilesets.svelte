@@ -3,7 +3,7 @@
   import FilePicker from "../common/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
   import TilesCanvas from "./TilesetCanvas.svelte";
-    import type { TileAsset } from "../../types";
+  import type { TileAsset } from "../../types";
 
   let selectedTilesetIdx = $state(0);
 
@@ -13,7 +13,8 @@
       const name = file.name.split(".")[0];
       const bitmap = await createImageBitmap(file);
 
-      const numSameName = projectState.getTilesets()
+      const numSameName = projectState
+        .getTilesets()
         .reduce((count, t) => (t.name === name ? (count += 1) : count), 0);
 
       projectState.createTileset(
@@ -22,7 +23,6 @@
       );
 
       selectedTilesetIdx = projectState.getTilesets().length - 1;
-
     } catch (e) {
       console.error(e);
       guiState.notification = {
@@ -35,7 +35,6 @@
 
   const handleOnSelectTiles = (selectedTiles: TileAsset[]) => {
     guiState.tilemapEditorState.selectedAsset = selectedTiles;
-    
   };
 </script>
 
@@ -46,7 +45,7 @@
   </header>
 
   {#if projectState.getTilesets().length > 0}
-    <sl-tab-group on>
+    <sl-tab-group>
       {#each projectState.getTilesets() as tileset}
         <sl-tab slot="nav" panel={tileset.name}>
           <TilesetTab {tileset} /></sl-tab
@@ -56,7 +55,6 @@
             {tileset}
             multipleSelection
             onSelect={handleOnSelectTiles}
-            
           />
         </sl-tab-panel>
       {/each}
@@ -98,7 +96,7 @@
   }
 
   sl-tab-panel {
-    background-color: var(--color-4);
+    background-color: var(--color-3);
     --padding: 0;
     height: 400px;
   }

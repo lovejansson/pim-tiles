@@ -148,8 +148,11 @@ type MouseAction =
  * - Grid
  */
 export default class TilemapViewport extends EventTarget {
+  private canvasBg: HTMLCanvasElement;
   private canvas: HTMLCanvasElement;
-  private overlayCanvas: HTMLCanvasElement;
+  private canvasOverlay: HTMLCanvasElement;
+
+  private ctxBg: CanvasRenderingContext2D;
   private ctx: CanvasRenderingContext2D;
   private ctxOverlay: CanvasRenderingContext2D;
 
@@ -169,13 +172,16 @@ export default class TilemapViewport extends EventTarget {
 
   private drawCb: (ctx: CanvasRenderingContext2D, clear: boolean) => void;
 
+  private transformHasChanged: boolean;
+
   constructor(container: HTMLElement, options: TilemapViewportOptions) {
     super();
 
     container.style.position = "relative";
 
     this.canvas = document.createElement("canvas");
-    this.overlayCanvas = document.createElement("canvas");
+    this.canvasOverlay = document.createElement("canvas");
+    this.canvasBg = document.createElement("canvas");
 
     this.canvas.style.imageRendering = "pixelated";
     this.canvas.style.width = "100%";
@@ -183,24 +189,38 @@ export default class TilemapViewport extends EventTarget {
     this.canvas.style.background = container.style.background;
     this.canvas.style.position = "absolute";
 
-    this.overlayCanvas.style.imageRendering = "pixelated";
-    this.overlayCanvas.style.width = "100%";
-    this.overlayCanvas.style.height = "100%";
-    this.overlayCanvas.style.background = container.style.background;
-    this.overlayCanvas.style.position = "absolute";
-    this.overlayCanvas.style.zIndex = "1";
+    this.canvasOverlay.style.imageRendering = "pixelated";
+    this.canvasOverlay.style.width = "100%";
+    this.canvasOverlay.style.height = "100%";
+    this.canvasOverlay.style.background = container.style.background;
+    this.canvasOverlay.style.position = "absolute";
+    this.canvasOverlay.style.zIndex = "1";
 
-    container.appendChild(this.overlayCanvas);
+    this.canvasBg.style.imageRendering = "pixelated";
+    this.canvasBg.style.width = "100%";
+    this.canvasBg.style.height = "100%";
+    this.canvasBg.style.position = "absolute";
+    this.canvasBg.id = "canvas-bg";
+
+    container.appendChild(this.canvasBg);
+    container.appendChild(this.canvasOverlay);
     container.appendChild(this.canvas);
 
     const ctx = this.canvas.getContext("2d");
     if (ctx === null) throw new Error("Canvas ctx is null");
-    const ctxOverlay = this.overlayCanvas.getContext("2d");
+    const ctxOverlay = this.canvasOverlay.getContext("2d");
     if (ctxOverlay === null) throw new Error("Canvas ctx is null");
+    const ctxBg = this.canvasBg.getContext("2d");
+    if (ctxBg === null) throw new Error("Canvas ctx is null");
+
     this.ctx = ctx;
     this.ctxOverlay = ctxOverlay;
+    this.ctxBg = ctxBg;
+
+    this.ctxBg.imageSmoothingEnabled = false;
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
+
     this.isCtrlKeyDown = false;
     this.zoomSettings = options.zoom ?? null;
     this.gridSettings = options.grid;
@@ -216,6 +236,8 @@ export default class TilemapViewport extends EventTarget {
     this.isPanKeyDown = false;
     this.mouseAction = null;
     this.cursor = options.defaultCursor ?? "default";
+
+    this.transformHasChanged = true;
   }
 
   get width(): number {
@@ -225,10 +247,12 @@ export default class TilemapViewport extends EventTarget {
   set width(width: number) {
     const rounded = Math.round(width);
     this.canvas.width = rounded;
-    this.overlayCanvas.width = rounded;
+    this.canvasOverlay.width = rounded;
+    this.canvasBg.width = rounded;
 
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
+    this.ctxBg.imageSmoothingEnabled = false;
   }
 
   get height(): number {
@@ -238,10 +262,12 @@ export default class TilemapViewport extends EventTarget {
   set height(height: number) {
     const rounded = Math.round(height);
     this.canvas.height = rounded;
-    this.overlayCanvas.height = rounded;
+    this.canvasOverlay.height = rounded;
+    this.canvasBg.height = rounded;
 
     this.ctx.imageSmoothingEnabled = false;
     this.ctxOverlay.imageSmoothingEnabled = false;
+    this.ctxBg.imageSmoothingEnabled = false;
   }
 
   set gridColor(gridColor: string) {
@@ -256,12 +282,23 @@ export default class TilemapViewport extends EventTarget {
     this.gridSettings.tileSize = tileSize;
   }
 
-  set gridWidth(width: number) {
+  updateGridSize(
+    width: number,
+    height: number,
+    tileSize: number,
+    center: boolean = false,
+  ) {
     this.gridSettings.width = width;
-  }
-
-  set gridHeight(height: number) {
     this.gridSettings.height = height;
+    this.gridSettings.tileSize = tileSize;
+
+    this.zoom = this.gridSettings.width > 1280 ? 0.25 : 0.5;
+
+    if (center)
+      this.translation = {
+        x: this.canvas.width / 2 - (this.gridSettings.width * this.zoom) / 2,
+        y: this.canvas.height / 2 - (this.gridSettings.height * this.zoom) / 2,
+      };
   }
 
   enableSelection() {
@@ -282,41 +319,76 @@ export default class TilemapViewport extends EventTarget {
     this.width = this.canvas.clientWidth;
     this.height = this.canvas.clientHeight;
     this.canvas.style.cursor = this.cursor;
-    this.overlayCanvas.style.cursor = this.cursor;
-    if (this.gridSettings.width > 100) this.zoom = 0.5;
+    this.canvasOverlay.style.cursor = this.cursor;
+    this.zoom = this.gridSettings.width > 1280 ? 0.25 : 0.5;
+
     if (center)
       this.translation = {
-        x: this.canvas.clientWidth / 2 - this.gridSettings.width / 4,
-        y: this.canvas.clientHeight / 2 - this.gridSettings.height / 4,
+        x: this.canvas.width / 2 - (this.gridSettings.width * this.zoom) / 2,
+        y: this.canvas.height / 2 - (this.gridSettings.height * this.zoom) / 2,
       };
 
     this.update();
   }
 
   update() {
-    this.clear();
-    this.drawCb(this.ctx, false);
+    this.drawBg();
+    this.draw();
     this.drawOverlay();
     requestAnimationFrame(() => this.update());
   }
 
-  private clear() {
+  private draw() {
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, this.width, this.height);
 
     this.ctx.translate(this.translation.x, this.translation.y);
     this.ctx.scale(this.zoom, this.zoom);
 
-    this.ctxOverlay.resetTransform();
-    this.ctxOverlay.clearRect(0, 0, this.width, this.height);
+    this.drawCb(this.ctx, false);
+  }
 
-    this.ctxOverlay.translate(this.translation.x, this.translation.y);
-    this.ctxOverlay.scale(this.zoom, this.zoom);
+  private drawBg() {
+    if (this.transformHasChanged) {
+      this.ctxBg.resetTransform();
+      this.ctxBg.clearRect(0, 0, this.width, this.height);
+
+      this.ctxBg.translate(this.translation.x, this.translation.y);
+      this.ctxBg.scale(this.zoom, this.zoom);
+
+      for (
+        let r = 0;
+        r < this.gridSettings.height / this.gridSettings.tileSize;
+        ++r
+      ) {
+        for (
+          let c = 0;
+          c < this.gridSettings.width / this.gridSettings.tileSize;
+          ++c
+        ) {
+          this.ctxBg.fillStyle = r % 2 === c % 2 ? "#a3acd3" : "#e4e8f5";
+          this.ctxBg.fillRect(
+            c * this.gridSettings.tileSize,
+            r * this.gridSettings.tileSize,
+            this.gridSettings.tileSize,
+            this.gridSettings.tileSize,
+          );
+        }
+      }
+    }
   }
 
   private drawOverlay() {
-    this.drawGrid();
-    this.drawSelectionRect();
+    if (this.transformHasChanged || this.selection !== null) {
+      this.ctxOverlay.resetTransform();
+      this.ctxOverlay.clearRect(0, 0, this.width, this.height);
+
+      this.ctxOverlay.translate(this.translation.x, this.translation.y);
+      this.ctxOverlay.scale(this.zoom, this.zoom);
+
+      this.drawGrid();
+      this.drawSelectionRect();
+    }
   }
 
   private drawGrid() {
@@ -343,13 +415,6 @@ export default class TilemapViewport extends EventTarget {
       }
 
       this.ctxOverlay.stroke();
-    } else {
-      this.ctxOverlay.strokeRect(
-        0,
-        0,
-        this.gridSettings.width,
-        this.gridSettings.height,
-      );
     }
   }
 
@@ -442,8 +507,8 @@ export default class TilemapViewport extends EventTarget {
 
   private addEventListeners() {
     if (this.isZoomEnabled(this.zoomSettings)) {
-      this.overlayCanvas.addEventListener("wheel", (e: WheelEvent) => {
-        if (e.target !== this.overlayCanvas) return;
+      this.canvasOverlay.addEventListener("wheel", (e: WheelEvent) => {
+        if (e.target !== this.canvasOverlay) return;
         if (!this.isZoomEnabled(this.zoomSettings)) return;
 
         const delta = Math.sign(e.deltaY);
@@ -491,6 +556,7 @@ export default class TilemapViewport extends EventTarget {
           }
         }
 
+        this.transformHasChanged = true;
         e.stopPropagation();
       });
     }
@@ -503,7 +569,7 @@ export default class TilemapViewport extends EventTarget {
         if (!this.isPanEnabled(this.panSettings)) return;
 
         if (e.key === this.panSettings.key) {
-          this.overlayCanvas.style.cursor = "grab";
+          this.canvasOverlay.style.cursor = "grab";
           this.isPanKeyDown = true;
         } else if (
           (e.key === "Delete" || e.key === "Backspace") &&
@@ -529,14 +595,14 @@ export default class TilemapViewport extends EventTarget {
         if (!this.isPanEnabled(this.panSettings)) return;
 
         if (e.key === this.panSettings.key) {
-          this.overlayCanvas.style.cursor = this.cursor;
+          this.canvasOverlay.style.cursor = this.cursor;
           this.isPanKeyDown = false;
         } else if (e.key === "Meta" || e.key === "Control") {
           this.isCtrlKeyDown = false;
         }
       });
 
-      this.overlayCanvas.addEventListener("mousedown", (e: MouseEvent) => {
+      this.canvasOverlay.addEventListener("mousedown", (e: MouseEvent) => {
         if (e.button === 0) {
           const { canvasPos, worldPos, isWithinGridBounds, tile } =
             this.getMouseCoordinates(e.clientX, e.clientY);
@@ -602,8 +668,8 @@ export default class TilemapViewport extends EventTarget {
         }
       });
 
-      this.overlayCanvas.addEventListener("mousemove", (e: MouseEvent) => {
-        if (e.target !== this.overlayCanvas) return;
+      this.canvasOverlay.addEventListener("mousemove", (e: MouseEvent) => {
+        if (e.target !== this.canvasOverlay) return;
 
         const { canvasPos, worldPos, isWithinGridBounds, tile } =
           this.getMouseCoordinates(e.clientX, e.clientY);
@@ -663,6 +729,8 @@ export default class TilemapViewport extends EventTarget {
               this.translation.y =
                 this.mouseAction.data.startTranslation.y + dy;
 
+              this.transformHasChanged = true;
+
               break;
             case MouseActionType.PAINT:
               if (
@@ -692,8 +760,8 @@ export default class TilemapViewport extends EventTarget {
         }
       });
 
-      this.overlayCanvas.addEventListener("contextmenu", (e: MouseEvent) => {
-        if (e.target !== this.overlayCanvas) return;
+      this.canvasOverlay.addEventListener("contextmenu", (e: MouseEvent) => {
+        if (e.target !== this.canvasOverlay) return;
 
         const { worldPos, isWithinGridBounds } = this.getMouseCoordinates(
           e.clientX,

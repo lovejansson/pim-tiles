@@ -1,11 +1,5 @@
 # Todo 
 
-
-* Fixa klart auto tiles
-
-
-History
-
 * Do testing before implement File and data persistance 
 
 * Save As .ptm 
@@ -16,11 +10,14 @@ History
 
 * Use proto files for binary file format 
 
-* Reactivity issue with layers and dnd action, items loose reactivity when it comes to classes/styling and become unable to interact with
+# Bugs 
 
-* Adjust canvas scale to dpr to avoid blurry lines
+Reordering layers and reactivity for UI not working 
+Tileset tab must be set programmatically when deleteing a tileset 
 
 # Backlog
+
+* Update tilemap after areas/auto tiles changes
 
 * Generate maze tool 
 
@@ -28,3 +25,5 @@ History
 
 * Implement select tool for areas and auto tiles
 
+ 
+ 

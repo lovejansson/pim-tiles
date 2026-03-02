@@ -72,7 +72,7 @@
   });
 
   const updateSelectedTiles = (selection: SelectionRect | null) => {
-    console.log("ON SELECT");
+   
 
     if (selection !== null) {
       const selectedTiles: TileAsset[] = [];

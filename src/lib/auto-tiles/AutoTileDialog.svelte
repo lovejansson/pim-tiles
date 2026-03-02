@@ -137,16 +137,16 @@
         connections: {
           n:
             (i & 8) === 8 ? TileRequirement.REQUIRED : TileRequirement.EXCLUDED,
-          ne: TileRequirement.EXCLUDED,
+          ne: TileRequirement.OPTIONAL,
           e:
             (i & 4) === 4 ? TileRequirement.REQUIRED : TileRequirement.EXCLUDED,
-          se: TileRequirement.EXCLUDED,
+          se: TileRequirement.OPTIONAL,
           s:
             (i & 2) === 2 ? TileRequirement.REQUIRED : TileRequirement.EXCLUDED,
-          sw: TileRequirement.EXCLUDED,
+          sw: TileRequirement.OPTIONAL,
           w:
             (i & 1) === 1 ? TileRequirement.REQUIRED : TileRequirement.EXCLUDED,
-          nw: TileRequirement.EXCLUDED,
+          nw: TileRequirement.OPTIONAL,
         },
         tile: null,
       });
@@ -187,56 +187,91 @@
 </script>
 
 <sl-dialog onsl-after-hide={hide} label="Create auto tile" {open}>
+  <sl-icon-button
+    slot="header-actions"
+    library="pixelarticons"
+    name="close"
+    onclick={hide}
+  >
+  </sl-icon-button>
   <div id="wrapper">
-    <section id="section-controls">
-      <sl-input
-        onsl-change={(e: SlChangeEvent) => {
-          if (e.target) {
-            name = (e.target as SlInput).value;
-          }
-        }}
-        label="Name"
-        type="text"
-        value={name}
-      >
-      </sl-input>
-
-      <sl-button onclick={newRule}>
-        Add rule
-        <sl-icon label="Add rule" library="pixelarticons" name="plus"
-        ></sl-icon></sl-button
-      >
-
-      <div>
-        <sl-button
-          disabled={hasAddedTileRulesByTemplate}
-          onclick={createRoadTileRules}
-          onkeydown={createRoadTileRules}
+    <div id="wrapper-first">
+      <section id="section-controls">
+        <sl-input
+          onsl-change={(e: SlChangeEvent) => {
+            if (e.target) {
+              name = (e.target as SlInput).value;
+            }
+          }}
+          label="Name"
+          type="text"
+          value={name}
         >
-          Add Roads NESW (16)
-        </sl-button>
+        </sl-input>
 
-        <sl-button
-          disabled={hasAddedTileRulesByTemplate}
-          onclick={createGroundTileRules}
-          onkeydown={createGroundTileRules}
+        <sl-button onclick={newRule}>
+          Add rule
+          <sl-icon label="Add rule" library="pixelarticons" name="plus"
+          ></sl-icon></sl-button
         >
-          Add Ground (9)
-        </sl-button>
-      </div>
 
-      <section id="section-help">
-        <ul class="edges">
-          {#each [TileRequirement.REQUIRED, TileRequirement.EXCLUDED, TileRequirement.OPTIONAL] as edge}
-            <li class="edge">
-              <div class={`${edge} edge-mark`}></div>
-              <p>{edge.toLocaleString()}</p>
-            </li>
-          {/each}
-        </ul>
+        <div>
+          <sl-button
+            disabled={hasAddedTileRulesByTemplate}
+            onclick={createRoadTileRules}
+            onkeydown={createRoadTileRules}
+          >
+            Add Roads NESW (16)
+          </sl-button>
+
+          <sl-button
+            disabled={hasAddedTileRulesByTemplate}
+            onclick={createGroundTileRules}
+            onkeydown={createGroundTileRules}
+          >
+            Add Ground (9)
+          </sl-button>
+        </div>
+
+        <section id="section-help">
+          <ul class="edges">
+            {#each [TileRequirement.REQUIRED, TileRequirement.EXCLUDED, TileRequirement.OPTIONAL] as edge}
+              <li class="edge">
+                <div class={`${edge} edge-mark`}></div>
+                <p>{edge.toLocaleString()}</p>
+              </li>
+            {/each}
+          </ul>
+        </section>
       </section>
-    </section>
-
+      <section id="section-tilesets">
+        {#if projectState.getTilesets().length > 0}
+          <sl-tab-group>
+            {#each projectState.getTilesets() as tileset}
+              <sl-tab slot="nav" panel={tileset.name}>{tileset.name}</sl-tab>
+              <sl-tab-panel name={tileset.name}>
+                <TilesCanvas
+                  {tileset}
+                  onSelect={(selectedTiles) => {
+                    selectedTile = selectedTiles[0];
+                  }}
+                />
+              </sl-tab-panel>
+            {/each}
+          </sl-tab-group>
+        {:else}
+          <sl-tab-group>
+            <sl-tab slot="nav" panel={"empty"}>Load tileset</sl-tab>
+            <sl-tab-panel name={"empty"}>
+              <div id="div-empty">
+                <sl-icon library="pixelarticons" name="chess"></sl-icon>
+                <p>Load a tileset in main toolbar.</p>
+              </div>
+            </sl-tab-panel>
+          </sl-tab-group>
+        {/if}
+      </section>
+    </div>
     <ul id="rules">
       <sl-button
         onclick={() => {
@@ -264,34 +299,6 @@
         </li>
       {/each}
     </ul>
-
-    <section id="section-tilesets">
-      {#if projectState.getTilesets().length > 0}
-        <sl-tab-group>
-          {#each projectState.getTilesets() as tileset}
-            <sl-tab slot="nav" panel={tileset.name}>{tileset.name}</sl-tab>
-            <sl-tab-panel name={tileset.name}>
-              <TilesCanvas
-                {tileset}
-                onSelect={(selectedTiles) => {
-                  selectedTile = selectedTiles[0];
-                }}
-              />
-            </sl-tab-panel>
-          {/each}
-        </sl-tab-group>
-      {:else}
-        <sl-tab-group>
-          <sl-tab slot="nav" panel={"empty"}>Load tileset</sl-tab>
-          <sl-tab-panel name={"empty"}>
-            <div id="div-empty">
-              <sl-icon library="pixelarticons" name="chess"></sl-icon>
-              <p>Load a tileset in main toolbar.</p>
-            </div>
-          </sl-tab-panel>
-        </sl-tab-group>
-      {/if}
-    </section>
   </div>
 
   <sl-button disabled={!isValid} slot="footer" variant="primary" onclick={save}>
@@ -344,7 +351,7 @@
   }
 
   sl-dialog {
-    --width: 90dvw;
+    --width: 800px;
   }
 
   #wrapper {
@@ -353,6 +360,11 @@
     justify-content: stretch;
     align-items: flex-start;
     gap: 2rem;
+  }
+
+  #wrapper-first {
+    display: flex;
+    flex-direction: column;
   }
 
   #section-controls {
@@ -364,7 +376,6 @@
 
   #section-tilesets {
     flex: 1;
-  
   }
 
   #div-empty {
@@ -410,7 +421,7 @@
   }
 
   .selected {
-    outline: 1px solid lime !important;
+    outline: 1px solid yellow !important;
   }
 
   sl-tab {
@@ -424,12 +435,27 @@
   }
 
   sl-tab-panel {
-    background-color: var(--color-4);
+    background-color: var(--color-3);
     --padding: 0;
     height: 100%;
   }
 
   sl-dialog::part(body) {
     outline: none;
+  }
+
+  sl-dialog::part(close-button) {
+    display: none;
+  }
+
+  sl-tab-panel::part(base) {
+    height: 100%;
+    width: 100%;
+  }
+
+  sl-tab-panel {
+    background-color: var(--color-3);
+    --padding: 0;
+    height: 400px;
   }
 </style>

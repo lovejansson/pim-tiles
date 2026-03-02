@@ -18,8 +18,6 @@
     onDelete,
   }: RuleTileButtonProps = $props();
 
-  
-
   const getNextReq = (connection: TileRequirement) => {
     switch (connection) {
       case TileRequirement.REQUIRED:
@@ -66,10 +64,8 @@
 
   <sl-button
     onclick={() => {
-
       if (selectedTile !== null) {
-
-         ruleTile.tile = { ...selectedTile };
+        ruleTile.tile = { ...selectedTile };
       }
     }}
     class="tile"

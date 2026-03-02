@@ -5,7 +5,7 @@
     type SlChangeEvent,
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
-  import { projectState } from "../../state.svelte";
+  import { guiState, projectState } from "../../state.svelte";
   import type { Area } from "../../types";
 
   type AreaDialogProps = {
@@ -23,21 +23,46 @@
   };
 
   let name = $state(isEditMode(area) ? area.name : "New Area");
-  let color = $state(isEditMode(area) ? area.color : "lime");
+  let color = $state(isEditMode(area) ? area.color : "yellow");
   let isWalkable = $state(isEditMode(area) ? area.isWalkable : false);
 
   const saveArea = () => {
     if (isEditMode(area)) {
-      projectState.updateArea({ id: area.id, name, color, isWalkable });
+      try {
+        projectState.updateArea({ id: area.id, name, color, isWalkable });
+        open = false;
+      } catch (e) {
+        const msg = (e as Error).message;
+        guiState.notification = {
+          msg,
+          title: "Failed to update area",
+          variant: "danger",
+        };
+      }
     } else {
-      projectState.createArea(name, color, isWalkable);
+      try {
+        projectState.createArea(name, color, isWalkable);
+        open = false;
+      } catch (e) {
+        const msg = (e as Error).message;
+        guiState.notification = {
+          msg,
+          title: "Failed to create area",
+          variant: "danger",
+        };
+      }
     }
-
-    open = false;
   };
 </script>
 
 <sl-dialog onsl-after-hide={hide} label="Create area" {open}>
+  <sl-icon-button
+    slot="header-actions"
+    library="pixelarticons"
+    name="close"
+    onclick={hide}
+  >
+  </sl-icon-button>
   <sl-input
     onsl-change={(e: SlChangeEvent) => {
       if (e.target) {
@@ -81,5 +106,8 @@
     flex-direction: column;
     gap: 1.6rem;
     font-size: small;
+  }
+  sl-dialog::part(close-button) {
+    display: none;
   }
 </style>

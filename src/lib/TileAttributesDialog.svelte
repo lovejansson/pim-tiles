@@ -101,7 +101,15 @@
   onsl-after-hide={hide}
   label={"Tile attributes (r" + tile.row + " c" + tile.col + ")"}
   {open}
-  ><section id="section-attributes">
+>
+  <sl-icon-button
+    slot="header-actions"
+    library="pixelarticons"
+    name="close"
+    onclick={hide}
+  >
+  </sl-icon-button>
+  <section id="section-attributes">
     {#if attributes.length > 0}
       <ul id="attributes">
         {#each attributes as [key, value], idx}
@@ -166,6 +174,10 @@
   }
   sl-dialog {
     --width: 600px;
+  }
+
+  sl-dialog::part(close-button) {
+    display: none;
   }
 
   .btn-delete {

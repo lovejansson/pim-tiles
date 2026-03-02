@@ -46,7 +46,7 @@
 
 <svelte:window onkeydown={handleKeyDown} />
 
-<div>
+<section>
   <sl-button-group label="Tools">
     <sl-tooltip content="Tile paint (Q)">
       <sl-button
@@ -95,14 +95,14 @@
       </sl-tooltip>
     </sl-button-group>
   {/if}
-</div>
+</section>
 
 <style lang="postcss">
-  div {
+  section {
     display: flex;
     justify-content: space-between;
   }
   .selected-tool::part(base) {
-    background-color: rgb(112, 253, 121);
+    background-color: var(--color-3);
   }
 </style>

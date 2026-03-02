@@ -77,9 +77,9 @@ type LayerDataT<T extends PaintType> = (PaintedAssetT<T> | null)[][];
 type LayerData = LayerDataT<PaintType.TILE> | LayerDataT<PaintType.AUTO_TILE> | LayerDataT<PaintType.AREA>;
 
 type LayerT<T extends PaintType> = {
-    id: string;
-    type: T;
-    name: string;
+  id: string;
+  type: T;
+  name: string;
 };
 
 type PaintedTile = PaintedAssetT<PaintType.TILE>;
@@ -178,7 +178,7 @@ type ProjectStateJSONExport = {
   name: string;
   tileSize: number;
   areas: { name: string; tiles: Point[] }[]; // Just an array of areas with name and which tiles they belong to
-  attributes: {pos: Point, attributes: { [key: string]: any }}[]; // An array of tiles positions with attributes
+  attributes: { pos: Point, attributes: { [key: string]: any } }[]; // An array of tiles positions with attributes
 };
 
 type Notification = {

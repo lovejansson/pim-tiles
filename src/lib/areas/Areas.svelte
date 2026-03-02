@@ -65,6 +65,6 @@
   }
 
   li {
-    background-color: var(--color-4);
+    background-color: var(--color-3);
   }
 </style>

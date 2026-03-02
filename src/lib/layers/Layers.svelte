@@ -4,7 +4,7 @@
   import { dndzone, type DndEvent, type Item } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
   import LayerItem from "./LayerItem.svelte";
-  import type { Layer } from "../../types";
+  import type { Layer, PaintType } from "../../types";
 
   let createNewLayerDialogIsOpen = $state(false);
 
@@ -55,6 +55,10 @@
   const renameLayer = (id: string, name: string) => {
     projectState.updateLayer(id, name);
   };
+  const createLayer = (name: string, type: PaintType) => {
+    projectState.createLayer(name, type);
+    layers = projectState.getLayers();
+  };
 
   const deleteLayer = (id: string) => {
     if (projectState.getLayers().length === 1) {
@@ -66,20 +70,14 @@
       return;
     }
 
-    const idx = layers.findIndex((l) => l.id === id);
-
     projectState.deleteLayer(id);
 
-    if (idx === -1) throw new Error("Layer not found");
+    layers = projectState.getLayers();
 
-    layers.splice(idx, 1);
+    if (id === guiState.tilemapEditorState.selectedLayer)
+      guiState.tilemapEditorState.selectedLayer =
+        projectState.getLayers()[0].id;
   };
-
-  $effect(() => {
-    if (guiState.tilemapEditorState.selectedLayer) {
-      //updateSelectedStyles();
-    }
-  });
 </script>
 
 <section id="layers">
@@ -124,7 +122,10 @@
     {/each}
   </ul>
 </section>
-<CreateNewLayerDialog bind:open={createNewLayerDialogIsOpen} />
+<CreateNewLayerDialog
+  onCreate={createLayer}
+  bind:open={createNewLayerDialogIsOpen}
+/>
 
 <style lang="postcss">
   header {
@@ -137,7 +138,7 @@
   }
 
   li {
-    background-color: var(--color-4);
+    background-color: var(--color-3);
   }
 
   .selected {

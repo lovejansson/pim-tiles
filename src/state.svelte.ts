@@ -25,13 +25,6 @@ import {
 } from "./types";
 import { getNeighbours, createOffScreenCanvas } from "./utils";
 
-const DEFAULT_TILE_SIZE = 16;
-const DEFAULT_ROWS = 90;
-const DEFAULT_COLS = 160;
-const DEFAULT_WIDTH = DEFAULT_COLS * DEFAULT_TILE_SIZE;
-const DEFAULT_HEIGHT = DEFAULT_ROWS * DEFAULT_TILE_SIZE;
-const MAX_TILES = 250;
-
 const DEFAULT_LAYER: TileLayer = {
   id: crypto.randomUUID(),
   name: "bg",
@@ -48,8 +41,8 @@ export const guiState: GUIState = $state({
     fillToolIsActive: false,
   },
   notification: null,
-  gridColor: "#000",
-  showGrid: true,
+  gridColor: "#0217f6",
+  showGrid: false,
   mouseTilePos: { row: 0, col: 0 },
   visibleLayers: {},
 });
@@ -84,8 +77,16 @@ class ProjectStateEventEmitter extends EventTarget {
 
 const projectStateChangeEvents = new ProjectStateEventEmitter();
 
-class ProjectState {
-  name: string; // Change the name however u like
+export class ProjectState {
+  static VALID_TILE_SIZES = [16, 32];
+  static DEFAULT_TILE_SIZE = 16;
+  static DEFAULT_ROWS = 250;
+  static DEFAULT_COLS = 250;
+  static DEFAULT_WIDTH = 250 * 16;
+  static DEFAULT_HEIGHT = 250 * 16;
+  static MAX_TILES = 250;
+
+  public name: string; // Change the name however u like
   private _tileSize: number;
   private _width: number;
   private _height: number;
@@ -93,18 +94,18 @@ class ProjectState {
   private _cols: number;
 
   private layers: Layer[];
+
   private tilesets: Tileset[];
   private autoTiles: AutoTile[];
-  private areas: Area[];
+  public areas: Area[];
   private attributes: Map<string, Map<string, string>>;
   private layerData: Map<string, LayerData>;
-  historyFlag: string;
 
   constructor() {
-    this.name = "My project";
-    this._tileSize = $state(DEFAULT_TILE_SIZE);
-    this._width = $state(DEFAULT_WIDTH);
-    this._height = $state(DEFAULT_HEIGHT);
+    this.name = $state("My project");
+    this._tileSize = $state(ProjectState.DEFAULT_TILE_SIZE);
+    this._width = $state(ProjectState.DEFAULT_WIDTH);
+    this._height = $state(ProjectState.DEFAULT_HEIGHT);
     this._rows = $derived(this._height / this._tileSize);
     this._cols = $derived(this._width / this._tileSize);
 
@@ -114,7 +115,6 @@ class ProjectState {
     this.areas = $state([]);
     this.attributes = new Map();
     this.layerData = new Map();
-    this.historyFlag = $state(this.generateId());
   }
 
   init() {
@@ -122,13 +122,13 @@ class ProjectState {
   }
 
   set tileSize(px: number) {
-    if (![16, 32, 48, 64].includes(px))
+    if (!ProjectState.VALID_TILE_SIZES.includes(px))
       throw new ProjectStateError(
-        "Tile size must be 16, 32, 48 or 64",
+        "Tile size must be " + ProjectState.VALID_TILE_SIZES.join(","),
         ProjectStateErrorCode.BAD_REQUEST,
       );
 
-    this.clearLayerData();
+    this.wipeLayerData();
     this._tileSize = px;
   }
 
@@ -141,14 +141,14 @@ class ProjectState {
   }
 
   set height(px: number) {
-    if (px > MAX_TILES * this.tileSize)
+    if (px > ProjectState.MAX_TILES * this.tileSize)
       throw new ProjectStateError(
-        "Maximum allowed height for tilemap is " + MAX_TILES * this.tileSize,
+        "Maximum allowed height for tilemap is " +
+          ProjectState.MAX_TILES * this.tileSize,
         ProjectStateErrorCode.BAD_REQUEST,
       );
-
-    this.clearLayerData();
     this._height = px;
+    this.wipeLayerData();
   }
 
   get width() {
@@ -156,14 +156,14 @@ class ProjectState {
   }
 
   set width(px: number) {
-    if (px > MAX_TILES * this.tileSize)
+    if (px > ProjectState.MAX_TILES * this.tileSize)
       throw new ProjectStateError(
-        "Maximum allowed width for tilemap is " + MAX_TILES * this.tileSize,
+        "Maximum allowed width for tilemap is " +
+          ProjectState.MAX_TILES * this.tileSize,
         ProjectStateErrorCode.BAD_REQUEST,
       );
-
-    this.clearLayerData();
     this._width = px;
+    this.wipeLayerData();
   }
 
   get rows() {
@@ -227,13 +227,26 @@ class ProjectState {
   createTileset(name: string, bitmap: ImageBitmap) {
     const tileset: Tileset = {
       id: this.generateId(),
-      name,
+      name: name.trim(),
       width: bitmap.width,
       height: bitmap.height,
       spritesheet: bitmap,
     };
 
     this.tilesets.push(tileset);
+  }
+
+  updateTileset(id: string, name: string) {
+    const tileset = this.getTileset(id);
+    const sameName = this.getTilesets().find((t) => t.name === name);
+
+    if (sameName !== undefined)
+      throw new ProjectStateError(
+        "Tileset with name already exists",
+        ProjectStateErrorCode.BAD_REQUEST,
+      );
+
+    tileset.name = name.trim();
   }
 
   deleteTileset(id: string) {
@@ -298,6 +311,14 @@ class ProjectState {
   }
 
   createArea(name: string, color: string, isWalkable: boolean) {
+    const sameName = this.getAreas().find((a) => a.name === name);
+
+    if (sameName !== undefined)
+      throw new ProjectStateError(
+        "Area with the same name already exists",
+        ProjectStateErrorCode.BAD_REQUEST,
+      );
+
     this.areas.push({
       id: this.generateId(),
       name,
@@ -313,7 +334,20 @@ class ProjectState {
         "Area not found",
         ProjectStateErrorCode.NOT_FOUND,
       );
+
+    const sameName = this.getAreas().find(
+      (a) => a.name === area.name && a.id !== area.id,
+    );
+
+    if (sameName !== undefined)
+      throw new ProjectStateError(
+        "Area with the same name already exists",
+        ProjectStateErrorCode.BAD_REQUEST,
+      );
+
     this.areas[idx] = area;
+
+    // TODO: Update painted areas so that they have the same color as the updated one
   }
 
   deleteArea(id: string) {
@@ -376,6 +410,7 @@ class ProjectState {
       defaultTile,
     });
   }
+
   updateAutoTile(autoTile: AutoTile) {
     const idx = this.autoTiles.findIndex((at) => at.id === autoTile.id);
     if (idx === -1)
@@ -384,6 +419,8 @@ class ProjectState {
         ProjectStateErrorCode.NOT_FOUND,
       );
     this.autoTiles[idx] = autoTile;
+
+    // TODO: Update painted auto tiles so that they are painted according to the updated auto tile
   }
 
   deleteAutoTile(id: string) {
@@ -963,7 +1000,7 @@ class ProjectState {
                     tileSize,
                     tileSize,
                     c * tileSize,
-                    c * tileSize,
+                    r * tileSize,
                     tileSize,
                     tileSize,
                   );
@@ -1070,7 +1107,7 @@ class ProjectState {
     return JSON.stringify(data);
   }
 
-  private clearLayerData() {
+  private wipeLayerData() {
     for (const l of this.layers) {
       this.layerData.set(
         l.id,
@@ -1168,9 +1205,9 @@ class ProjectState {
   private createDefaultLayers() {
     this.layerData.set(
       DEFAULT_LAYER.id,
-      new Array(DEFAULT_ROWS)
+      new Array(ProjectState.DEFAULT_ROWS)
         .fill(null)
-        .map((_) => new Array(DEFAULT_COLS).fill(null)),
+        .map((_) => new Array(ProjectState.DEFAULT_COLS).fill(null)),
     );
 
     this.layers.push(DEFAULT_LAYER);

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { projectState } from "../../state.svelte";
+  import { guiState, projectState } from "../../state.svelte";
   import type { Tileset } from "../../types";
   import ContextMenu from "../common/ContextMenu.svelte";
   import EditableText from "../common/EditableText.svelte";
@@ -11,10 +11,38 @@
   let { tileset }: TilesetTabProps = $props();
 
   let isEditingName = $state(false);
+  let name = $state(tileset.name);
+
+  $effect(() => {
+    console.log("EFFECT");
+    if (tileset.name !== name) {
+      try {
+        projectState.updateTileset(tileset.id, name);
+      } catch (e) {
+        const msg = (e as Error).message;
+        guiState.notification = {
+          msg,
+          variant: "danger",
+          title: "Failed to update tileset name",
+        };
+      } finally {
+        name = tileset.name;
+      }
+    }
+  });
 
   const handleSelectMenuItem = (item: any) => {
     if (item.value === "delete") {
-      projectState.deleteTileset(tileset.id);
+      try {
+        projectState.deleteTileset(tileset.id);
+      } catch (e) {
+        const msg = (e as Error).message;
+        guiState.notification = {
+          msg,
+          variant: "danger",
+          title: "Failed to delete tileset",
+        };
+      }
     } else if (item.value === "rename") {
       isEditingName = true;
     }
@@ -30,8 +58,8 @@
 >
   <EditableText
     bind:isEditing={isEditingName}
-    text={tileset.name}
-    inputWidth={tileset.name.length * 9}
+    bind:text={name}
+    inputWidth={`${name.length * 12}px`}
   />
 </ContextMenu>
 

@@ -22,7 +22,16 @@
 
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
-      projectState.deleteArea(area.id);
+      try {
+        projectState.deleteArea(area.id);
+      } catch (e) {
+        const msg = (e as Error).message;
+        guiState.notification = {
+          title: "Failed to delete area",
+          variant: "danger",
+          msg,
+        };
+      }
     } else if (item.value === "edit") {
       editAreaDialogOpen = true;
     }
@@ -34,7 +43,6 @@
       ref: { id: area.id },
     };
   };
-
 </script>
 
 <ContextMenu
@@ -44,7 +52,6 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
- 
   <sl-button
     id="area"
     variant="text"
@@ -57,8 +64,6 @@
       style={`background-color:${area.color}`}
     ></div>
     {area.name}
-
-    
   </sl-button>
 </ContextMenu>
 
