@@ -1,6 +1,6 @@
 # Pim tilemaps
 
-A tilemap editor for creating pixel worlds!
+A tilemap editor for creating pixel worlds! 
 
 ## Features
 
@@ -14,6 +14,11 @@ A tilemap editor for creating pixel worlds!
 - Export JSON
 - Export a PNG
 
-## Tech stack 
+## Tech stack
+
 - [Svelte](https://svelte.dev/)
 - [Canvas 2D](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) 
+
+## User guide
+
+Read the [User guide](/USER_GUIDE.md) for more info on how to use the tool.
