@@ -28,7 +28,7 @@
       guiState.notification = {
         variant: "danger",
         title: "Failed to decode image",
-        msg: "Accepted image formats are image/png, image/jpeg, image/webp, image/bmp, image/svg+xml",
+        msg: "Accepted image formats are image/png, image/webp",
       };
     }
   };
@@ -41,7 +41,7 @@
 <section id="tilesets">
   <header>
     <h2>Tilesets</h2>
-    <FilePicker accept="image/png, image/jpeg" onFile={loadTileset} />
+    <FilePicker accept="image/png, image/webp" onFile={loadTileset} />
   </header>
 
   {#if projectState.getTilesets().length > 0}

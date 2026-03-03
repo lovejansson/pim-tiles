@@ -4,14 +4,15 @@ A tilemap editor for creating pixel worlds!
 
 ## Features
 
-- Fixed size grid max 250 * 250 tiles
+- Fixed sized grid max 250 * 250 tiles
 - Multiple layers
 - Paint and erase tile(s)
 - Rule based 8-direction auto tiles
 - Mark tiles with user defined areas
 - Manage tile attributes
-- Download and Upload project (.ptm)
-- Export to JSON
+- Download and Upload saved project (.ptm)
+- Export JSON
+- Export a PNG
 
 ## Tech stack 
 - [Svelte](https://svelte.dev/)

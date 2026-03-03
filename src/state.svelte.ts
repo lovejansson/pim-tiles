@@ -23,7 +23,7 @@ import {
   type Tile,
   type Area,
 } from "./types";
-import { getNeighbours, createOffScreenCanvas } from "./utils";
+import { getNeighbours, createCanvas } from "./utils";
 
 const DEFAULT_LAYER: TileLayer = {
   id: crypto.randomUUID(),
@@ -52,6 +52,7 @@ export enum ProjectStateErrorCode {
   BAD_REQUEST = "bad-request",
   TYPE_ERROR = "type-error",
   OUT_OF_BOUNDS = "out-of-bounds",
+  SERVER_ERROR = "server-error",
 }
 
 export class ProjectStateError extends Error {
@@ -208,7 +209,7 @@ export class ProjectState {
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
-    const ctxTile = createOffScreenCanvas(this.tileSize, this.tileSize);
+    const ctxTile = createCanvas(this.tileSize, this.tileSize);
     ctxTile.drawImage(
       tileset.spritesheet,
       tile.tilesetPos.x,
@@ -973,12 +974,10 @@ export class ProjectState {
     }
   }
 
-  getJSONExport(): string {
-    const tileSize = this.tileSize;
+  private paintProjectToCanvas(): CanvasRenderingContext2D {
+    const ctx = createCanvas(this.width, this.height);
 
-    const ctx = createOffScreenCanvas(this.width, this.height);
-
-    // Paint tile and auto tile layers on canvas
+    // Paint all tile and auto tile layers on canvas
 
     for (const layer of this.layers) {
       const data = this.getLayerData(layer.id);
@@ -997,12 +996,12 @@ export class ProjectState {
                     tileset.spritesheet,
                     tile.ref.tile.tilesetPos.x,
                     tile.ref.tile.tilesetPos.y,
-                    tileSize,
-                    tileSize,
-                    c * tileSize,
-                    r * tileSize,
-                    tileSize,
-                    tileSize,
+                    this.tileSize,
+                    this.tileSize,
+                    c * this.tileSize,
+                    r * this.tileSize,
+                    this.tileSize,
+                    this.tileSize,
                   );
                 }
               }
@@ -1026,12 +1025,12 @@ export class ProjectState {
                   tileset.spritesheet,
                   autoTileAsset.tile.ref.tile.tilesetPos.x,
                   autoTileAsset.tile.ref.tile.tilesetPos.y,
-                  tileSize,
-                  tileSize,
-                  c * tileSize,
-                  r * tileSize,
-                  tileSize,
-                  tileSize,
+                  this.tileSize,
+                  this.tileSize,
+                  c * this.tileSize,
+                  r * this.tileSize,
+                  this.tileSize,
+                  this.tileSize,
                 );
               }
             }
@@ -1040,6 +1039,31 @@ export class ProjectState {
         }
       }
     }
+
+    return ctx;
+  }
+
+  async getPNGExport(): Promise<Blob> {
+    const ctx = this.paintProjectToCanvas();
+
+    return await new Promise((resolve, reject) => {
+      ctx.canvas.toBlob((blob) => {
+        if (blob === null) {
+          reject(
+            new ProjectStateError(
+              "Failed to create blob",
+              ProjectStateErrorCode.SERVER_ERROR,
+            ),
+          );
+        } else {
+          resolve(blob);
+        }
+      }, "image/png");
+    });
+  }
+
+  getJSONExport(): string {
+    const ctx = this.paintProjectToCanvas();
 
     // Create areas array based of of areas have been painted
 

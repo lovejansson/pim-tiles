@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { projectState } from "../state.svelte";
+  import { guiState, projectState } from "../state.svelte";
   import { detectOS, download } from "../utils";
   import SettingsDialog from "./SettingsDialog.svelte";
 
@@ -8,7 +8,7 @@
 
   let settingsDialogIsOpen = $state(false);
 
-  const handleMenuSelect = (e: CustomEvent) => {
+  const handleMenuSelect = async (e: CustomEvent) => {
     switch (e.detail.item.value) {
       case "create":
         break;
@@ -22,6 +22,20 @@
           type: "application/json",
         });
         download(blob, projectState.name, "json");
+        break;
+      case "export-png":
+        {
+          try {
+            const blob = await projectState.getPNGExport();
+            download(blob, projectState.name, "png");
+          } catch (e) {
+            guiState.notification = {
+              msg: (e as Error).message,
+              variant: "danger",
+              title: "Failed to download PNG",
+            };
+          }
+        }
         break;
       case "settings":
         settingsDialogIsOpen = true;
@@ -89,6 +103,7 @@
     </sl-menu-item>
 
     <sl-menu-item value="export-json">Export JSON</sl-menu-item>
+    <sl-menu-item value="export-png">Export PNG</sl-menu-item>
     <sl-menu-item value="settings"
       >Settings <sl-icon slot="suffix" name="gear"></sl-icon></sl-menu-item
     >

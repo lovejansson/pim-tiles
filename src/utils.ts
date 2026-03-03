@@ -64,4 +64,4 @@ function isSameCell(cell1: Cell, cell2: Cell) {
     return cell1.row === cell2.row && cell1.col === cell2.col;
 }
 
-export { isSameCell, isPointInRect, getNeighbours, detectOS, createCanvas as createOffScreenCanvas, download }
+export { isSameCell, isPointInRect, getNeighbours, detectOS, createCanvas, download }
