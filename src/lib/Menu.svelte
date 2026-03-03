@@ -40,6 +40,12 @@
       case "settings":
         settingsDialogIsOpen = true;
         break;
+      case "how-to":
+        const a = document.createElement("a");
+        a.href = "https://github.com/lovejansson/pim-tiles/blob/main/USER_GUIDE.md";
+        a.target = "_blank";
+        a.click();
+        break;
     }
   };
 
@@ -105,7 +111,10 @@
     <sl-menu-item value="export-json">Export JSON</sl-menu-item>
     <sl-menu-item value="export-png">Export PNG</sl-menu-item>
     <sl-menu-item value="settings"
-      >Settings <sl-icon slot="suffix" name="gear"></sl-icon></sl-menu-item
+      >Settings </sl-menu-item
+    >
+    <sl-menu-item value="how-to"
+      >How to</sl-menu-item
     >
     <p><small>&copy Pimpixels 2026</small></p>
   </sl-menu>
