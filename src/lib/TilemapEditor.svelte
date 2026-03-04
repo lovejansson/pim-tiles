@@ -390,48 +390,35 @@
       }
     }
 
-    const selection = (e as TilemapViewportSelectionChangeEvent).selection;
+    const tiles = (e as TilemapViewportSelectionChangeEvent).tiles;
 
     selectedTiles = [];
 
-    if (selection !== null) {
-      const minX = Math.min(selection.x1, selection.x2);
-      const maxX = Math.max(selection.x1, selection.x2);
-      const minY = Math.min(selection.y1, selection.y2);
-      const maxY = Math.max(selection.y1, selection.y2);
+    if (tiles !== null) {
+      for (const { row, col } of tiles) {
+        const tile = projectState.getTileAt(
+          row,
+          col,
+          guiState.tilemapEditorState.selectedLayer,
+        );
 
-      let row = 0;
-      let col = 0;
+        if (tile !== null) {
+          if (tile.type !== PaintType.TILE)
+            throw new Error("Selection only implemented for tile layers");
 
-      for (let y = minY; y < maxY; y += projectState.tileSize) {
-        for (let x = minX; x < maxX; x += projectState.tileSize) {
-          row = Math.floor(y / projectState.tileSize);
-          col = Math.floor(x / projectState.tileSize);
-
-          const tile = projectState.getTileAt(
+          projectState.eraseTile(
             row,
             col,
             guiState.tilemapEditorState.selectedLayer,
           );
 
-          if (tile !== null) {
-            if (tile.type !== PaintType.TILE)
-              throw new Error("Selection only implemented for tile layers");
+          dirtyTiles.push({ row, col });
 
-            projectState.eraseTile(
-              row,
-              col,
-              guiState.tilemapEditorState.selectedLayer,
-            );
-
-            dirtyTiles.push({ row, col });
-
-            selectedTiles.push({
-              org: { row, col },
-              curr: { row, col },
-              tile,
-            });
-          }
+          selectedTiles.push({
+            org: { row, col },
+            curr: { row, col },
+            tile,
+          });
         }
       }
     }
@@ -684,6 +671,13 @@
           case PaintType.TILE:
             const paintedTile = data[row][col] as PaintedTile | null;
 
+            cached.clearRect(
+              x,
+              y,
+              projectState.tileSize,
+              projectState.tileSize,
+            );
+
             if (paintedTile !== null) {
               const tileset = projectState.getTileset(
                 paintedTile.ref.tilesetId,
@@ -700,19 +694,16 @@
                 projectState.tileSize,
                 projectState.tileSize,
               );
-            } else {
-              cached.clearRect(
-                x,
-                y,
-                projectState.tileSize,
-                projectState.tileSize,
-              );
             }
-
             break;
           case PaintType.AUTO_TILE:
             const paintedAutoTile = data[row][col] as PaintedAutoTile | null;
-
+            cached.clearRect(
+              x,
+              y,
+              projectState.tileSize,
+              projectState.tileSize,
+            );
             if (paintedAutoTile !== null) {
               const autoTile = projectState.getAutoTile(paintedAutoTile.ref.id);
               const tile =
@@ -733,19 +724,17 @@
                 projectState.tileSize,
                 projectState.tileSize,
               );
-            } else {
-              cached.clearRect(
-                x,
-                y,
-                projectState.tileSize,
-                projectState.tileSize,
-              );
             }
 
             break;
           case PaintType.AREA:
             const paintedArea = data[row][col] as PaintedArea | null;
-
+            cached.clearRect(
+              x,
+              y,
+              projectState.tileSize + 0.5,
+              projectState.tileSize + 0.5,
+            );
             if (paintedArea !== null) {
               const area = projectState.getArea(paintedArea.ref.id);
 
@@ -756,13 +745,6 @@
               cached.strokeStyle = area.color;
 
               cached.strokeRect(
-                x - 0.5,
-                y - 0.5,
-                projectState.tileSize + 0.5,
-                projectState.tileSize + 0.5,
-              );
-            } else {
-              cached.clearRect(
                 x - 0.5,
                 y - 0.5,
                 projectState.tileSize + 0.5,

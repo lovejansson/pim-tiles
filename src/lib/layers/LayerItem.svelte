@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { SlMenuItem } from "@shoelace-style/shoelace";
+  import type { SlIconButton, SlMenuItem } from "@shoelace-style/shoelace";
   import { guiState } from "../../state.svelte";
   import { PaintType, type Layer } from "../../types";
   import ContextMenu from "../common/ContextMenu.svelte";
@@ -12,6 +12,8 @@
   };
 
   let { layer, onDelete, onRename }: LayerItemProps = $props();
+
+  let icon: SlIconButton;
 
   let name = $state(layer.name);
   let isEditingName = $state(false);
@@ -40,7 +42,13 @@
   };
 
   const toggleVisibility = () => {
-    guiState.visibleLayers[layer.id] = !guiState.visibleLayers[layer.id];
+    if (guiState.visibleLayers[layer.id]) {
+      guiState.visibleLayers[layer.id] = false;
+      icon.name = "eye-closed";
+    } else {
+      guiState.visibleLayers[layer.id] = true;
+      icon.name = "eye";
+    }
   };
 </script>
 
@@ -73,6 +81,7 @@
     />
 
     <sl-icon-button
+      bind:this={icon}
       onclick={(e: MouseEvent) => {
         e.stopPropagation();
         toggleVisibility();

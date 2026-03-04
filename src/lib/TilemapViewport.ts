@@ -52,11 +52,11 @@ export class TilemapViewportPaintEvent extends Event {
 }
 
 export class TilemapViewportSelectionChangeEvent extends Event {
-  selection: SelectionRect | null;
+  tiles: Cell[] | null;
 
-  constructor(selection: SelectionRect | null) {
+  constructor(tiles: Cell[] | null) {
     super("selection-change");
-    this.selection = selection;
+    this.tiles = tiles;
   }
 }
 
@@ -435,7 +435,7 @@ export default class TilemapViewport extends EventTarget {
 
       this.ctxOverlay.fillStyle = "rgba(138, 210, 122, 0.25)";
 
-      this.ctxOverlay.lineWidth = 2;
+      this.ctxOverlay.lineWidth = 1;
       this.ctxOverlay.setLineDash([4, 4]);
       this.ctxOverlay.strokeRect(
         this.selection.x1 - 0.5,
@@ -749,9 +749,28 @@ export default class TilemapViewport extends EventTarget {
       addEventListener("mouseup", (_: MouseEvent) => {
         if (this.isMouseDown(this.mouseAction)) {
           if (this.mouseAction.type === MouseActionType.SELECT) {
-            this.dispatchEvent(
-              new TilemapViewportSelectionChangeEvent(this.selection),
-            );
+            const tiles: Cell[] = [];
+
+            const selection = this.mouseAction.data.selection;
+
+            const minX = Math.min(selection.x1, selection.x2);
+            const maxX = Math.max(selection.x1, selection.x2);
+            const minY = Math.min(selection.y1, selection.y2);
+            const maxY = Math.max(selection.y1, selection.y2);
+
+            let row = 0;
+            let col = 0;
+
+            for (let y = minY; y < maxY; y += this.gridSettings.tileSize) {
+              for (let x = minX; x < maxX; x += this.gridSettings.tileSize) {
+                row = Math.floor(y / this.gridSettings.tileSize);
+                col = Math.floor(x / this.gridSettings.tileSize);
+
+                tiles.push({ row, col });
+              }
+            }
+
+            this.dispatchEvent(new TilemapViewportSelectionChangeEvent(tiles));
           } else if (this.mouseAction.type === MouseActionType.MOVE_SELECTION) {
             this.dispatchEvent(new TilemapViewportSelectionMoveEndEvent());
           }
@@ -829,12 +848,20 @@ export default class TilemapViewport extends EventTarget {
       rect.x2 = Math.floor(mousePos.x / tileSize) * tileSize;
     }
 
+    if (rect.x1 === rect.x2) {
+      rect.x2 += tileSize;
+    }
+
     if (startPos.y <= mousePos.y) {
       rect.y1 = Math.floor(startPos.y / tileSize) * tileSize;
       rect.y2 = Math.ceil(mousePos.y / tileSize) * tileSize;
     } else {
       rect.y1 = Math.ceil(startPos.y / tileSize) * tileSize;
       rect.y2 = Math.floor(mousePos.y / tileSize) * tileSize;
+    }
+
+    if (rect.y1 === rect.y2) {
+      rect.y2 += tileSize;
     }
 
     return rect;

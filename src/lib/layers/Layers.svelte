@@ -13,6 +13,15 @@
 
   let createNewLayerDialogIsOpen = $state(false);
 
+  let ulLayers: HTMLUListElement;
+
+  $effect(() => {
+    // Workaround due to bug in dnd kit, svelte's reactive DOM didn't work so style for layer items are updated the hard way
+    if (guiState.tilemapEditorState.selectedLayer) {
+      updateSelectedStyles();
+    }
+  });
+
   // Need a separate state for layers here since dnd lib replaces items on drag and at the same time requires the user to update the items list which means that if we update project state it will
   // contain shadow items and miss real items for a short while.
   // IMPORTANTE that this syncs well with the SOT projectState, delete, update of name and reordering is done only in this component.
@@ -25,7 +34,8 @@
   const handleDndFinalize = (e: CustomEvent<DndEvent<Layer>>) => {
     projectState.setReorderedLayers(e.detail.items); // Update the SOT state here
     layers = e.detail.items; // Sync UI state with SOT state
-    //updateSelectedStyles();
+    updateSelectedStyles();
+    updateVisibilityIcon();
   };
 
   const styleDragged = (el?: HTMLElement, data?: Item) => {
@@ -47,22 +57,25 @@
     });
   });
 
-  // Work around the svelte reactivity updates of selected state for layer styles bc it didn't sync well with dnd operation
-  const updateSelectedStyles = () => {
-    const ul: HTMLUListElement = document.getElementById(
-      "layers-list",
-    )! as HTMLUListElement;
+  const updateVisibilityIcon = () => {
+    for (const li of ulLayers.children) {
+      const eyeIcon = li.querySelector("sl-icon-button");
+      if (eyeIcon) {
+        if (guiState.visibleLayers[li.id]) {
+          eyeIcon.name = "eye";
+        } else {
+          eyeIcon.name = "eye-closed";
+        }
+      }
+    }
+  };
 
-    for (const li of ul.children) {
+  const updateSelectedStyles = () => {
+    for (const li of ulLayers.children) {
       if (li.id === guiState.tilemapEditorState.selectedLayer) {
         (li as HTMLLIElement).style.backgroundColor = "var(--color-2)";
       } else {
-        (li as HTMLLIElement).style.backgroundColor = "";
-      }
-
-      const eyeIcon = li.querySelector("sl-icon-button");
-      if (eyeIcon) {
-        eyeIcon.name = guiState.visibleLayers[li.id] ? "eye" : "eye-closed";
+        (li as HTMLLIElement).style.backgroundColor = "var(--color-3)";
       }
     }
   };
@@ -110,7 +123,7 @@
   </header>
 
   <ul
-    id="layers-list"
+    bind:this={ulLayers}
     use:dndzone={{
       items: layers,
       transformDraggedElement: styleDragged,
@@ -121,13 +134,7 @@
     onfinalize={handleDndFinalize}
   >
     {#each layers as layer, _ (layer.id)}
-      <li
-        id={layer.id}
-        animate:flip={{ duration: 100 }}
-        class={guiState.tilemapEditorState.selectedLayer === layer.id
-          ? "selected"
-          : ""}
-      >
+      <li id={layer.id} animate:flip={{ duration: 100 }}>
         <LayerItem
           {layer}
           onRename={(name: string) => renameLayer(layer.id, name)}
@@ -154,9 +161,5 @@
 
   li {
     background-color: var(--color-3);
-  }
-
-  .selected {
-    background-color: var(--color-2);
   }
 </style>

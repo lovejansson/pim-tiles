@@ -6,9 +6,10 @@
 
   type TilesetTabProps = {
     tileset: Tileset;
+    onDelete: () => void;
   };
 
-  let { tileset }: TilesetTabProps = $props();
+  let { tileset, onDelete}: TilesetTabProps = $props();
 
   let isEditingName = $state(false);
   let name = $state(tileset.name);
@@ -33,20 +34,14 @@
 
   const handleSelectMenuItem = (item: any) => {
     if (item.value === "delete") {
-      try {
-        projectState.deleteTileset(tileset.id);
-      } catch (e) {
-        const msg = (e as Error).message;
-        guiState.notification = {
-          msg,
-          variant: "danger",
-          title: "Failed to delete tileset",
-        };
-      }
+  
+        onDelete();
+   
     } else if (item.value === "rename") {
       isEditingName = true;
     }
   };
+
 </script>
 
 <ContextMenu
@@ -56,11 +51,13 @@
     { label: "Delete", value: "delete", icon: "close" },
   ]}
 >
+
   <EditableText
     bind:isEditing={isEditingName}
     bind:text={name}
     inputWidth={`${name.length * 12}px`}
   />
+
 </ContextMenu>
 
 <style lang="postcss">

@@ -4,8 +4,11 @@
   import TilesetTab from "./TilesetTab.svelte";
   import TilesCanvas from "./TilesetCanvas.svelte";
   import type { TileAsset } from "../../types";
+  import { SlTabGroup } from "@shoelace-style/shoelace";
 
   let selectedTilesetIdx = $state(0);
+
+  let tabGroup!: SlTabGroup;
 
   const loadTileset = async (files: FileList) => {
     try {
@@ -36,6 +39,25 @@
   const handleOnSelectTiles = (selectedTiles: TileAsset[]) => {
     guiState.tilemapEditorState.selectedAsset = selectedTiles;
   };
+
+  const deleteTileset = (id: string, idx: number) => {
+    try {
+      projectState.deleteTileset(id);
+    } catch (e) {
+      const msg = (e as Error).message;
+      guiState.notification = {
+        msg,
+        variant: "danger",
+        title: "Failed to delete tileset",
+      };
+    }
+
+    if (projectState.getTilesets().length === 0) return;
+
+    const nextTabIdx = idx === 0 ? 0 : idx - 1;
+    const tabToFocus = projectState.getTilesets()[nextTabIdx].name;
+    tabGroup.show(tabToFocus);
+  };
 </script>
 
 <section id="tilesets">
@@ -45,10 +67,13 @@
   </header>
 
   {#if projectState.getTilesets().length > 0}
-    <sl-tab-group>
-      {#each projectState.getTilesets() as tileset}
+    <sl-tab-group bind:this={tabGroup}>
+      {#each projectState.getTilesets() as tileset, idx (tileset.id)}
         <sl-tab slot="nav" panel={tileset.name}>
-          <TilesetTab {tileset} /></sl-tab
+          <TilesetTab
+            {tileset}
+            onDelete={() => deleteTileset(tileset.id, idx)}
+          /></sl-tab
         >
         <sl-tab-panel name={tileset.name}>
           <TilesCanvas

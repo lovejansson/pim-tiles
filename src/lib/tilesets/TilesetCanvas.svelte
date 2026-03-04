@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { PaintType, type TileAsset, type Tileset } from "../../types";
+  import {
+    PaintType,
+    type Cell,
+    type TileAsset,
+    type Tileset,
+  } from "../../types";
   import { guiState, projectState } from "../../state.svelte";
   import TilemapViewport, {
     TilemapViewportSelectionChangeEvent,
@@ -46,9 +51,7 @@
       tilemapViewport.init();
 
       tilemapViewport.addEventListener("selection-change", (e) => {
-        updateSelectedTiles(
-          (e as TilemapViewportSelectionChangeEvent).selection,
-        );
+        updateSelectedTiles((e as TilemapViewportSelectionChangeEvent).tiles);
       });
     });
 
@@ -71,22 +74,21 @@
     tilemapViewport.gridColor = guiState.gridColor;
   });
 
-  const updateSelectedTiles = (selection: SelectionRect | null) => {
-    if (selection !== null) {
+  const updateSelectedTiles = (tiles: Cell[] | null) => {
+    if (tiles !== null) {
       const selectedTiles: TileAsset[] = [];
 
-      const minX = Math.min(selection.x1, selection.x2);
-      const maxX = Math.max(selection.x1, selection.x2);
-      const minY = Math.min(selection.y1, selection.y2);
-      const maxY = Math.max(selection.y1, selection.y2);
-
-      for (let y = minY; y < maxY; y += projectState.tileSize) {
-        for (let x = minX; x < maxX; x += projectState.tileSize) {
-          selectedTiles.push({
-            type: PaintType.TILE,
-            ref: { tilesetId: tileset.id, tilesetPos: { x, y } },
-          });
-        }
+      for (const t of tiles) {
+        selectedTiles.push({
+          type: PaintType.TILE,
+          ref: {
+            tilesetId: tileset.id,
+            tilesetPos: {
+              x: t.col * projectState.tileSize,
+              y: t.row * projectState.tileSize,
+            },
+          },
+        });
       }
 
       onSelect(selectedTiles);

@@ -110,6 +110,7 @@ class ProjectStateEventEmitter extends EventTarget {
   }
 }
 
+
 export const projectStateEvents = new ProjectStateEventEmitter();
 
 export class ProjectState {
@@ -499,7 +500,6 @@ export class ProjectState {
     projectStateEvents.emit(ProjectStateEventType.ASSET_UPDATE, {
       layers: usedInLayers.map((l) => l.id),
     });
-
   }
 
   deleteAutoTile(id: string) {
@@ -653,8 +653,6 @@ export class ProjectState {
   paintTile(row: number, col: number, layerID: string, paint: PaintedAsset) {
     const layer = this.getLayer(layerID);
 
-    // TODO: can this be done better with typescript generics?
-
     if (layer.type !== paint.type)
       throw new ProjectStateError(
         "type mismatch between layer and asset",
@@ -724,6 +722,7 @@ export class ProjectState {
         data: curr ? ({ ...curr } as any) : null,
         pos: { row: r, col: c },
       });
+
       nextTiles.push({
         data: t !== null ? ({ ...t } as any) : null,
         pos: { row: r, col: c },
