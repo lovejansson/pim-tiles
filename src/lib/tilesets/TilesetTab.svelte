@@ -14,7 +14,7 @@
   let name = $state(tileset.name);
 
   $effect(() => {
-    console.log("EFFECT");
+
     if (tileset.name !== name) {
       try {
         projectState.updateTileset(tileset.id, name);

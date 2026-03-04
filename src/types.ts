@@ -1,17 +1,3 @@
-type ProjectState = {
-  projectName: string;
-  tileSize: number;
-  width: number;
-  height: number
-  rows: number;
-  cols: number;
-  layers: Layer[];
-  tilesets: Tileset[];
-  autoTiles: AutoTile[];
-  areas: Area[];
-  attributes: Map<string, Map<string, string>>
-};
-
 type Area = {
   id: string;
   color: string;
@@ -61,20 +47,25 @@ enum Tool {
   SELECT,
 }
 
-type AssetRefT<T extends PaintType> = {
-  type: T;
-  ref: T extends PaintType.TILE ? TileRef : IdRef;
+type IdRef = {
+  id: string;
 };
 
+type AssetRefT<T extends PaintType> = {
+  type: T;
+  ref: T extends PaintType.TILE ? Tile : IdRef;
+};
 
 type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE
-  ? AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> }
+  ? AssetRefT<T> & { selectedTileRuleId: IdRef | null }
   : AssetRefT<T>;
-
 
 type LayerDataT<T extends PaintType> = (PaintedAssetT<T> | null)[][];
 
-type LayerData = LayerDataT<PaintType.TILE> | LayerDataT<PaintType.AUTO_TILE> | LayerDataT<PaintType.AREA>;
+type LayerData =
+  | LayerDataT<PaintType.TILE>
+  | LayerDataT<PaintType.AUTO_TILE>
+  | LayerDataT<PaintType.AREA>;
 
 type LayerT<T extends PaintType> = {
   id: string;
@@ -124,14 +115,6 @@ type TileRule = {
   tile: TileAsset;
 };
 
-type TileRef = {
-  tile: Tile;
-};
-
-type IdRef = {
-  id: string;
-};
-
 type TileAsset = AssetRefT<PaintType.TILE>;
 type AutoTileAsset = AssetRefT<PaintType.AUTO_TILE>;
 type AreaAsset = AssetRefT<PaintType.AREA>;
@@ -173,12 +156,24 @@ type GUIState = {
   visibleLayers: { [key: string]: boolean };
 };
 
-type ProjectStateJSONExport = {
-  tilemap: string; // image url 
+type ProjectJSONExport = {
+  tilemap: string; // image url
   name: string;
   tileSize: number;
   areas: { name: string; tiles: Point[] }[]; // Just an array of areas with name and which tiles they belong to
-  attributes: { pos: Point, attributes: { [key: string]: any } }[]; // An array of tiles positions with attributes
+  attributes: { pos: Point; attributes: { [key: string]: any } }[]; // An array of tiles positions with attributes
+};
+
+type ProjectFile = {
+  name: string;
+  tileSize: number;
+  width: number;
+  height: number;
+  layers: (Layer & { data: LayerData })[];
+  tilesets: (Omit<Tileset, "spritesheet"> & { spritesheet: string })[];
+  autoTiles: AutoTile[];
+  areas: Area[];
+  attributes: { pos: Point; attributes: { [key: string]: any } }[]; // An array of tiles positions with attributes
 };
 
 type Notification = {
@@ -187,9 +182,7 @@ type Notification = {
   msg: string;
 };
 
-type HistoryEntryData<T extends PaintType> = T extends PaintType.AUTO_TILE
-  ? AssetRefT<T> & { tile: AssetRefT<PaintType.TILE> }
-  : AssetRefT<PaintType.TILE>;
+type HistoryEntryData<T extends PaintType> = PaintedAssetT<T>;
 
 type HistoryEntryItem<T extends PaintType> = {
   data: HistoryEntryData<T> | null;
@@ -213,7 +206,7 @@ type AreaHistoryEntry = HistoryEntryT<PaintType.AREA>;
 type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry;
 
 export {
-  type ProjectStateJSONExport,
+  type ProjectJSONExport as ProjectStateJSONExport,
   type PaintedTile,
   type PaintedArea,
   type PaintedAutoTile,
@@ -227,6 +220,7 @@ export {
   PaintType,
   Tool,
   TileRequirement,
+  type ProjectFile,
   type HistoryEntry,
   type TileHistoryEntry,
   type AreaHistoryEntry,
@@ -241,17 +235,15 @@ export {
   type AreaLayerState,
   type Point,
   type Rect,
-  type ProjectState,
   type GUIState,
   type Notification,
   type Layer,
   type TileLayer,
-  type IdRef,
   type Tileset,
   type Tile,
   type AutoTile,
   type TileRule,
-  type TileRef,
   type TileConnections,
   type Cell,
+  type IdRef,
 };

@@ -56,7 +56,7 @@
         onkeydown={(e: KeyboardEvent) =>
           handleClickBtnDir(e, direction, connectionReq)}
         size="small"
-        class={`${connectionReq} btn-dir`}
+        class={`${connectionReq === TileRequirement.EXCLUDED ? "excluded" : connectionReq === TileRequirement.OPTIONAL ? "optional" : "required"} btn-dir`}
       >
       </sl-button>
     {/each}
@@ -73,7 +73,7 @@
   >
     {#if ruleTile.tile !== null}
       <img
-        src={projectState.getTileDataUrl(ruleTile.tile.ref.tile)}
+        src={projectState.getTileDataUrl(ruleTile.tile.ref)}
         alt="tile"
       />
     {/if}</sl-button

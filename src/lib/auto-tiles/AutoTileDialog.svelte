@@ -181,9 +181,7 @@
     hasAddedTileRulesByTemplate = true;
   };
 
-  $effect(() => {
-    console.log($state.snapshot(defaultTile));
-  });
+
 </script>
 
 <sl-dialog onsl-after-hide={hide} label="Create auto tile" {open}>
@@ -284,7 +282,7 @@
       >
         {#if defaultTile !== null}
           <img
-            src={projectState.getTileDataUrl(defaultTile.ref.tile)}
+            src={projectState.getTileDataUrl(defaultTile.ref)}
             alt="tile"
           />
         {/if}

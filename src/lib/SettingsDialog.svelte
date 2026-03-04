@@ -4,7 +4,13 @@
     type SlChangeEvent,
     type SlHideEvent,
   } from "@shoelace-style/shoelace";
-  import { guiState, projectState, ProjectState } from "../state.svelte";
+  import {
+    guiState,
+    projectState,
+    ProjectState,
+    projectStateEvents,
+    ProjectStateEventType,
+  } from "../state.svelte";
   import ConfirmDialog from "./common/ConfirmDialog.svelte";
 
   let { open = $bindable() } = $props();
@@ -35,6 +41,15 @@
 
   let confirmDialogIsOpen = $state(false);
 
+  $effect(() => {
+    projectStateEvents.on(ProjectStateEventType.LOAD_FROM_FILE, () => {
+      tileSize = projectState.tileSize;
+      cols = projectState.width / projectState.tileSize;
+      rows = projectState.height / projectState.tileSize;
+      name = projectState.name;
+    });
+  });
+
   const handleConfirm = () => {
     projectState.tileSize = tileSize;
     projectState.name = name;
@@ -54,7 +69,8 @@
     let isValid = true;
 
     if (!ProjectState.VALID_TILE_SIZES.includes(tileSize)) {
-      tileSizeError = "Valid tile sizes are " + ProjectState.VALID_TILE_SIZES.join(",");
+      tileSizeError =
+        "Valid tile sizes are " + ProjectState.VALID_TILE_SIZES.join(",");
       isValid = false;
     }
 

@@ -1,29 +1,19 @@
 # Todo 
 
-* Do testing before implement File and data persistance 
-
-* Save As .ptm 
-
-* Load .ptm
-
 * Auto save project with browser data indexed DB or localStorage
-
-* Use proto files for binary file format 
 
 # Bugs 
 
-Reordering layers and reactivity for UI not working 
+Reordering layers and reactivity for UI not working
+
 Tileset tab must be set programmatically when deleteing a tileset 
 
-# Backlog
+* Bug selection removes/adds wrong tiles
 
-* Update tilemap after areas/auto tiles changes
+# Backlog
 
 * Generate maze tool 
 
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
 
 * Implement select tool for areas and auto tiles
-
- 
- 

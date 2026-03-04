@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { guiState, projectState } from "../../state.svelte";
+  import {
+    guiState,
+    projectState,
+    projectStateEvents,
+    ProjectStateEventType,
+  } from "../../state.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
   import { dndzone, type DndEvent, type Item } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
@@ -31,6 +36,16 @@
       return el;
     }
   };
+
+  $effect(() => {
+    projectStateEvents.on(ProjectStateEventType.LOAD_FROM_FILE, () => {
+      layers = projectState.getLayers();
+    });
+
+    projectStateEvents.on(ProjectStateEventType.NEW_PROJECT, () => {
+      layers = projectState.getLayers();
+    });
+  });
 
   // Work around the svelte reactivity updates of selected state for layer styles bc it didn't sync well with dnd operation
   const updateSelectedStyles = () => {

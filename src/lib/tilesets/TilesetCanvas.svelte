@@ -72,8 +72,6 @@
   });
 
   const updateSelectedTiles = (selection: SelectionRect | null) => {
-   
-
     if (selection !== null) {
       const selectedTiles: TileAsset[] = [];
 
@@ -86,9 +84,7 @@
         for (let x = minX; x < maxX; x += projectState.tileSize) {
           selectedTiles.push({
             type: PaintType.TILE,
-            ref: {
-              tile: { tilesetId: tileset.id, tilesetPos: { x, y } },
-            },
+            ref: { tilesetId: tileset.id, tilesetPos: { x, y } },
           });
         }
       }

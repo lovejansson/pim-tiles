@@ -25,6 +25,29 @@ function createCanvas(width: number, height: number) {
 
     return ctx;
 }
+
+async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+    return await new Promise((resolve, reject) => {
+        canvas.toBlob((blob: Blob | null) => {
+        if (blob === null) {
+            reject(
+            new Error(
+                "Failed to create blob of canvas",
+            ),
+            );
+        } else {
+            resolve(blob);
+        }
+        }, "image/png");
+    });
+}
+
+async function dataURLToImageBitmap(dataURL: string) {
+  const res = await fetch(dataURL);
+  const blob = await res.blob();
+  return await createImageBitmap(blob);
+}
+
 function isPointInRect(point: Point, rect: Rect) {
     return point.x > rect.x && point.x < rect.x + rect.width && point.y > rect.y && point.y < rect.y + rect.height;
 }
@@ -64,4 +87,4 @@ function isSameCell(cell1: Cell, cell2: Cell) {
     return cell1.row === cell2.row && cell1.col === cell2.col;
 }
 
-export { isSameCell, isPointInRect, getNeighbours, detectOS, createCanvas, download }
+export {dataURLToImageBitmap, canvasToBlob, isSameCell, isPointInRect, getNeighbours, detectOS, createCanvas, download }
