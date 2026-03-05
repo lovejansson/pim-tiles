@@ -26,6 +26,7 @@
     slot="header-actions"
     library="pixelarticons"
     name="close"
+    style="font-size: 1.6rem;"
     onclick={hide}
   >
   </sl-icon-button>
@@ -66,8 +67,4 @@
     flex-direction: column;
     gap: 0.2rem;
   }
-
-
-
-
 </style>

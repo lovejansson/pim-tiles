@@ -106,6 +106,7 @@
     library="pixelarticons"
     name="close"
     onclick={hide}
+    style="font-size: 1.6rem;"
   >
   </sl-icon-button>
   <sl-input

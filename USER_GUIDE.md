@@ -48,8 +48,20 @@ Each tile rule consists of:
 
 You can paint with an autotile by selecting it from the Autotiles list.
 
+## Tools
+
+There are 3 types of tools to edit the tilemap:
+
+- **Paint (shortcut key Q/q)** – Paint tile(s) or autotiles.
+- **Erase (shortcut key W/w)** – Erase tiles.
+- **Selection (shortcut key E/e)** – Select parts of the tilemap to move, copy (Ctrl + C), or delete (Del/Backspace). Only available for tile layers.
+
+And there is also a modifier:
+
+- **Fill (shortcut key R/r)** – Flood fills parts of the tilemap. Can be used on tile layers when either paint or erase tool is active.
+
 ## Export
 
 You can export the project as **PNG** or **JSON**.
 
-The project can also be saved in a binary `.ptm` format, which can later be loaded back into the editor.
+The project can also be saved in a json format, which can later be loaded back into the editor.

@@ -41,8 +41,8 @@
   $effect(() => {
     if (!isSameCell(cell, tile)) {
       tile = cell;
-      const tileAttributes = projectState.getTileAttributes(tile);
-      attributes = tileAttributes ? Array.from(tileAttributes.entries()) : [];
+      const tileAttributes = getTileAttributesArray(tile);
+      attributes = tileAttributes;
     }
   });
 
@@ -56,7 +56,7 @@
   const save = () => {
     if (attributes.length > 0) {
       projectState.updateTileAttributes(tile, new Map(attributes));
-    } else if (projectState.getTileAttributes(tile)) {
+    } else if (projectState.hasTileAttributes(tile)) {
       projectState.deleteTileAttributes(tile);
     }
 
@@ -106,9 +106,11 @@
     slot="header-actions"
     library="pixelarticons"
     name="close"
+    style="font-size: 1.6rem;"
     onclick={hide}
   >
   </sl-icon-button>
+
   <section id="section-attributes">
     {#if attributes.length > 0}
       <ul id="attributes">
@@ -143,24 +145,16 @@
           </li>
         {/each}
       </ul>
-      <sl-button id="btn-add" variant="default" onclick={addNewAttribute}>
-        Add
-      </sl-button>
     {:else}
       <div id="no-attributes-added">
         <p>No attributes added.</p>
-        <sl-button
-          id="btn-add"
-          variant="default"
-          size="small"
-          onclick={addNewAttribute}
-        >
-          Add
-        </sl-button>
       </div>
     {/if}
   </section>
   <div slot="footer">
+    <sl-button id="btn-add" variant="default" onclick={addNewAttribute}>
+      Add
+    </sl-button>
     <sl-button variant="primary" onclick={save}>Save</sl-button>
   </div>
 </sl-dialog>
@@ -181,7 +175,7 @@
   }
 
   .btn-delete {
-    font-size: 2rem;
+    font-size: 1.6rem;
     align-self: flex-end;
   }
 

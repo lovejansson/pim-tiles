@@ -430,8 +430,10 @@
     const row = Math.floor(pos.y / projectState.tileSize);
     const col = Math.floor(pos.x / projectState.tileSize);
 
-    tileAttributesCell = { row, col };
-    tileAttributesDialogIsOpen = true;
+    if (projectState.isTilePainted({ row, col })) {
+      tileAttributesCell = { row, col };
+      tileAttributesDialogIsOpen = true;
+    }
   };
 
   const handleSelectionMove = (e: Event) => {

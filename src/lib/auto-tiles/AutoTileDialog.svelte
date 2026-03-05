@@ -180,8 +180,6 @@
 
     hasAddedTileRulesByTemplate = true;
   };
-
-
 </script>
 
 <sl-dialog onsl-after-hide={hide} label="Create auto tile" {open}>
@@ -189,6 +187,7 @@
     slot="header-actions"
     library="pixelarticons"
     name="close"
+    style="font-size: 1.6rem;"
     onclick={hide}
   >
   </sl-icon-button>
@@ -281,10 +280,7 @@
         aria-label="Place tile here"
       >
         {#if defaultTile !== null}
-          <img
-            src={projectState.getTileDataUrl(defaultTile.ref)}
-            alt="tile"
-          />
+          <img src={projectState.getTileDataUrl(defaultTile.ref)} alt="tile" />
         {/if}
       </sl-button>
       {#each rules as _, idx}

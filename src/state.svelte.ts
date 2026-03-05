@@ -110,7 +110,6 @@ class ProjectStateEventEmitter extends EventTarget {
   }
 }
 
-
 export const projectStateEvents = new ProjectStateEventEmitter();
 
 export class ProjectState {
@@ -543,22 +542,50 @@ export class ProjectState {
   }
 
   getTileAttributes(cell: Cell) {
+    if (!this.isWithinGridBounds(cell.row, cell.col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
     const attributes = this.attributes.get(`${cell.row}:${cell.col}`);
     if (attributes === undefined)
       throw new ProjectStateError(
         "Attributes not found",
         ProjectStateErrorCode.NOT_FOUND,
-      ); // TODO: errors????
+      );
 
     return attributes;
   }
 
   updateTileAttributes(cell: Cell, attributes: Map<string, string>) {
+    if (!this.isWithinGridBounds(cell.row, cell.col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
     this.attributes.set(`${cell.row}:${cell.col}`, attributes);
   }
 
   deleteTileAttributes(cell: Cell) {
-    this.attributes.delete(`${cell.row}:${cell.col}`); // TODO not found?
+    if (!this.isWithinGridBounds(cell.row, cell.col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
+    this.attributes.delete(`${cell.row}:${cell.col}`);
+  }
+
+  hasTileAttributes(cell: Cell) {
+    if (!this.isWithinGridBounds(cell.row, cell.col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
+    return this.attributes.has(`${cell.row}:${cell.col}`);
   }
 
   getLayers() {
@@ -646,11 +673,30 @@ export class ProjectState {
   }
 
   getTileAt(row: number, col: number, layerID: string): PaintedAsset | null {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
     const data = this.getLayerData(layerID);
     return data[row][col];
   }
 
+  isTilePainted(tile: Cell) {
+    for (const l of this.getLayers()) {
+      const data = this.getLayerData(l.id);
+
+      return data[tile.row][tile.col] !== null;
+    }
+  }
+
   paintTile(row: number, col: number, layerID: string, paint: PaintedAsset) {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
     const layer = this.getLayer(layerID);
 
     if (layer.type !== paint.type)
@@ -691,6 +737,11 @@ export class ProjectState {
     layerID: string,
     tiles: TileAsset[],
   ): Cell[] {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -743,6 +794,11 @@ export class ProjectState {
     layerID: string,
     paint: PaintedAsset | null,
   ) {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -759,6 +815,11 @@ export class ProjectState {
   }
 
   eraseTile(row: number, col: number, layerID: string) {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
     const curr = data[row][col];
@@ -792,6 +853,12 @@ export class ProjectState {
     col: number,
     paint: PaintedAsset | null,
   ): Cell[] {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -873,6 +940,11 @@ export class ProjectState {
     autoTileID: string,
     layerID: string,
   ): Cell[] {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
     const layer = this.getLayer(layerID);
     const data = this.getLayerData(layerID);
 
@@ -971,6 +1043,11 @@ export class ProjectState {
   }
 
   eraseAutoTile(row: number, col: number, layerID: string): Cell[] {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
     const currTile = this.getTileAt(row, col, layerID);
     // Ignore if tile already erased
     if (currTile === null) return [];
@@ -1062,6 +1139,10 @@ export class ProjectState {
       case PaintType.AREA:
         return a.ref.id === (b as typeof a).ref.id;
     }
+  }
+
+  private isWithinGridBounds(row: number, col: number) {
+    return row > 0 && row < this.rows && col > 0 && col < this.cols;
   }
 
   private paintProjectToCanvas(): CanvasRenderingContext2D {
@@ -1364,6 +1445,11 @@ export class ProjectState {
     autoTile: AutoTile,
     layerID: string,
   ): IdRef | null {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
     const n = this.getTileAt(row - 1, col, layerID);
     const ne = this.getTileAt(row - 1, col + 1, layerID);
     const e = this.getTileAt(row, col + 1, layerID);
