@@ -2,7 +2,6 @@
   import { SlCheckbox, type SlChangeEvent } from "@shoelace-style/shoelace";
   import { guiState } from "../state.svelte";
   import { PaintType } from "../types";
-  import Areas from "./areas/Areas.svelte";
   import AutoTiles from "./auto-tiles/AutoTiles.svelte";
   import Layers from "./layers/Layers.svelte";
   import Tilesets from "./tilesets/Tilesets.svelte";
@@ -39,9 +38,6 @@
   {:else if guiState.tilemapEditorState.type === PaintType.AUTO_TILE}
     <Tools />
     <AutoTiles />
-  {:else if guiState.tilemapEditorState.type === PaintType.AREA}
-    <Tools />
-    <Areas />
   {/if}
 </section>
 

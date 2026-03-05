@@ -1,6 +1,6 @@
 <script lang="ts">
   import { SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
-  import { guiState, projectState } from "../../state.svelte";
+  import { projectState } from "../../state.svelte";
   import {
     type TileRule,
     type TileAsset,
@@ -8,18 +8,17 @@
     TileRequirement,
   } from "../../types";
   import RuleTileButton from "./RuleTileButton.svelte";
-
   import TilesCanvas from "../tilesets/TilesetCanvas.svelte";
+  import AttributesDialog from "../attributes/AttributesDialog.svelte";
 
   type AutoTileDialogProps = {
-    autoTile?: AutoTile;
+    autoTile: AutoTile;
     open: boolean;
   };
 
   let { open = $bindable(), autoTile }: AutoTileDialogProps = $props();
 
   const hide = () => {
-    resetState();
     open = false;
   };
 
@@ -28,8 +27,6 @@
   let defaultTile: TileAsset | null = $state(autoTile?.defaultTile ?? null);
 
   let name = $state(autoTile?.name ?? "New auto tile");
-
-  let hasAddedTileRulesByTemplate = $state(false);
 
   let rules: (Omit<TileRule, "tile"> & { tile: TileAsset | null })[] = $state(
     autoTile?.rules ?? [
@@ -50,10 +47,21 @@
     ],
   );
 
+  const getAttributesArray = (autoTile: AutoTile) => {
+    try {
+      const attributes = projectState.getAutoTileAttributes(autoTile.id);
+      return Array.from(attributes.entries());
+    } catch (e) {
+      return [];
+    }
+  };
+
+  let attributes: [string, string][] = $state(
+    autoTile !== undefined ? getAttributesArray(autoTile) : [],
+  );
+
   let isValid = $derived.by(() => {
     if (name === "") return false;
-
-    if (rules.length === 0) return false;
 
     if (rules.find((r) => r.tile === null)) return false;
 
@@ -62,44 +70,42 @@
     return true;
   });
 
-  const resetState = () => {
-    name = autoTile?.name ?? "New auto tile";
-    rules = autoTile?.rules ?? [];
-    hasAddedTileRulesByTemplate = false;
-  };
+  let attributesDialogIsOpen = $state(false);
 
-  const save = (e: MouseEvent) => {
-    if (rules.find((r) => r.tile === null)) {
-      guiState.notification = {
-        variant: "danger",
-        title: "Invalid auto tile",
-        msg: "All rules must have a tile assigned.",
-      };
-      return;
-    }
-
-    if (defaultTile === null) {
-      guiState.notification = {
-        variant: "danger",
-        title: "Invalid auto tile",
-        msg: "Auto tile must have a default tile.",
-      };
-      return;
-    }
+  const save = () => {
+    if (!isValid) return;
 
     if (autoTile !== undefined) {
       projectState.updateAutoTile({
         id: autoTile.id,
         name,
         rules: rules as TileRule[],
-        defaultTile,
+        defaultTile: defaultTile!,
       });
+
+      if (attributes.length > 0) {
+        projectState.updateAutoTileAttributes(autoTile.id, new Map(attributes));
+      } else if (projectState.hasAutoTileAttributes(autoTile.id)) {
+        projectState.deleteAutoTileAttributes(autoTile.id);
+      }
+      
     } else {
-      projectState.createAutoTile(name, rules as TileRule[], defaultTile);
+      const createdAutotile = projectState.createAutoTile(
+        name,
+        rules as TileRule[],
+        defaultTile!,
+      );
+
+      if (attributes.length > 0) {
+        projectState.updateAutoTileAttributes(
+          createdAutotile.id,
+          new Map(attributes),
+        );
+      }
     }
 
-    resetState();
-    open = false;
+    hide();
+
   };
 
   const newRule = () => {
@@ -151,8 +157,6 @@
         tile: null,
       });
     }
-
-    hasAddedTileRulesByTemplate = true;
   };
 
   const createGroundTileRules = () => {
@@ -177,8 +181,6 @@
         tile: null,
       });
     }
-
-    hasAddedTileRulesByTemplate = true;
   };
 </script>
 
@@ -206,6 +208,12 @@
         >
         </sl-input>
 
+        <sl-button onclick={() => (attributesDialogIsOpen = true)}>
+          Edit attributes
+          <sl-icon label="Edit attributes" library="pixelarticons" name="edit"
+          ></sl-icon></sl-button
+        >
+
         <sl-button onclick={newRule}>
           Add rule
           <sl-icon label="Add rule" library="pixelarticons" name="plus"
@@ -214,7 +222,6 @@
 
         <div>
           <sl-button
-            disabled={hasAddedTileRulesByTemplate}
             onclick={createRoadTileRules}
             onkeydown={createRoadTileRules}
           >
@@ -222,7 +229,6 @@
           </sl-button>
 
           <sl-button
-            disabled={hasAddedTileRulesByTemplate}
             onclick={createGroundTileRules}
             onkeydown={createGroundTileRules}
           >
@@ -299,6 +305,13 @@
     Save
   </sl-button>
 </sl-dialog>
+
+<AttributesDialog
+  title="Autotile attributes"
+  onSave={() => {}}
+  bind:attributes
+  bind:open={attributesDialogIsOpen}
+/>
 
 <style>
   .edges {

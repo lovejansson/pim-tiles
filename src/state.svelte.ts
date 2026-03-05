@@ -19,10 +19,8 @@ import {
   type Tileset,
   type Cell,
   type PaintedTile,
-  type PaintedArea,
   type LayerData,
   type Tile,
-  type Area,
   type ProjectFile,
 } from "./types";
 import {
@@ -77,7 +75,7 @@ export enum ProjectStateEventType {
   LOAD_FROM_FILE = "load-from-file",
   DIMENSIONS_CHANGE = "dimensions-change",
   NEW_PROJECT = "new-project-created", // Tilemap editor needs to wipe cache when new project is created
-  ASSET_UPDATE = "asset-update", // Tilemap editor needs to repaint the layer cache to reflect updates of area color and auto tile rules
+  ASSET_UPDATE = "asset-update", // Tilemap editor needs to repaint the layer cache to reflect updates of auto tile rules
 }
 
 type ProjectStateEventDetail<T extends ProjectStateEventType> =
@@ -132,8 +130,9 @@ export class ProjectState {
 
   private tilesets: Tileset[];
   private autoTiles: AutoTile[];
-  public areas: Area[];
-  private attributes: Map<string, Map<string, string>>;
+  private attributes: Map<string, Map<string, string>>; // Attributes for cells on tilemap least priority
+  private tileAttributes: Map<string, Map<string, string>>; // Attributes for a tile highest priority
+  private autoTileAttributes: Map<string, Map<string, string>>; // Attributes for an auto tile, will be passed on to each tile painted with this
   private layerData: Map<string, LayerData>;
 
   constructor() {
@@ -147,8 +146,9 @@ export class ProjectState {
     this.layers = $state([]);
     this.tilesets = $state([]);
     this.autoTiles = $state([]);
-    this.areas = $state([]);
     this.attributes = new Map();
+    this.tileAttributes = new Map();
+    this.autoTileAttributes = new Map();
     this.layerData = new Map();
   }
 
@@ -332,120 +332,6 @@ export class ProjectState {
     this.tilesets.splice(idx, 1);
   }
 
-  getAreas() {
-    return this.areas;
-  }
-
-  getArea(id: string) {
-    const area = this.areas.find((a) => a.id === id);
-    if (area === undefined)
-      throw new ProjectStateError(
-        "Area not found",
-        ProjectStateErrorCode.NOT_FOUND,
-      );
-    return area;
-  }
-
-  createArea(name: string, color: string, isWalkable: boolean) {
-    const sameName = this.getAreas().find((a) => a.name === name);
-
-    if (sameName !== undefined)
-      throw new ProjectStateError(
-        "Area with the same name already exists",
-        ProjectStateErrorCode.BAD_REQUEST,
-      );
-
-    this.areas.push({
-      id: this.generateId(),
-      name,
-      color,
-      isWalkable,
-    });
-  }
-
-  updateArea(area: Area) {
-    const idx = this.areas.findIndex((a) => a.id === area.id);
-
-    if (idx === -1)
-      throw new ProjectStateError(
-        "Area not found",
-        ProjectStateErrorCode.NOT_FOUND,
-      );
-
-    const sameName = this.getAreas().find(
-      (a) => a.name === area.name && a.id !== area.id,
-    );
-
-    if (sameName !== undefined)
-      throw new ProjectStateError(
-        "Area with the same name already exists",
-        ProjectStateErrorCode.BAD_REQUEST,
-      );
-
-    this.areas[idx] = area;
-
-    const usedInLayers = this.layers.filter((l) => {
-      if (l.type === PaintType.AREA) {
-        const data = this.getLayerData(l.id);
-        if (
-          data.find(
-            (r) =>
-              r.find(
-                (c) =>
-                  c !== null &&
-                  c.type === PaintType.AREA &&
-                  c.ref.id === area.id,
-              ) !== undefined,
-          ) !== undefined
-        )
-          return true;
-      }
-      return false;
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.ASSET_UPDATE, {
-      layers: usedInLayers.map((l) => l.id),
-    });
-  }
-
-  deleteArea(id: string) {
-    const idx = this.areas.findIndex((a) => a.id === id);
-    if (idx === -1)
-      throw new ProjectStateError(
-        "Area not found",
-        ProjectStateErrorCode.NOT_FOUND,
-      );
-    const area = this.areas[idx];
-
-    const isUsed =
-      this.layers.find((l) => {
-        if (l.type === PaintType.AREA) {
-          const data = this.getLayerData(l.id);
-          if (
-            data.find(
-              (r) =>
-                r.find(
-                  (c) =>
-                    c !== null &&
-                    c.type === PaintType.AREA &&
-                    c.ref.id === area.id,
-                ) !== undefined,
-            ) !== undefined
-          )
-            return true;
-        }
-        return false;
-      }) !== undefined;
-
-    if (isUsed)
-      throw new ProjectStateError(
-        "Area is used in project, can't be deleted!",
-        ProjectStateErrorCode.BAD_REQUEST,
-      );
-
-    this.areas.splice(idx, 1);
-  }
-
   getAutoTiles() {
     return this.autoTiles;
   }
@@ -460,13 +346,21 @@ export class ProjectState {
     return autoTile;
   }
 
-  createAutoTile(name: string, rules: TileRule[], defaultTile: TileAsset) {
-    this.autoTiles.push({
+  createAutoTile(
+    name: string,
+    rules: TileRule[],
+    defaultTile: TileAsset,
+  ): AutoTile {
+    const autoTile = {
       id: this.generateId(),
       name: name,
       rules: rules,
       defaultTile,
-    });
+    };
+
+    this.autoTiles.push(autoTile);
+
+    return autoTile;
   }
 
   updateAutoTile(autoTile: AutoTile) {
@@ -537,11 +431,7 @@ export class ProjectState {
     this.autoTiles.splice(idx, 1);
   }
 
-  getAttributes() {
-    return this.attributes;
-  }
-
-  getTileAttributes(cell: Cell) {
+  getAttributes(cell: Cell) {
     if (!this.isWithinGridBounds(cell.row, cell.col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
@@ -558,7 +448,7 @@ export class ProjectState {
     return attributes;
   }
 
-  updateTileAttributes(cell: Cell, attributes: Map<string, string>) {
+  updateAttributes(cell: Cell, attributes: Map<string, string>) {
     if (!this.isWithinGridBounds(cell.row, cell.col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
@@ -568,17 +458,23 @@ export class ProjectState {
     this.attributes.set(`${cell.row}:${cell.col}`, attributes);
   }
 
-  deleteTileAttributes(cell: Cell) {
+  deleteAttributes(cell: Cell) {
     if (!this.isWithinGridBounds(cell.row, cell.col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
+    if (!this.hasAttributes(cell))
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
     this.attributes.delete(`${cell.row}:${cell.col}`);
   }
 
-  hasTileAttributes(cell: Cell) {
+  hasAttributes(cell: Cell) {
     if (!this.isWithinGridBounds(cell.row, cell.col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
@@ -586,6 +482,78 @@ export class ProjectState {
       );
 
     return this.attributes.has(`${cell.row}:${cell.col}`);
+  }
+
+  getAutoTileAttributes(autoTileId: string) {
+    const attributes = this.autoTileAttributes.get(autoTileId);
+
+    if (attributes === undefined)
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    return attributes;
+  }
+
+  updateAutoTileAttributes(
+    autoTileId: string,
+    attributes: Map<string, string>,
+  ) {
+    this.autoTileAttributes.set(autoTileId, attributes);
+  }
+
+  deleteAutoTileAttributes(autoTileId: string) {
+    if (!this.hasAutoTileAttributes(autoTileId))
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    this.autoTileAttributes.delete(autoTileId);
+  }
+
+  hasAutoTileAttributes(autoTileId: string) {
+    return this.autoTileAttributes.has(autoTileId);
+  }
+
+  getTileAttributes(tile: Tile) {
+    const tileAttributes = this.tileAttributes.get(
+      `${tile.tilesetId}:${tile.tilesetPos.x}:${tile.tilesetPos.y}`,
+    );
+
+    if (tileAttributes === undefined)
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    return tileAttributes;
+  }
+
+  updateTileAttributes(tile: Tile, attributes: Map<string, string>) {
+    this.tileAttributes.set(
+      `${tile.tilesetId}:${tile.tilesetPos.x}:${tile.tilesetPos.y}`,
+      attributes,
+    );
+  }
+
+  deleteTileAttributes(tile: Tile) {
+    if (!this.hasTileAttributes(tile))
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    this.tileAttributes.delete(
+      `${tile.tilesetId}:${tile.tilesetPos.x}:${tile.tilesetPos.y}`,
+    );
+  }
+
+  hasTileAttributes(tile: Tile) {
+    return this.tileAttributes.has(
+      `${tile.tilesetId}:${tile.tilesetPos.x}:${tile.tilesetPos.y}`,
+    );
   }
 
   getLayers() {
@@ -642,13 +610,6 @@ export class ProjectState {
           type,
         });
         break;
-      case PaintType.AREA:
-        this.layers.push({
-          id,
-          name,
-          type,
-        });
-        break;
     }
   }
 
@@ -682,14 +643,6 @@ export class ProjectState {
     return data[row][col];
   }
 
-  isTilePainted(tile: Cell) {
-    for (const l of this.getLayers()) {
-      const data = this.getLayerData(l.id);
-
-      return data[tile.row][tile.col] !== null;
-    }
-  }
-
   paintTile(row: number, col: number, layerID: string, paint: PaintedAsset) {
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
@@ -706,7 +659,7 @@ export class ProjectState {
       );
 
     const data = this.getLayerData(layerID);
-    const curr = data[row][col];
+    const curr = this.getTileAt(row, col, layerID);
 
     // Don't do anything if the same tile is being painted again
     if (this.isSameAsset(curr, paint)) {
@@ -1136,13 +1089,11 @@ export class ProjectState {
         );
       case PaintType.AUTO_TILE:
         return a.ref.id === (b as typeof a).ref.id;
-      case PaintType.AREA:
-        return a.ref.id === (b as typeof a).ref.id;
     }
   }
 
   private isWithinGridBounds(row: number, col: number) {
-    return row > 0 && row < this.rows && col > 0 && col < this.cols;
+    return row >= 0 && row < this.rows && col >= 0 && col < this.cols;
   }
 
   private paintProjectToCanvas(): CanvasRenderingContext2D {
@@ -1258,7 +1209,6 @@ export class ProjectState {
       height: this.height,
       tilesets,
       autoTiles: this.autoTiles,
-      areas: this.areas,
       attributes,
       layers,
     };
@@ -1275,7 +1225,6 @@ export class ProjectState {
     this.layers = [];
     this.tilesets = [];
     this.autoTiles = [];
-    this.areas = [];
     this.attributes = new Map();
     this.layerData = new Map();
     this.createDefaultLayers();
@@ -1330,7 +1279,6 @@ export class ProjectState {
       this.height = data.height;
       this.tilesets = tilesets;
       this.autoTiles = data.autoTiles;
-      this.areas = data.areas;
       this.attributes = attributes;
       this.layers = layers;
 
@@ -1360,66 +1308,77 @@ export class ProjectState {
   getJSONExport(): Blob {
     const ctx = this.paintProjectToCanvas();
 
-    // Create areas array based of of areas have been painted
+    // Export a list of all tiles that have attributes and their positions.
+    // Order of importance for attributes are 1. Tile, 2. Autotile 3. painted tile / tile instance
 
-    const areas: { name: string; tiles: Point[] }[] = this.layers
-      .filter((l) => l.type === PaintType.AREA)
-      .reduce(
-        (acc, curr) => {
-          let areaAsset: PaintedArea | null = null;
-          const data = this.getLayerData(curr.id);
-          for (let r = 0; r < this.rows; ++r) {
-            for (let c = 0; c < this.cols; ++c) {
-              areaAsset = data[r][c] as PaintedArea | null;
-              if (areaAsset !== null) {
-                const area = this.getArea(areaAsset.ref.id);
-                const areaItem = acc.find((a) => a.name === area.name);
+    const attributes: { pos: Point; attributes: { [k: string]: string } }[] =
+      [];
 
-                if (areaItem !== undefined) {
-                  areaItem.tiles.push({
-                    x: c * this.tileSize,
-                    y: r * this.tileSize,
-                  });
-                } else {
-                  acc.push({
-                    name: area.name,
-                    tiles: [
-                      {
-                        x: c * this.tileSize,
-                        y: r * this.tileSize,
-                      },
-                    ],
-                  });
-                }
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const tileAttributes = this.hasAttributes({
+          row: r,
+          col: c,
+        })
+          ? this.getAttributes({
+              row: r,
+              col: c,
+            })
+          : new Map();
+
+        // Add auto tile attributes
+
+        for (const l of this.getLayers().filter(
+          (l) => l.type === PaintType.AUTO_TILE,
+        )) {
+          const paintedAsset = this.getTileAt(r, c, l.id);
+
+          if (paintedAsset === null) continue;
+          if (paintedAsset.type === PaintType.AUTO_TILE) {
+            if (this.hasAutoTileAttributes(paintedAsset.ref.id)) {
+              const atAttr = this.getAutoTileAttributes(paintedAsset.ref.id);
+              for (const [k, v] of atAttr.entries()) {
+                tileAttributes.set(k, v);
               }
             }
           }
+        }
 
-          return acc;
-        },
-        [] as { name: string; tiles: Point[] }[],
-      );
+        // Add tile attributes
+        for (const l of this.getLayers().filter(
+          (l) => l.type === PaintType.TILE,
+        )) {
+          const paintedAsset = this.getTileAt(r, c, l.id);
 
-    // Create attributes array
+          if (paintedAsset === null) continue;
 
-    const attributes: { pos: Point; attributes: { [k: string]: string } }[] =
-      Array.from(this.attributes.entries()).map((e) => {
-        const [row, col] = e[0].split(":").map(Number);
+          if (paintedAsset.type === PaintType.TILE) {
+            if (this.hasTileAttributes(paintedAsset.ref)) {
+              const tAttr = this.getTileAttributes(paintedAsset.ref);
+              for (const [k, v] of tAttr.entries()) {
+                tileAttributes.set(k, v);
+              }
+            }
+          }
+        }
 
-        return {
-          pos: {
-            x: col * this.tileSize,
-            y: row * this.tileSize,
-          },
-          attributes: Object.fromEntries(e[1]),
-        };
-      });
+        if (tileAttributes.size > 0) {
+          attributes.push({
+            pos: { x: c * this.tileSize, y: r * this.tileSize },
+            attributes: Object.fromEntries(tileAttributes.entries()),
+          });
+        }
+      }
+    }
 
     const data: ProjectStateJSONExport = {
-      tilemap: ctx.canvas.toDataURL(),
-      areas,
-      tileSize: this.tileSize,
       name: this.name,
+      tileSize: this.tileSize,
+      width: this.width,
+      height: this.height,
+      rows: this.rows,
+      cols: this.cols,
+      tilemap: ctx.canvas.toDataURL(),
       attributes,
     };
 
@@ -1539,9 +1498,8 @@ export class ProjectState {
     this.layers.push(DEFAULT_LAYER);
 
     for (const { name, type } of [
-      { name: "Ground", type: PaintType.AUTO_TILE },
+      { name: "Roads", type: PaintType.AUTO_TILE },
       { name: "Fg", type: PaintType.TILE },
-      { name: "Zones", type: PaintType.AREA },
     ]) {
       this.createLayer(name, type);
     }

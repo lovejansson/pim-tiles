@@ -19,7 +19,7 @@
 | Layers   | Delete layer                                                                                   | OK     |                                                   |
 | Layers   | Toggle visibility for layer, only visble layers are displayed on tilemap and can be painted on | OK     |                                                   |
 | Layers   | Drag do reorder layers, layers are rendered in their order                                     | BUGGY  | Svelte DND laggs when it comes to dynamic classes |
-| Layers   | Different types of layers, tile, auto tile and area are shown as icon/tooltip                  | OK     |                                                   |
+| Layers   | Different types of layers, tile and auto-tile are shown as icon/tooltip                        | OK     |                                                   |
 | -------- | ------------------------------------------------------------------------                       | ------ | ----                                              |
 | Tilesets | Upload tileset in any image format                                                             | OK     |                                                   |
 | Tilesets | Uploaded tileset is named after filename                                                       | OK     |                                                   |
@@ -30,14 +30,6 @@
 | Tilesets | Selected tiles can only be painted on tile layers                                              | OK     |                                                   |
 | Tilesets | Rename tileset                                                                                 | OK     |                                                   |
 | Tilesets | Can't rename tileset to a name that already exists                                             | OK     |                                                   |
-| -------- | ------------------------------------------------------------------------                       | ------ | ----                                              |
-| Areas    | Create area                                                                                    | OK     |                                                   |
-| Areas    | Edit area                                                                                      | OK     |                                                   |
-| Areas    | Delete area                                                                                    | OK     |                                                   |
-| Areas    | Areas can't have the same name                                                                 | OK     |                                                   |
-| Areas    | Area that is used in tilemap can't be deleted                                                  | OK     |                                                   |
-| Areas    | Select area in list of areas to paint with on tilemap                                          | OK     |                                                   |
-| Areas    | Areas can only be painted on area layers                                                       | OK     |                                                   |
 | -------- | ------------------------------------------------------------------------                       | ------ | ----------------                                  |
 | Autotile | Create auto tile                                                                               | OK     |                                                   |
 | Autotile | Edit auto tile                                                                                 | OK     |                                                   |
@@ -48,7 +40,6 @@
 | Autotile | Auto tiles can't be deleted if they are used in tilemap                                        | Ok     |                                                   |
 | -------- | ------------------------------------------------------------------------                       | ------ | ----                                              |
 | Tilemap  | Paint with 1 or more tiles                                                                     | OK     |                                                   |
-| Tilemap  | Paint with area                                                                                | OK     |                                                   |
 | Tilemap  | Paint with an auto tile and see how the neighbours update according to rules                   | OK     |                                                   |
 | Tilemap  | Fill tool can be used to fill tiles on tile layers                                             | OK     |                                                   |
 | Tilemap  | Use select tool to select areas of tiles to be moved, copied or deleted, works on tile layers  | OK     |                                                   |

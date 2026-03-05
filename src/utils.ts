@@ -87,4 +87,8 @@ function isSameCell(cell1: Cell, cell2: Cell) {
     return cell1.row === cell2.row && cell1.col === cell2.col;
 }
 
-export {dataURLToImageBitmap, canvasToBlob, isSameCell, isPointInRect, getNeighbours, detectOS, createCanvas, download }
+function isSamePos(pos1: Point, pos2: Point) {
+    return pos1.x === pos2.x && pos1.y === pos2.y;
+}
+
+export {dataURLToImageBitmap, canvasToBlob, isSameCell, isPointInRect, getNeighbours, detectOS, createCanvas, download, isSamePos }

@@ -68,10 +68,6 @@
       <sl-tooltip content="Autotile layer">
         <sl-icon library="pixelarticons" name="grid"></sl-icon>
       </sl-tooltip>
-    {:else}
-      <sl-tooltip content="Area layer">
-        <sl-icon library="pixelarticons" name="section"></sl-icon>
-      </sl-tooltip>
     {/if}
 
     <EditableText

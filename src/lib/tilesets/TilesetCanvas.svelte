@@ -3,14 +3,16 @@
   import {
     PaintType,
     type Cell,
+    type Tile,
     type TileAsset,
     type Tileset,
   } from "../../types";
   import { guiState, projectState } from "../../state.svelte";
   import TilemapViewport, {
+    TilemapViewportRightClickEvent,
     TilemapViewportSelectionChangeEvent,
-    type SelectionRect,
   } from "../TilemapViewport";
+  import TileAttributesDialog from "../attributes/TileAttributesDialog.svelte";
 
   type TilesCanvasProps = {
     tileset: Tileset;
@@ -22,6 +24,10 @@
 
   let container!: HTMLDivElement;
   let tilemapViewport!: TilemapViewport;
+
+  let attributesDialogIsOpen = $state(false);
+
+  let attributesTile: Tile | null = $state(null);
 
   onMount(() => {
     if (container === undefined) return;
@@ -53,6 +59,8 @@
       tilemapViewport.addEventListener("selection-change", (e) => {
         updateSelectedTiles((e as TilemapViewportSelectionChangeEvent).tiles);
       });
+
+      tilemapViewport.addEventListener("right-click", handleCanvasRightClick);
     });
 
     ro.observe(container);
@@ -95,12 +103,32 @@
     }
   };
 
+  const handleCanvasRightClick = (e: Event) => {
+    const { row, col } = (e as TilemapViewportRightClickEvent).cell;
+
+    attributesTile = {
+      tilesetId: tileset.id,
+      tilesetPos: {
+        x: col * projectState.tileSize,
+        y: row * projectState.tileSize,
+      },
+    };
+    attributesDialogIsOpen = true;
+  };
+
   function draw(ctx: CanvasRenderingContext2D) {
     ctx.drawImage(tileset.spritesheet, 0, 0);
   }
 </script>
 
 <div bind:this={container}></div>
+
+{#if attributesTile !== null}
+  <TileAttributesDialog
+    bind:open={attributesDialogIsOpen}
+    tile={attributesTile}
+  />
+{/if}
 
 <style>
   div {

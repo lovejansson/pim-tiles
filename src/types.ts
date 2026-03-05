@@ -1,9 +1,3 @@
-type Area = {
-  id: string;
-  color: string;
-  name: string;
-  isWalkable: boolean;
-};
 
 type Tile = {
   tilesetId: string;
@@ -37,7 +31,6 @@ type Rect = {
 
 enum PaintType {
   TILE,
-  AREA,
   AUTO_TILE,
 }
 
@@ -65,7 +58,6 @@ type LayerDataT<T extends PaintType> = (PaintedAssetT<T> | null)[][];
 type LayerData =
   | LayerDataT<PaintType.TILE>
   | LayerDataT<PaintType.AUTO_TILE>
-  | LayerDataT<PaintType.AREA>;
 
 type LayerT<T extends PaintType> = {
   id: string;
@@ -74,16 +66,14 @@ type LayerT<T extends PaintType> = {
 };
 
 type PaintedTile = PaintedAssetT<PaintType.TILE>;
-type PaintedArea = PaintedAssetT<PaintType.AREA>;
 type PaintedAutoTile = PaintedAssetT<PaintType.AUTO_TILE>;
 
-type PaintedAsset = PaintedTile | PaintedArea | PaintedAutoTile;
+type PaintedAsset = PaintedTile | PaintedAutoTile;
 
 type TileLayer = LayerT<PaintType.TILE>;
-type AreaLayer = LayerT<PaintType.AREA>;
 type AutoTileLayer = LayerT<PaintType.AUTO_TILE>;
 
-type Layer = TileLayer | AreaLayer | AutoTileLayer;
+type Layer = TileLayer | AutoTileLayer;
 
 enum TileRequirement {
   REQUIRED = "required",
@@ -117,11 +107,10 @@ type TileRule = {
 
 type TileAsset = AssetRefT<PaintType.TILE>;
 type AutoTileAsset = AssetRefT<PaintType.AUTO_TILE>;
-type AreaAsset = AssetRefT<PaintType.AREA>;
 
-type AssetRef = TileAsset | AutoTileAsset | AreaAsset;
+type AssetRef = TileAsset | AutoTileAsset;
 
-type TilemapEditorState = TileLayerState | AutoTileLayerState | AreaLayerState;
+type TilemapEditorState = TileLayerState | AutoTileLayerState;
 
 type TileLayerState = {
   type: PaintType.TILE;
@@ -139,13 +128,6 @@ type AutoTileLayerState = {
   fillToolIsActive: boolean;
 };
 
-type AreaLayerState = {
-  type: PaintType.AREA;
-  selectedTool: Tool;
-  selectedLayer: string;
-  selectedAsset: AreaAsset | null;
-  fillToolIsActive: boolean;
-};
 
 type GUIState = {
   notification: Notification | null;
@@ -157,11 +139,14 @@ type GUIState = {
 };
 
 type ProjectJSONExport = {
-  tilemap: string; // image url
+  tilemap: string;
   name: string;
   tileSize: number;
-  areas: { name: string; tiles: Point[] }[]; // Just an array of areas with name and which tiles they belong to
-  attributes: { pos: Point; attributes: { [key: string]: any } }[]; // An array of tiles positions with attributes
+  width: number;
+  height: number;
+  rows: number;
+  cols: number;
+  attributes: { pos: Point; attributes: { [key: string]: any } }[];
 };
 
 type ProjectFile = {
@@ -172,7 +157,6 @@ type ProjectFile = {
   layers: (Layer & { data: LayerData })[];
   tilesets: (Omit<Tileset, "spritesheet"> & { spritesheet: string })[];
   autoTiles: AutoTile[];
-  areas: Area[];
   attributes: { pos: Point; attributes: { [key: string]: any } }[]; // An array of tiles positions with attributes
 };
 
@@ -191,7 +175,6 @@ type HistoryEntryItem<T extends PaintType> = {
 
 type TileHistoryEntryItem = HistoryEntryItem<PaintType.TILE>;
 type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
-type AreaHistoryEntryItem = HistoryEntryItem<PaintType.AREA>;
 
 type HistoryEntryT<T extends PaintType> = {
   type: T;
@@ -201,19 +184,16 @@ type HistoryEntryT<T extends PaintType> = {
 
 type TileHistoryEntry = HistoryEntryT<PaintType.TILE>;
 type AutoTileHistoryEntry = HistoryEntryT<PaintType.AUTO_TILE>;
-type AreaHistoryEntry = HistoryEntryT<PaintType.AREA>;
 
-type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry | AreaHistoryEntry;
+type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry;
 
 export {
   type ProjectJSONExport as ProjectStateJSONExport,
   type PaintedTile,
-  type PaintedArea,
   type PaintedAutoTile,
   type PaintedAsset,
   type LayerT,
   type PaintedAssetT,
-  type AreaHistoryEntryItem,
   type AutoTileHistoryEntryItem,
   type TileHistoryEntryItem,
   type LayerData,
@@ -223,16 +203,12 @@ export {
   type ProjectFile,
   type HistoryEntry,
   type TileHistoryEntry,
-  type AreaHistoryEntry,
   type TilemapEditorState,
   type AssetRef,
-  type Area,
-  type AreaAsset,
   type TileAsset,
   type AutoTileAsset,
   type TileLayerState,
   type AutoTileLayerState,
-  type AreaLayerState,
   type Point,
   type Rect,
   type GUIState,

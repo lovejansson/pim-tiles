@@ -43,7 +43,6 @@
 
   <sl-radio-group label="Type" value={layerType.toString()}>
     <sl-radio value={PaintType.TILE.toString()}>Tile</sl-radio>
-    <sl-radio value={PaintType.AREA.toString()}>Area</sl-radio>
     <sl-radio value={PaintType.AUTO_TILE.toString()}>Auto tile</sl-radio>
   </sl-radio-group>
 

@@ -10,7 +10,6 @@
     PaintType,
     Tool,
     type Cell,
-    type PaintedArea,
     type PaintedAutoTile,
     type PaintedTile,
   } from "../types";
@@ -21,13 +20,13 @@
     TilemapViewportSelectionChangeEvent,
     TilemapViewportSelectionMoveEvent,
   } from "./TilemapViewport";
-  import TileAttributesDialog from "./TileAttributesDialog.svelte";
+  import AttributesDialog from "./attributes/TileInstanceAttributesDialog.svelte";
   import { onMount } from "svelte";
   import { createCanvas } from "../utils";
 
-  let tileAttributesDialogIsOpen = $state(false);
+  let attributesDialogIsOpen = $state(false);
 
-  let tileAttributesCell: Cell = $state({ row: 0, col: 0 });
+  let attributesCell: Cell = $state({ row: 0, col: 0 });
 
   let ctrlKeyIsDown = false;
 
@@ -129,7 +128,7 @@
     });
 
     projectStateEvents.on(ProjectStateEventType.ASSET_UPDATE, (e) => {
-      // When an autotile or area is updated the layers that is painted with those needs to be updated
+      // When an autotile is updated the layers that is painted with those needs to be updated
       repaintLayers(e.detail.layers);
     });
   });
@@ -212,25 +211,6 @@
                 }
 
                 break;
-              case PaintType.AREA:
-                const paintedArea = data[row][col] as PaintedArea | null;
-
-                if (paintedArea !== null) {
-                  const area = projectState.getArea(paintedArea.ref.id);
-
-                  cached.lineWidth = 1;
-
-                  cached.strokeStyle = area.color;
-
-                  cached.strokeRect(
-                    x - 0.5,
-                    y - 0.5,
-                    projectState.tileSize + 0.5,
-                    projectState.tileSize + 0.5,
-                  );
-                }
-
-                break;
             }
           }
         }
@@ -309,25 +289,6 @@
                     y,
                     projectState.tileSize,
                     projectState.tileSize,
-                  );
-                }
-
-                break;
-              case PaintType.AREA:
-                const paintedArea = data[row][col] as PaintedArea | null;
-
-                if (paintedArea !== null) {
-                  const area = projectState.getArea(paintedArea.ref.id);
-
-                  ctx.lineWidth = 1;
-
-                  ctx.strokeStyle = area.color;
-
-                  ctx.strokeRect(
-                    x - 0.5,
-                    y - 0.5,
-                    projectState.tileSize + 0.5,
-                    projectState.tileSize + 0.5,
                   );
                 }
 
@@ -425,15 +386,11 @@
   };
 
   const handleCanvasRightClick = (e: Event) => {
-    const pos = (e as TilemapViewportRightClickEvent).pos;
+    const {row, col} = (e as TilemapViewportRightClickEvent).cell;
 
-    const row = Math.floor(pos.y / projectState.tileSize);
-    const col = Math.floor(pos.x / projectState.tileSize);
-
-    if (projectState.isTilePainted({ row, col })) {
-      tileAttributesCell = { row, col };
-      tileAttributesDialogIsOpen = true;
-    }
+    attributesCell = { row, col };
+    attributesDialogIsOpen = true;
+    
   };
 
   const handleSelectionMove = (e: Event) => {
@@ -585,31 +542,6 @@
             }
           }
           break;
-        case PaintType.AREA:
-          switch (guiState.tilemapEditorState.selectedTool) {
-            case Tool.PAINT:
-              if (guiState.tilemapEditorState.selectedAsset !== null) {
-                projectState.paintTile(
-                  row,
-                  col,
-                  guiState.tilemapEditorState.selectedLayer,
-                  guiState.tilemapEditorState.selectedAsset,
-                );
-
-                dirtyTiles.push({ row, col });
-              }
-              break;
-            case Tool.ERASE:
-              projectState.eraseTile(
-                row,
-                col,
-                guiState.tilemapEditorState.selectedLayer,
-              );
-
-              dirtyTiles.push({ row, col });
-              break;
-          }
-          break;
       }
     }
   };
@@ -729,32 +661,6 @@
             }
 
             break;
-          case PaintType.AREA:
-            const paintedArea = data[row][col] as PaintedArea | null;
-            cached.clearRect(
-              x,
-              y,
-              projectState.tileSize + 0.5,
-              projectState.tileSize + 0.5,
-            );
-            if (paintedArea !== null) {
-              const area = projectState.getArea(paintedArea.ref.id);
-
-              // TODO: fix lines of areas when I know if I want areas
-
-              cached.lineWidth = 1;
-
-              cached.strokeStyle = area.color;
-
-              cached.strokeRect(
-                x - 0.5,
-                y - 0.5,
-                projectState.tileSize + 0.5,
-                projectState.tileSize + 0.5,
-              );
-            }
-
-            break;
         }
       }
     }
@@ -814,9 +720,9 @@
 
 <section bind:this={container} id="tilemap-editor"></section>
 
-<TileAttributesDialog
-  bind:open={tileAttributesDialogIsOpen}
-  cell={tileAttributesCell}
+<AttributesDialog
+  bind:open={attributesDialogIsOpen}
+  cell={attributesCell}
 />
 
 <style lang="postcss">

@@ -12,13 +12,8 @@
 
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
 
-* Implement select tool for areas and auto tiles
+* Implement select and fill tool for auto tiles
 
-# Super backlog 
+# Super backlog
+
 * Svelte reactivity for conditional attributes don't work with dnd reordering of layers. There are workarounds in place now. 
-
-
-# Things to evaluate while making the first project
-
-- Are areas useful or should it be baked into for example tile class attributes? this tile is always a road tile, this tile is always a grass tile?
-- Do I need select tool and flood fill for auto tiles? 

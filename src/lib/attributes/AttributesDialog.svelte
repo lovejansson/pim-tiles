@@ -4,47 +4,25 @@
     SlInput,
     type SlChangeEvent,
   } from "@shoelace-style/shoelace";
-  import { projectState } from "../state.svelte";
-  import type { Cell } from "../types";
-  import { isSameCell } from "../utils";
 
-  type TileAttributesDialogProps = {
-    cell: Cell;
+  type AttributesDialogProps = {
+    title: string;
+    attributes: [string, string][];
+    onSave: () => void;
     open: boolean;
-  };
-  let { open = $bindable(), cell }: TileAttributesDialogProps = $props();
-
-  const hide = () => {
-    open = false;
+    img?: string;
   };
 
-  let tile = $state(cell);
-
-  const getTileAttributesArray = (cell: Cell) => {
-    try {
-      const attributes = projectState.getTileAttributes(cell);
-      return Array.from(attributes.entries());
-    } catch (e) {
-      return [];
-    }
-  };
-
-  // Using an array of tuples since the Map is not reactive!
-  let attributes: [string, string][] = $state(
-    cell !== undefined ? getTileAttributesArray(cell) : [],
-  );
+  let {
+    title,
+    open = $bindable(),
+    attributes = $bindable(),
+    onSave,
+    img,
+  }: AttributesDialogProps = $props();
 
   let deleteButtons: SlIconButton[] = $state([]);
   let focusBtnIdx: number | null = $state(null);
-
-  // ! had do update state inside of an effect since i want to sync the attributes state with current tile and at the same time update the attributes in local component.
-  $effect(() => {
-    if (!isSameCell(cell, tile)) {
-      tile = cell;
-      const tileAttributes = getTileAttributesArray(tile);
-      attributes = tileAttributes;
-    }
-  });
 
   $effect(() => {
     if (focusBtnIdx !== null) {
@@ -53,13 +31,12 @@
     }
   });
 
-  const save = () => {
-    if (attributes.length > 0) {
-      projectState.updateTileAttributes(tile, new Map(attributes));
-    } else if (projectState.hasTileAttributes(tile)) {
-      projectState.deleteTileAttributes(tile);
-    }
+  const hide = () => {
+    open = false;
+  };
 
+  const save = () => {
+    onSave();
     hide();
   };
 
@@ -97,11 +74,7 @@
   };
 </script>
 
-<sl-dialog
-  onsl-after-hide={hide}
-  label={"Tile attributes (r" + tile.row + " c" + tile.col + ")"}
-  {open}
->
+<sl-dialog onsl-after-hide={hide} label={title} {open}>
   <sl-icon-button
     slot="header-actions"
     library="pixelarticons"
@@ -110,6 +83,10 @@
     onclick={hide}
   >
   </sl-icon-button>
+
+  {#if img !== undefined}
+    <img src={img} alt="tile" />
+  {/if}
 
   <section id="section-attributes">
     {#if attributes.length > 0}
@@ -172,6 +149,12 @@
 
   sl-dialog::part(close-button) {
     display: none;
+  }
+
+  img {
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
   }
 
   .btn-delete {

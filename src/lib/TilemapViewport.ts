@@ -88,11 +88,11 @@ export class TilemapViewportSelectionDeleteEvent extends Event {
 }
 
 export class TilemapViewportRightClickEvent extends Event {
-  pos: Point;
+  cell: Cell;
 
-  constructor(pos: Point) {
+  constructor(cell: Cell) {
     super("right-click");
-    this.pos = pos;
+    this.cell = cell;
   }
 }
 
@@ -782,13 +782,13 @@ export default class TilemapViewport extends EventTarget {
       this.canvasOverlay.addEventListener("contextmenu", (e: MouseEvent) => {
         if (e.target !== this.canvasOverlay) return;
 
-        const { worldPos, isWithinGridBounds } = this.getMouseCoordinates(
+        const {  isWithinGridBounds, tile } = this.getMouseCoordinates(
           e.clientX,
           e.clientY,
         );
 
         if (isWithinGridBounds) {
-          this.dispatchEvent(new TilemapViewportRightClickEvent(worldPos));
+          this.dispatchEvent(new TilemapViewportRightClickEvent(tile));
         }
 
         e.preventDefault();

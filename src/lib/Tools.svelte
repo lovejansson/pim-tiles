@@ -3,16 +3,13 @@
   import {
     PaintType,
     Tool,
-    type AreaLayerState,
     type AutoTileLayerState,
     type TileLayerState,
   } from "../types";
 
   const tilemapEditorState = $derived.by(
-    (): TileLayerState | AreaLayerState | AutoTileLayerState => {
+    (): TileLayerState | AutoTileLayerState => {
       if (guiState.tilemapEditorState.type === PaintType.TILE)
-        return guiState.tilemapEditorState;
-      if (guiState.tilemapEditorState.type === PaintType.AREA)
         return guiState.tilemapEditorState;
       if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
         return guiState.tilemapEditorState;

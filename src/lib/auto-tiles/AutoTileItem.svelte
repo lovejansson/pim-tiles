@@ -5,15 +5,14 @@
   import {
     type AutoTileLayerState,
     type AutoTile,
-    type IdRef,
     PaintType,
   } from "../../types";
-  import CreateAutoTileDialog from "./AutoTileDialog.svelte";
+  import AutoTileDialog from "./AutoTileDialog.svelte";
 
-  type AreaItemProps = {
+  type Props = {
     autoTile: AutoTile;
-    idx: number;
   };
+
   const tilemapEditorState = $derived.by((): AutoTileLayerState => {
     if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
       return guiState.tilemapEditorState;
@@ -21,15 +20,15 @@
     throw new Error("Invalid UI state");
   });
 
-  let { autoTile, idx }: AreaItemProps = $props();
+  let { autoTile }: Props = $props();
 
-  let editAutoTileDialogIsOpen = $state(false);
+  let dialogIsOpen = $state(false);
 
   const handleSelectMenuItem = (item: SlMenuItem) => {
     if (item.value === "delete") {
       projectState.deleteAutoTile(autoTile.id);
     } else if (item.value === "edit") {
-      editAutoTileDialogIsOpen = true;
+      dialogIsOpen = true;
     }
   };
 
@@ -58,7 +57,9 @@
   </sl-button>
 </ContextMenu>
 
-<CreateAutoTileDialog bind:open={editAutoTileDialogIsOpen} {autoTile} />
+{#if dialogIsOpen}
+  <AutoTileDialog bind:open={dialogIsOpen} {autoTile} />
+{/if}
 
 <style lang="postcss">
   #auto-tile-item {

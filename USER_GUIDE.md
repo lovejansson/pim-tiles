@@ -10,13 +10,13 @@ Tile size is limited to 16 or 32 pixels, and the number of rows and columns is l
 
 ## Layers
 
-There are three types of layers: **tile layers**, **autotile layers**, and **area layers**.
+There are three types of layers: **tile layers** and **autotile layers**.
 
 Depending on which layer type is selected in the Layers list, you can paint using different assets.
 
 ## Assets
 
-There are three types of assets: **tilesets**, **areas**, and **autotiles**.
+There are three types of assets: **tilesets**, and **autotiles**.
 
 ### Tilesets
 
@@ -25,12 +25,6 @@ A tileset is created by uploading a spritesheet. Supported image formats are **P
 The spritesheet is displayed on the tileset canvas, where you can select one or more tiles to paint with.
 
 Make sure that your spritesheet tile size matches the project's tile size.
-
-### Areas
-
-An area is created by entering a name, selecting a color to paint with, and specifying whether the area is walkable.
-
-You can paint with an area by selecting it from the Areas list.
 
 ### Autotiles
 
