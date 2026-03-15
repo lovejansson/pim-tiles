@@ -24,11 +24,18 @@
   });
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+
   {#if isEditing}
     <sl-input
       style={`width:${inputWidth}`}
       value={text}
       size="small"
+      onkeydown={(e: KeyboardEvent) => {
+        if (e.key === "Enter") {
+          isEditing = false;
+        }
+      }}
       bind:this={inputName}
       onblur={() => {
         isEditing = false;
@@ -38,14 +45,18 @@
       }}
     ></sl-input>
   {:else}
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <p>{text}</p>
   {/if}
 
+
 <style lang="postcss">
-
-
   p {
     margin: 0;
     margin-right: auto;
+  }
+
+  p:focus {
+    outline: 2px solid var(--color-0);
   }
 </style>

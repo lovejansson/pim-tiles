@@ -9,9 +9,12 @@
   import {
     PaintType,
     Tool,
+    type AutoTileAsset,
     type Cell,
+    type PaintedAssetT,
     type PaintedAutoTile,
     type PaintedTile,
+    type TileAsset,
   } from "../types";
   import TilemapViewport, {
     TilemapViewportMousePosEvent,
@@ -32,7 +35,22 @@
 
   const dirtyTiles: Cell[] = [];
 
-  let selectedTiles: { org: Cell; curr: Cell; tile: PaintedTile }[] = [];
+  type Selection<T extends PaintType> = {
+    type: T;
+    tiles: {
+      org: Cell;
+      prev: Cell;
+      curr: Cell;
+      tile: PaintedAssetT<T>;
+    }[];
+  };
+
+  let selection: Selection<PaintType.TILE | PaintType.AUTO_TILE> = {
+    type: PaintType.TILE,
+    tiles: [],
+  };
+
+  let copySelection = false;
 
   let container!: HTMLElement;
   let tilemapViewport!: TilemapViewport;
@@ -82,9 +100,7 @@
       draw: draw,
       defaultCursor: "crosshair",
       selection: {
-        isActive:
-          guiState.tilemapEditorState.selectedTool === Tool.SELECT &&
-          guiState.tilemapEditorState.type === PaintType.TILE,
+        isActive: guiState.tilemapEditorState.selectedTool === Tool.SELECT,
         move: true,
         copy: true,
         delete: true,
@@ -99,6 +115,11 @@
 
     tilemapViewport.addEventListener("selection-copy", handleSelectionCopy);
 
+    tilemapViewport.addEventListener(
+      "selection-move-start",
+      handleSelectionMoveStart,
+    );
+
     tilemapViewport.addEventListener("selection-move", handleSelectionMove);
 
     tilemapViewport.addEventListener(
@@ -110,9 +131,9 @@
 
     tilemapViewport.addEventListener("mouse-pos", handleMousePosChange);
 
-    tilemapViewport.init(true);
+    tilemapViewport.init({ center: true, resize: true });
 
-    projectStateEvents.on(ProjectStateEventType.LOAD_FROM_FILE, () => {
+    projectStateEvents.on(ProjectStateEventType.OPEN_FILE, () => {
       // When loading from file we need to remove all of the entries in the canvas cache for each layer and recreate the cache
       recreateCache(true);
     });
@@ -319,10 +340,7 @@
   });
 
   $effect(() => {
-    if (
-      guiState.tilemapEditorState.selectedTool === Tool.SELECT &&
-      guiState.tilemapEditorState.type === PaintType.TILE
-    ) {
+    if (guiState.tilemapEditorState.selectedTool === Tool.SELECT) {
       tilemapViewport.enableSelection();
     } else {
       tilemapViewport.disabledSelection();
@@ -330,32 +348,53 @@
   });
 
   const handleSelectionChange = (e: Event) => {
-    // If we have previously selected tiles we will paint them back to the tilemap wherever they are currently placed
-    if (selectedTiles.length > 0) {
-      for (const t of selectedTiles) {
-        if (t.tile.type !== PaintType.TILE)
-          throw new Error("Selection only implemented for tile layers");
+    // If previously selected tiles have been moved they are painted to that location
+    if (selection.tiles.length > 0) {
+      const hasBeenMoved = selection.tiles.some(
+        (t) => t.org.col !== t.curr.col || t.org.row !== t.curr.row,
+      );
 
-        projectState.paintTile(
-          t.curr.row,
-          t.curr.col,
-          guiState.tilemapEditorState.selectedLayer,
-          t.tile,
+      if (hasBeenMoved) {
+        const tilesInsideGrid = selection.tiles.filter((t) =>
+          projectState.isWithinGridBounds(t.curr.row, t.curr.col),
         );
-        if (
-          t.curr.row <= projectState.rows &&
-          t.curr.col <= projectState.cols
-        ) {
-          dirtyTiles.push({ ...t.curr });
+
+        if (tilesInsideGrid.length > 0) {
+          switch (selection.type) {
+            case PaintType.TILE:
+              projectState.paintTiles(
+                guiState.tilemapEditorState.selectedLayer,
+                tilesInsideGrid.map((t) => ({
+                  row: t.curr.row,
+                  col: t.curr.col,
+                  tileAsset: t.tile as TileAsset,
+                })),
+              );
+              dirtyTiles.push(...tilesInsideGrid.map((t) => t.curr));
+              break;
+            case PaintType.AUTO_TILE:
+              const tiles = projectState.paintAutoTiles(
+                guiState.tilemapEditorState.selectedLayer,
+                tilesInsideGrid.map((t) => ({ ...t.curr })),
+                tilesInsideGrid[0].tile as AutoTileAsset,
+              );
+              dirtyTiles.push(...tiles);
+              break;
+          }
         }
       }
+
+      selection.tiles = [];
     }
+
+    selection.type = guiState.tilemapEditorState.type;
 
     const tiles = (e as TilemapViewportSelectionChangeEvent).tiles;
 
-    selectedTiles = [];
+    // Delete selected tiles from project and add them to the selected arr
 
     if (tiles !== null) {
+      // Add tile to selected tiles
       for (const { row, col } of tiles) {
         const tile = projectState.getTileAt(
           row,
@@ -364,19 +403,9 @@
         );
 
         if (tile !== null) {
-          if (tile.type !== PaintType.TILE)
-            throw new Error("Selection only implemented for tile layers");
-
-          projectState.eraseTile(
-            row,
-            col,
-            guiState.tilemapEditorState.selectedLayer,
-          );
-
-          dirtyTiles.push({ row, col });
-
-          selectedTiles.push({
+          selection.tiles.push({
             org: { row, col },
+            prev: { row, col },
             curr: { row, col },
             tile,
           });
@@ -386,11 +415,74 @@
   };
 
   const handleCanvasRightClick = (e: Event) => {
-    const {row, col} = (e as TilemapViewportRightClickEvent).cell;
+    const { row, col } = (e as TilemapViewportRightClickEvent).cell;
 
     attributesCell = { row, col };
     attributesDialogIsOpen = true;
-    
+  };
+
+  const handleSelectionMoveStart = () => {
+    /**
+     * When user starts moving the selection the first time, the original tiles should be either deleted from state (if not copy) or just left there (if copy)
+     *
+     * When user starts moving all other times, the tiles should be copied (update state) to the current pos (if copy) or otherwise nothing will happen here
+     *
+     */
+
+    const hasBeenMoved = selection.tiles.some(
+      (t) => t.org.col !== t.curr.col || t.org.row !== t.curr.row,
+    );
+
+    if (hasBeenMoved) {
+      if (copySelection) {
+        switch (selection.type) {
+          case PaintType.TILE:
+            projectState.paintTiles(
+              guiState.tilemapEditorState.selectedLayer,
+              selection.tiles.map((t) => ({
+                row: t.curr.row,
+                col: t.curr.col,
+                tileAsset: t.tile as TileAsset,
+              })),
+            );
+            dirtyTiles.push(...selection.tiles.map((t) => t.curr));
+            break;
+          case PaintType.AUTO_TILE:
+            const tiles = projectState.paintAutoTiles(
+              guiState.tilemapEditorState.selectedLayer,
+              selection.tiles.map((t) => ({
+                row: t.curr.row,
+                col: t.curr.col,
+              })),
+              selection.tiles[0].tile as AutoTileAsset,
+            );
+            dirtyTiles.push(...tiles);
+            break;
+        }
+      }
+    } else {
+      if (!copySelection) {
+        switch (selection.type) {
+          case PaintType.TILE:
+            projectState.eraseTiles(
+              selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
+              guiState.tilemapEditorState.selectedLayer,
+            );
+            dirtyTiles.push(...selection.tiles.map((t) => t.org));
+            break;
+          case PaintType.AUTO_TILE:
+            const tiles = projectState.eraseAutoTiles(
+              selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
+              guiState.tilemapEditorState.selectedLayer,
+            );
+
+            dirtyTiles.push(...tiles);
+            break;
+        }
+      }
+    }
+
+    copySelection = false;
   };
 
   const handleSelectionMove = (e: Event) => {
@@ -399,44 +491,67 @@
     const rowDelta = delta.y / projectState.tileSize;
     const colDelta = delta.x / projectState.tileSize;
 
-    for (const t of selectedTiles) {
-      t.curr.row = t.org.row + rowDelta;
-      t.curr.col = t.org.col + colDelta;
+    for (const t of selection.tiles) {
+      t.curr.row = t.prev.row + rowDelta;
+      t.curr.col = t.prev.col + colDelta;
     }
   };
 
   const handleSelectionMoveEnd = () => {
-    for (const t of selectedTiles) {
-      t.org.row = t.curr.row;
-      t.org.col = t.curr.col;
+    for (const t of selection.tiles) {
+      t.prev.row = t.curr.row;
+      t.prev.col = t.curr.col;
     }
   };
 
   const handleSelectionDelete = () => {
-    selectedTiles = [];
+    /**
+     * When user deletes a selection that hasn't been moved it should be deleted from state, if it has been moved it was either copied or
+     * deleted from its original place already and only need to be cleared
+     *
+     * cache is updated only except for "delete" och "change"
+     *
+     *
+     */
+
+    const hasBeenMoved = selection.tiles.some(
+      (t) => t.org.col !== t.curr.col || t.org.row !== t.curr.row,
+    );
+
+    if (!hasBeenMoved) {
+      switch (selection.type) {
+        case PaintType.TILE:
+          projectState.eraseTiles(
+            selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
+            guiState.tilemapEditorState.selectedLayer,
+          );
+          dirtyTiles.push(...selection.tiles.map((t) => t.org));
+          break;
+        case PaintType.AUTO_TILE:
+          const tiles = projectState.eraseAutoTiles(
+            selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
+            guiState.tilemapEditorState.selectedLayer,
+          );
+
+          dirtyTiles.push(...tiles);
+
+          break;
+      }
+    }
+
+    selection.tiles = [];
   };
 
   const handleSelectionCopy = () => {
-    // If we have selected tiles they will be copied, i.e. painted where they are currently placed
-    if (selectedTiles.length > 0) {
-      for (const t of selectedTiles) {
-        if (t.tile.type !== PaintType.TILE)
-          throw new Error("Selection only implemented for tile layers");
-
-        projectState.paintTile(
-          t.curr.row,
-          t.curr.col,
-          guiState.tilemapEditorState.selectedLayer,
-          t.tile,
-        );
-        if (
-          t.curr.row <= projectState.rows &&
-          t.curr.col <= projectState.cols
-        ) {
-          dirtyTiles.push({ ...t.curr });
-        }
-      }
+    if (selection.tiles.length > 0) {
+      copySelection = true;
     }
+
+    // 1. selection ändras ( om selection har flyttats från org så ska de ritas in (state udpate))
+    // 2. move start -> kolla om selection ska kopieras eller ej, om det ska deletas så ska det uppdater state
+    // 3. uppdatera bara pos
+    // 4. copy sätter bara copy state så när en move påbörjas igen
+    // 4. listen for delete (just deletes it) // deletes selection, if not moved, delete state, if moved to new place reset selected tiles
   };
 
   const handleMousePosChange = (e: Event) => {
@@ -467,47 +582,77 @@
                   }
                 }
                 break;
-              case Tool.ERASE:
-                const filledTiles = projectState.floodFill(
+              case Tool.ERASE: {
+                const erasedTiles = projectState.floodFill(
                   guiState.tilemapEditorState.selectedLayer,
                   row,
                   col,
                   null,
                 );
 
-                for (const t of filledTiles) {
+                for (const t of erasedTiles) {
                   dirtyTiles.push({ ...t });
                 }
                 break;
+              }
             }
-            break;
-          }
+          } else {
+            switch (guiState.tilemapEditorState.selectedTool) {
+              case Tool.PAINT:
+                if (guiState.tilemapEditorState.selectedAsset !== null) {
+                  // Calculate which tiles should be painted
+                  const minX = Math.min(
+                    ...guiState.tilemapEditorState.selectedAsset.map(
+                      (t) => t.ref.tilesetPos.x,
+                    ),
+                  );
+                  const minY = Math.min(
+                    ...guiState.tilemapEditorState.selectedAsset.map(
+                      (t) => t.ref.tilesetPos.y,
+                    ),
+                  );
 
-          switch (guiState.tilemapEditorState.selectedTool) {
-            case Tool.PAINT:
-              if (guiState.tilemapEditorState.selectedAsset !== null) {
-                const tiles = projectState.paintTiles(
+                  const tiles: { row: number, col: number, tileAsset: TileAsset }[] = [];
+
+                  for (const t of guiState.tilemapEditorState.selectedAsset) {
+                    const r =
+                      row +
+                      Math.floor(
+                        (t.ref.tilesetPos.y - minY) / projectState.tileSize,
+                      );
+                    const c =
+                      col +
+                      Math.floor(
+                        (t.ref.tilesetPos.x - minX) / projectState.tileSize,
+                      );
+
+                    if (r >= projectState.rows || c >= projectState.cols)
+                      continue; // out of bounds
+
+                    tiles.push({ row: r, col: c, tileAsset: t });
+                  }
+
+                  const paintedTiles = projectState.paintTiles(
+                    guiState.tilemapEditorState.selectedLayer,
+                    tiles,
+                  );
+
+                  for (const t of paintedTiles) {
+                    dirtyTiles.push({ ...t });
+                  }
+                }
+
+                break;
+              case Tool.ERASE:
+                projectState.eraseTile(
                   row,
                   col,
                   guiState.tilemapEditorState.selectedLayer,
-                  guiState.tilemapEditorState.selectedAsset,
                 );
 
-                for (const t of tiles) {
-                  dirtyTiles.push({ ...t });
-                }
-              }
-
-              break;
-            case Tool.ERASE:
-              projectState.eraseTile(
-                row,
-                col,
-                guiState.tilemapEditorState.selectedLayer,
-              );
-
-              dirtyTiles.push({ row, col });
-              break;
+                dirtyTiles.push({ row, col });
+                break;
+            }
           }
 
           break;
@@ -518,8 +663,8 @@
                 const tiles = projectState.paintAutoTile(
                   row,
                   col,
-                  guiState.tilemapEditorState.selectedAsset.ref.id,
                   guiState.tilemapEditorState.selectedLayer,
+                  guiState.tilemapEditorState.selectedAsset,
                 );
 
                 for (const t of tiles) {
@@ -555,6 +700,14 @@
     if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
 
     if (e.ctrlKey || e.metaKey) ctrlKeyIsDown = true;
+
+    // If some selection is beeing moved, don't trigger state updates since it makes it look weird
+    if (
+      selection.tiles.some(
+        (t) => t.curr.col !== t.org.col || t.org.row !== t.curr.row,
+      )
+    )
+      return;
 
     switch (e.key.toLowerCase()) {
       case "z":
@@ -686,25 +839,57 @@
 
       if (
         l.id === guiState.tilemapEditorState.selectedLayer &&
-        selectedTiles.length > 0
+        selection.tiles.length > 0
       ) {
-        for (const t of selectedTiles) {
-          x = t.curr.col * projectState.tileSize;
-          y = t.curr.row * projectState.tileSize;
+        for (const t of selection.tiles) {
+          if (projectState.isWithinGridBounds(t.curr.row, t.curr.col)) {
+            x = t.curr.col * projectState.tileSize;
+            y = t.curr.row * projectState.tileSize;
 
-          const tileset = projectState.getTileset(t.tile.ref.tilesetId);
+            switch (t.tile.type) {
+              case PaintType.TILE: {
+                const tileset = projectState.getTileset(t.tile.ref.tilesetId);
 
-          ctx.drawImage(
-            tileset.spritesheet,
-            t.tile.ref.tilesetPos.x,
-            t.tile.ref.tilesetPos.y,
-            projectState.tileSize,
-            projectState.tileSize,
-            x,
-            y,
-            projectState.tileSize,
-            projectState.tileSize,
-          );
+                ctx.drawImage(
+                  tileset.spritesheet,
+                  t.tile.ref.tilesetPos.x,
+                  t.tile.ref.tilesetPos.y,
+                  projectState.tileSize,
+                  projectState.tileSize,
+                  x,
+                  y,
+                  projectState.tileSize,
+                  projectState.tileSize,
+                );
+                break;
+              }
+              case PaintType.AUTO_TILE: {
+                const autoTile = projectState.getAutoTile(t.tile.ref.id);
+                const tile =
+                  autoTile.rules.find(
+                    (tr) =>
+                      tr.id ===
+                      (t.tile as PaintedAutoTile).selectedTileRuleId?.id,
+                  )?.tile ?? autoTile.defaultTile;
+
+                const tileset = projectState.getTileset(tile.ref.tilesetId);
+
+                ctx.drawImage(
+                  tileset.spritesheet,
+                  tile.ref.tilesetPos.x,
+                  tile.ref.tilesetPos.y,
+                  projectState.tileSize,
+                  projectState.tileSize,
+                  x,
+                  y,
+                  projectState.tileSize,
+                  projectState.tileSize,
+                );
+
+                break;
+              }
+            }
+          }
         }
       }
     }
@@ -720,10 +905,9 @@
 
 <section bind:this={container} id="tilemap-editor"></section>
 
-<AttributesDialog
-  bind:open={attributesDialogIsOpen}
-  cell={attributesCell}
-/>
+{#if attributesDialogIsOpen}
+  <AttributesDialog bind:open={attributesDialogIsOpen} row={attributesCell.row} col={attributesCell.col} />
+{/if}
 
 <style lang="postcss">
   #tilemap-editor {

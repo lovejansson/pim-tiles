@@ -8,10 +8,10 @@
   --color-2: #b5b7b9;
   --color-3: #d2d3d4;
 
-  --color-0: #2f2f4c;
+  /* --color-0: #2f2f4c;
   --color-1: #e4e8f5;
   --color-2: #a3acd3;
-  --color-3: #c8cfeb;
+  --color-3: #c8cfeb; */
 
   background-color: var(--color-1);
   color: var(--color-0);
@@ -117,7 +117,6 @@ body {
 * {
   outline: none;
   overscroll-behavior: none;
-  background-clip: padding-box !important; /* Cuts background of before borders to prevent it to bleed outside of the pixelated border */
 }
 
 #app {

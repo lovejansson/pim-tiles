@@ -1,7 +1,6 @@
-
 type Tile = {
-  tilesetId: string;
-  tilesetPos: Point;
+  readonly tilesetId: string;
+  readonly tilesetPos: Point;
 };
 
 type Tileset = {
@@ -41,12 +40,12 @@ enum Tool {
 }
 
 type IdRef = {
-  id: string;
+ readonly id: string;
 };
 
 type AssetRefT<T extends PaintType> = {
-  type: T;
-  ref: T extends PaintType.TILE ? Tile : IdRef;
+  readonly type: T;
+  readonly ref: T extends PaintType.TILE ? Tile : IdRef;
 };
 
 type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE
@@ -55,9 +54,14 @@ type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE
 
 type LayerDataT<T extends PaintType> = (PaintedAssetT<T> | null)[][];
 
-type LayerData =
-  | LayerDataT<PaintType.TILE>
-  | LayerDataT<PaintType.AUTO_TILE>
+type LayerData = LayerDataT<PaintType.TILE> | LayerDataT<PaintType.AUTO_TILE>;
+
+
+type TypedId<T extends PaintType> = string & { __brand: T };
+
+type TileId = TypedId<PaintType.TILE>;
+
+type AutoTileId = TypedId<PaintType.AUTO_TILE>;
 
 type LayerT<T extends PaintType> = {
   id: string;
@@ -128,7 +132,6 @@ type AutoTileLayerState = {
   fillToolIsActive: boolean;
 };
 
-
 type GUIState = {
   notification: Notification | null;
   tilemapEditorState: TilemapEditorState;
@@ -157,7 +160,12 @@ type ProjectFile = {
   layers: (Layer & { data: LayerData })[];
   tilesets: (Omit<Tileset, "spritesheet"> & { spritesheet: string })[];
   autoTiles: AutoTile[];
-  attributes: { pos: Point; attributes: { [key: string]: any } }[]; // An array of tiles positions with attributes
+  attributes: { pos: Point; attributes: { [key: string]: any } }[];
+  tileAttributes: { tile: Tile; attributes: { [key: string]: any } }[];
+  autoTileAttributes: {
+    autoTileId: string;
+    attributes: { [key: string]: any };
+  }[];
 };
 
 type Notification = {
@@ -197,6 +205,9 @@ export {
   type AutoTileHistoryEntryItem,
   type TileHistoryEntryItem,
   type LayerData,
+  type TypedId,
+  type AutoTileId,
+  type TileId,
   PaintType,
   Tool,
   TileRequirement,
@@ -222,4 +233,5 @@ export {
   type TileConnections,
   type Cell,
   type IdRef,
+  type AutoTileLayer,
 };

@@ -48,7 +48,7 @@ There are 3 types of tools to edit the tilemap:
 
 - **Paint (shortcut key Q/q)** – Paint tile(s) or autotiles.
 - **Erase (shortcut key W/w)** – Erase tiles.
-- **Selection (shortcut key E/e)** – Select parts of the tilemap to move, copy (Ctrl + C), or delete (Del/Backspace). Only available for tile layers.
+- **Selection (shortcut key E/e)** – Select parts of the tilemap to move, copy (Ctrl + C), or delete (Del/Backspace).
 
 And there is also a modifier:
 

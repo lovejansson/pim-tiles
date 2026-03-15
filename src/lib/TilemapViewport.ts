@@ -60,6 +60,12 @@ export class TilemapViewportSelectionChangeEvent extends Event {
   }
 }
 
+export class TilemapViewportSelectionMoveStartEvent extends Event {
+  constructor() {
+    super("selection-move-start");
+  }
+}
+
 export class TilemapViewportSelectionMoveEvent extends Event {
   delta: Point;
 
@@ -148,6 +154,7 @@ type MouseAction =
  * - Grid
  */
 export default class TilemapViewport extends EventTarget {
+  private container: HTMLElement;
   private canvasBg: HTMLCanvasElement;
   private canvas: HTMLCanvasElement;
   private canvasOverlay: HTMLCanvasElement;
@@ -178,6 +185,8 @@ export default class TilemapViewport extends EventTarget {
     super();
 
     container.style.position = "relative";
+
+    this.container = container;
 
     this.canvas = document.createElement("canvas");
     this.canvasOverlay = document.createElement("canvas");
@@ -314,15 +323,23 @@ export default class TilemapViewport extends EventTarget {
     }
   }
 
-  init(center: boolean = false) {
+  init(options?: { center?: boolean; resize?: boolean }) {
     this.addEventListeners();
     this.width = this.canvas.clientWidth;
     this.height = this.canvas.clientHeight;
+
     this.canvas.style.cursor = this.cursor;
     this.canvasOverlay.style.cursor = this.cursor;
     this.zoom = this.gridSettings.width > 1280 ? 0.25 : 0.5;
 
-    if (center)
+    if (options?.resize) {
+      addEventListener("resize", () => {
+        this.width = this.canvas.clientWidth;
+        this.height = this.canvas.clientHeight;
+      });
+    }
+
+    if (options?.center)
       this.translation = {
         x: this.canvas.width / 2 - (this.gridSettings.width * this.zoom) / 2,
         y: this.canvas.height / 2 - (this.gridSettings.height * this.zoom) / 2,
@@ -366,7 +383,7 @@ export default class TilemapViewport extends EventTarget {
           c < this.gridSettings.width / this.gridSettings.tileSize;
           ++c
         ) {
-          this.ctxBg.fillStyle = r % 2 === c % 2 ? "#a3acd3" : "#e4e8f5";
+          this.ctxBg.fillStyle = r % 2 === c % 2 ? "#b5b7b9" : "#ececec";
           this.ctxBg.fillRect(
             c * this.gridSettings.tileSize,
             r * this.gridSettings.tileSize,
@@ -617,7 +634,7 @@ export default class TilemapViewport extends EventTarget {
             };
           } else {
             if (this.isSelectionActive()) {
-              // If mouse is down on selected rect
+              // If mouse is down on selected rect, start move it
               if (
                 this.isSelectionMoveEnabled() &&
                 this.selection !== null &&
@@ -640,6 +657,10 @@ export default class TilemapViewport extends EventTarget {
                     startSelection: { ...this.selection },
                   },
                 };
+
+                this.dispatchEvent(
+                  new TilemapViewportSelectionMoveStartEvent(),
+                );
 
                 // Else start new selection
               } else {
@@ -753,10 +774,16 @@ export default class TilemapViewport extends EventTarget {
 
             const selection = this.mouseAction.data.selection;
 
-            const minX = Math.min(selection.x1, selection.x2);
-            const maxX = Math.max(selection.x1, selection.x2);
-            const minY = Math.min(selection.y1, selection.y2);
-            const maxY = Math.max(selection.y1, selection.y2);
+            const minX = Math.max(0, Math.min(selection.x1, selection.x2));
+            const maxX = Math.min(
+              this.gridSettings.width - 1,
+              Math.max(selection.x1, selection.x2),
+            );
+            const minY = Math.max(0, Math.min(selection.y1, selection.y2));
+            const maxY = Math.min(
+              this.gridSettings.height - 1,
+              Math.max(selection.y1, selection.y2),
+            );
 
             let row = 0;
             let col = 0;
@@ -782,7 +809,7 @@ export default class TilemapViewport extends EventTarget {
       this.canvasOverlay.addEventListener("contextmenu", (e: MouseEvent) => {
         if (e.target !== this.canvasOverlay) return;
 
-        const {  isWithinGridBounds, tile } = this.getMouseCoordinates(
+        const { isWithinGridBounds, tile } = this.getMouseCoordinates(
           e.clientX,
           e.clientY,
         );

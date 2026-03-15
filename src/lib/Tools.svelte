@@ -66,16 +66,14 @@
       >
     </sl-tooltip>
 
-    {#if tilemapEditorState.type === PaintType.TILE}
-      <sl-tooltip content="Selection (E)">
-        <sl-button
-          class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
-          onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
-          ><sl-icon library="pixelarticons" name="drop-area" label="Select"
-          ></sl-icon></sl-button
-        >
-      </sl-tooltip>
-    {/if}
+    <sl-tooltip content="Selection (E)">
+      <sl-button
+        class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
+        onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
+        ><sl-icon library="pixelarticons" name="drop-area" label="Select"
+        ></sl-icon></sl-button
+      >
+    </sl-tooltip>
   </sl-button-group>
 
   {#if tilemapEditorState.type === PaintType.TILE}

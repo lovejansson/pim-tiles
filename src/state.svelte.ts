@@ -22,6 +22,9 @@ import {
   type LayerData,
   type Tile,
   type ProjectFile,
+  type AutoTileAsset,
+  type TileHistoryEntryItem,
+  type TypedId,
 } from "./types";
 import {
   getNeighbours,
@@ -71,15 +74,18 @@ export class ProjectStateError extends Error {
 }
 
 export enum ProjectStateEventType {
-  LAYER_PAINT = "tilemap-change",
-  LOAD_FROM_FILE = "load-from-file",
+  PAINT = "paint",
+  OPEN_FILE = "open-file",
   DIMENSIONS_CHANGE = "dimensions-change",
-  NEW_PROJECT = "new-project-created", // Tilemap editor needs to wipe cache when new project is created
-  ASSET_UPDATE = "asset-update", // Tilemap editor needs to repaint the layer cache to reflect updates of auto tile rules
+  NEW_PROJECT = "new-project",
+  ASSET_UPDATE = "asset-update",
+  AUTO_TILES_UPDATE = "auto-tiles-update",
+  TILESETS_UPDATE = "tilesets-update",
+  LAYERS_UPDATE = "layers-update",
 }
 
 type ProjectStateEventDetail<T extends ProjectStateEventType> =
-  T extends ProjectStateEventType.LAYER_PAINT
+  T extends ProjectStateEventType.PAINT
     ? { prev: HistoryEntry; next: HistoryEntry }
     : T extends ProjectStateEventType.ASSET_UPDATE
       ? { layers: string[] }
@@ -163,8 +169,8 @@ export class ProjectState {
         ProjectStateErrorCode.BAD_REQUEST,
       );
 
-    this.wipeLayerData();
     this._tileSize = px;
+    this.wipeLayerData();
   }
 
   get tileSize() {
@@ -209,6 +215,8 @@ export class ProjectState {
     return this._cols;
   }
 
+  // Methods tilesets //
+
   getTilesets() {
     return this.tilesets;
   }
@@ -221,6 +229,7 @@ export class ProjectState {
         ProjectStateErrorCode.NOT_FOUND,
       );
     }
+
     return tileset;
   }
 
@@ -332,6 +341,8 @@ export class ProjectState {
     this.tilesets.splice(idx, 1);
   }
 
+  // Methods auto-tiles //
+
   getAutoTiles() {
     return this.autoTiles;
   }
@@ -431,14 +442,16 @@ export class ProjectState {
     this.autoTiles.splice(idx, 1);
   }
 
-  getAttributes(cell: Cell) {
-    if (!this.isWithinGridBounds(cell.row, cell.col))
+  // Methods attributes //
+
+  getAttributes(row: number, col: number) {
+    if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
-    const attributes = this.attributes.get(`${cell.row}:${cell.col}`);
+    const attributes = this.attributes.get(`${row}:${col}`);
     if (attributes === undefined)
       throw new ProjectStateError(
         "Attributes not found",
@@ -448,40 +461,40 @@ export class ProjectState {
     return attributes;
   }
 
-  updateAttributes(cell: Cell, attributes: Map<string, string>) {
-    if (!this.isWithinGridBounds(cell.row, cell.col))
+  updateAttributes(row: number, col: number, attributes: Map<string, string>) {
+    if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
-    this.attributes.set(`${cell.row}:${cell.col}`, attributes);
+    this.attributes.set(`${row}:${col}`, attributes);
   }
 
-  deleteAttributes(cell: Cell) {
-    if (!this.isWithinGridBounds(cell.row, cell.col))
+  deleteAttributes(row: number, col: number) {
+    if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
-    if (!this.hasAttributes(cell))
+    if (!this.hasAttributes(row, col))
       throw new ProjectStateError(
         "Attributes not found",
         ProjectStateErrorCode.NOT_FOUND,
       );
 
-    this.attributes.delete(`${cell.row}:${cell.col}`);
+    this.attributes.delete(`${row}:${col}`);
   }
 
-  hasAttributes(cell: Cell) {
-    if (!this.isWithinGridBounds(cell.row, cell.col))
+  hasAttributes(row: number, col: number) {
+    if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
-    return this.attributes.has(`${cell.row}:${cell.col}`);
+    return this.attributes.has(`${row}:${col}`);
   }
 
   getAutoTileAttributes(autoTileId: string) {
@@ -556,6 +569,8 @@ export class ProjectState {
     );
   }
 
+  // Methods layers //
+
   getLayers() {
     return this.layers;
   }
@@ -586,7 +601,7 @@ export class ProjectState {
     return data;
   }
   createLayer(name: string, type: PaintType) {
-    const id = this.generateId();
+    const id = this.generateId<PaintType>();
 
     this.layerData.set(
       id,
@@ -630,6 +645,8 @@ export class ProjectState {
         "Layer not found",
         ProjectStateErrorCode.NOT_FOUND,
       );
+
+    this.layerData.delete(id);
     this.layers.splice(idx, 1);
   }
 
@@ -643,128 +660,95 @@ export class ProjectState {
     return data[row][col];
   }
 
-  paintTile(row: number, col: number, layerID: string, paint: PaintedAsset) {
+  getTileAtSafe(row: number, col: number, layerID: string) {
+    if (!this.isWithinGridBounds(row, col)) {
+      return null;
+    }
+
+    return this.getTileAt(row, col, layerID);
+  }
+
+  // Methods for painting layers //
+
+  paintTile(layerID: string, row: number, col: number, tileAsset: TileAsset) {
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
-        "row and/or col is out of bounds for grid",
+        `row(${row}) and/or col(${col})`,
         ProjectStateErrorCode.OUT_OF_BOUNDS,
-      );
-
-    const layer = this.getLayer(layerID);
-
-    if (layer.type !== paint.type)
-      throw new ProjectStateError(
-        "type mismatch between layer and asset",
-        ProjectStateErrorCode.TYPE_ERROR,
       );
 
     const data = this.getLayerData(layerID);
     const curr = this.getTileAt(row, col, layerID);
 
-    // Don't do anything if the same tile is being painted again
-    if (this.isSameAsset(curr, paint)) {
-      return;
-    }
+    data[row][col] = tileAsset;
 
-    data[row][col] = { ...paint };
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_PAINT, {
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: {
-        type: paint.type,
+        type: PaintType.TILE,
         layer: { id: layerID },
-        items: [
-          { data: curr ? ({ ...curr } as any) : null, pos: { row, col } },
-        ],
+        items: [{ data: curr as PaintedTile | null, pos: { row, col } }],
       },
       next: {
-        type: paint.type,
+        type: tileAsset.type,
         layer: { id: layerID },
-        items: [{ data: { ...paint } as any, pos: { row, col } }],
+        items: [{ data: tileAsset, pos: { row, col } }],
       },
     });
   }
 
   paintTiles(
-    row: number,
-    col: number,
     layerID: string,
-    tiles: TileAsset[],
+    tiles: { row: number; col: number; tileAsset: TileAsset }[],
   ): Cell[] {
-    if (!this.isWithinGridBounds(row, col))
-      throw new ProjectStateError(
-        "row and/or col is out of bounds for grid",
-        ProjectStateErrorCode.OUT_OF_BOUNDS,
-      );
     const layer = this.getLayer(layerID);
-    const data = this.getLayerData(layerID);
-
-    if (layer.type !== PaintType.TILE)
-      throw new ProjectStateError(
-        "type mismatch between layer and asset",
-        ProjectStateErrorCode.TYPE_ERROR,
-      );
-
-    const tileSize = this.tileSize;
-
-    const prevTiles = [];
-    const nextTiles = [];
-
-    const minX = Math.min(...tiles.map((t) => t.ref.tilesetPos.x));
-    const minY = Math.min(...tiles.map((t) => t.ref.tilesetPos.y));
 
     for (const t of tiles) {
-      const r = row + Math.floor((t.ref.tilesetPos.y - minY) / tileSize);
-      const c = col + Math.floor((t.ref.tilesetPos.x - minX) / tileSize);
+      if (!this.isWithinGridBounds(t.row, t.col))
+        throw new ProjectStateError(
+          "row and/or col is out of bounds for grid",
+          ProjectStateErrorCode.OUT_OF_BOUNDS,
+        );
 
-      if (r >= this.rows || c >= this.cols) continue; // out of bounds
-
-      const curr = data[r][c];
-
-      data[r][c] = { ...t };
-
-      prevTiles.push({
-        data: curr ? ({ ...curr } as any) : null,
-        pos: { row: r, col: c },
-      });
-
-      nextTiles.push({
-        data: t !== null ? ({ ...t } as any) : null,
-        pos: { row: r, col: c },
-      });
-    }
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_PAINT, {
-      prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
-      next: { type: layer.type, layer: { id: layerID }, items: nextTiles },
-    });
-
-    return prevTiles.map((t) => t.pos);
-  }
-
-  applyPaintTileChange(
-    row: number,
-    col: number,
-    layerID: string,
-    paint: PaintedAsset | null,
-  ) {
-    if (!this.isWithinGridBounds(row, col))
-      throw new ProjectStateError(
-        "row and/or col is out of bounds for grid",
-        ProjectStateErrorCode.OUT_OF_BOUNDS,
-      );
-    const layer = this.getLayer(layerID);
-    const data = this.getLayerData(layerID);
-
-    if (paint === null) {
-      data[row][col] = null;
-    } else {
-      if (layer.type !== paint.type)
+      if (layer.type !== t.tileAsset.type)
         throw new ProjectStateError(
           "type mismatch between layer and asset",
           ProjectStateErrorCode.TYPE_ERROR,
         );
-      data[row][col] = { ...paint };
     }
+
+    const data = this.getLayerData(layerID);
+    const prevTiles: TileHistoryEntryItem[] = [];
+    const nextTiles: TileHistoryEntryItem[] = [];
+
+    for (const t of tiles) {
+      const curr = this.getTileAt(t.row, t.col, layerID);
+      data[t.row][t.col] = t.tileAsset;
+
+      prevTiles.push({
+        data: curr as PaintedTile | null,
+        pos: { row: t.row, col: t.col },
+      });
+
+      nextTiles.push({
+        data: t.tileAsset,
+        pos: { row: t.row, col: t.col },
+      });
+    }
+
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
+      prev: {
+        type: layer.type as PaintType.TILE,
+        layer: { id: layerID },
+        items: prevTiles,
+      },
+      next: {
+        type: layer.type as PaintType.TILE,
+        layer: { id: layerID },
+        items: nextTiles,
+      },
+    });
+
+    return nextTiles.map((t) => t.pos);
   }
 
   eraseTile(row: number, col: number, layerID: string) {
@@ -784,13 +768,11 @@ export class ProjectState {
 
     data[row][col] = null;
 
-    projectStateEvents.emit(ProjectStateEventType.LAYER_PAINT, {
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: {
         type: layer.type,
         layer: { id: layerID },
-        items: [
-          { data: curr ? ({ ...curr } as any) : null, pos: { row, col } },
-        ],
+        items: [{ data: curr as PaintedTile | null, pos: { row, col } }],
       },
       next: {
         type: layer.type,
@@ -800,11 +782,76 @@ export class ProjectState {
     });
   }
 
+  eraseTiles(tiles: Cell[], layerID: string) {
+    const layer = this.getLayer(layerID);
+
+    const data = this.getLayerData(layerID);
+
+    for (const t of tiles) {
+      if (!this.isWithinGridBounds(t.row, t.col))
+        throw new ProjectStateError(
+          "row and/or col is out of bounds for grid",
+          ProjectStateErrorCode.OUT_OF_BOUNDS,
+        );
+    }
+
+    const prevTiles = [];
+    const nextTiles = [];
+
+    for (const t of tiles) {
+      const curr = data[t.row][t.col];
+
+      data[t.row][t.col] = null;
+
+      prevTiles.push({
+        data: curr as any,
+        pos: { row: t.row, col: t.col },
+      });
+
+      nextTiles.push({
+        data: null,
+        pos: { row: t.row, col: t.col },
+      });
+    }
+
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
+      prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
+      next: { type: layer.type, layer: { id: layerID }, items: nextTiles },
+    });
+  }
+
+  editTileAt(
+    row: number,
+    col: number,
+    layerID: string,
+    paint: PaintedAsset | null,
+  ) {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
+    const layer = this.getLayer(layerID);
+    const data = this.getLayerData(layerID);
+
+    if (paint === null) {
+      data[row][col] = null;
+    } else {
+      if (layer.type !== paint.type)
+        throw new ProjectStateError(
+          "type mismatch between layer and asset",
+          ProjectStateErrorCode.TYPE_ERROR,
+        );
+      data[row][col] = { ...paint };
+    }
+  }
+
   floodFill(
     layerID: string,
     row: number,
     col: number,
-    paint: PaintedAsset | null,
+    paint: TileAsset | null,
   ): Cell[] {
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
@@ -825,9 +872,11 @@ export class ProjectState {
 
     const stack = [{ row, col }];
 
-    const visited = new Set();
+    const visited: boolean[][] = new Array(this.rows)
+      .fill(null)
+      .map((_) => new Array(this.cols).fill(false));
 
-    visited.add(`${row}:${col}`);
+    visited[row][col] = true;
 
     const filledTiles: { row: number; col: number }[] = [];
 
@@ -841,13 +890,11 @@ export class ProjectState {
       );
 
       for (const n of neighbours) {
-        const visitedKey = `${n.row}:${n.col}`;
-
         if (
-          !visited.has(visitedKey) &&
+          !visited[n.row][n.col] &&
           this.isSameAsset(clickedTile, this.getTileAt(n.row, n.col, layerID))
         ) {
-          visited.add(`${n.row}:${n.col}`);
+          visited[n.row][n.col] = true;
           stack.push(n);
         }
       }
@@ -856,17 +903,17 @@ export class ProjectState {
     }
 
     const prevTiles = filledTiles.map((ft) => {
-      const curr = data[ft.row][ft.col];
+      const curr = this.getTileAt(ft.row, ft.col, layerID);
       return {
-        data: curr ? ({ ...curr } as any) : null,
-        pos: { row: ft.row, col: ft.col },
+        data: curr as PaintedTile | null,
+        pos: ft,
       };
     });
 
     const nextItems = filledTiles.map((ft) => {
       return {
-        data: paint !== null ? ({ ...paint } as any) : null,
-        pos: { row: ft.row, col: ft.col },
+        data: paint as PaintedTile | null,
+        pos: ft,
       };
     });
 
@@ -874,12 +921,12 @@ export class ProjectState {
       if (paint === null) {
         data[ft.row][ft.col] = null;
       } else {
-        data[ft.row][ft.col] = { ...paint };
+        data[ft.row][ft.col] = paint;
         // If is auto tile layer, this will have to take into account the same procedure as in auto tile paint
       }
     }
 
-    projectStateEvents.emit(ProjectStateEventType.LAYER_PAINT, {
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
       next: { type: layer.type, layer: { id: layerID }, items: nextItems },
     });
@@ -890,16 +937,16 @@ export class ProjectState {
   paintAutoTile(
     row: number,
     col: number,
-    autoTileID: string,
     layerID: string,
+    autoTileAsset: AutoTileAsset,
   ): Cell[] {
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
+
     const layer = this.getLayer(layerID);
-    const data = this.getLayerData(layerID);
 
     if (layer.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
@@ -907,7 +954,9 @@ export class ProjectState {
         ProjectStateErrorCode.TYPE_ERROR,
       );
 
-    const currTile = this.getTileAt(row, col, layerID);
+    const data = this.getLayerData(layer.id);
+
+    const currTile = this.getTileAt(row, col, layer.id);
 
     if (currTile !== null && currTile.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
@@ -915,84 +964,342 @@ export class ProjectState {
         ProjectStateErrorCode.TYPE_ERROR,
       );
 
-    // Don't paint if the tile is already painted with auto tile
-    if (currTile !== null && currTile?.ref.id === autoTileID) return [];
+    const autoTile = this.getAutoTile(autoTileAsset.ref.id);
 
-    const autoTile = this.getAutoTile(autoTileID);
+    const tileRuleId = this.pickTileFromAutoTile(row, col, autoTile, layer.id);
 
-    const tileRuleId = this.pickTileFromAutoTile(row, col, autoTile, layerID);
+    const prevItems: AutoTileHistoryEntryItem[] = [];
+    const nextItems: AutoTileHistoryEntryItem[] = [];
 
-    const prevTiles: AutoTileHistoryEntryItem[] = [];
-    const paintedTiles: AutoTileHistoryEntryItem[] = [];
+    data[row][col] = {
+      type: PaintType.AUTO_TILE,
+      ref: { id: autoTileAsset.ref.id },
+      selectedTileRuleId: tileRuleId,
+    };
 
-    prevTiles.push({
+    prevItems.push({
       pos: { row, col },
       data: currTile as PaintedAutoTile | null,
     });
-    paintedTiles.push({
+
+    nextItems.push({
       pos: { row, col },
       data: {
         type: PaintType.AUTO_TILE,
-        ref: { id: autoTileID },
+        ref: { id: autoTileAsset.ref.id },
         selectedTileRuleId: tileRuleId,
       },
     });
 
-    data[row][col] = {
-      type: PaintType.AUTO_TILE,
-      ref: { id: autoTileID },
-      selectedTileRuleId: tileRuleId,
-    };
-
     const neighbours = getNeighbours({ row, col }, this.rows, this.cols, true);
 
     for (const n of neighbours) {
-      const currTile = this.getTileAt(n.row, n.col, layerID);
+      const currTile = this.getTileAt(n.row, n.col, layer.id);
 
       if (
         currTile !== null &&
         currTile.type === PaintType.AUTO_TILE &&
-        currTile.ref.id === autoTileID
+        currTile.ref.id === autoTileAsset.ref.id
       ) {
         const selectedTileRuleId = this.pickTileFromAutoTile(
           n.row,
           n.col,
           autoTile,
-          layerID,
+          layer.id,
         );
 
-        prevTiles.push({
+        prevItems.push({
           pos: { row: n.row, col: n.col },
-          data: currTile as PaintedAutoTile,
+          data: currTile as PaintedAutoTile | null,
         });
 
-        paintedTiles.push({
+        nextItems.push({
           pos: { row: n.row, col: n.col },
           data: {
             type: PaintType.AUTO_TILE,
-            ref: { id: autoTileID },
+            ref: { id: autoTileAsset.ref.id },
             selectedTileRuleId,
           },
         });
 
         data[n.row][n.col] = {
           type: PaintType.AUTO_TILE,
-          ref: { id: autoTileID },
+          ref: { id: autoTileAsset.ref.id },
           selectedTileRuleId,
         };
       }
     }
 
-    projectStateEvents.emit(ProjectStateEventType.LAYER_PAINT, {
-      prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
+      prev: { type: layer.type, layer: { id: layerID }, items: prevItems },
       next: {
         type: layer.type,
         layer: { id: layerID },
-        items: paintedTiles,
+        items: nextItems,
+      },
+    });
+    return nextItems.map((t) => t.pos);
+  }
+
+  paintAutoTiles(
+    layerID: string,
+    tiles: Cell[],
+    autoTileAsset: AutoTileAsset,
+  ): Cell[] {
+    const layer = this.getLayer(layerID);
+
+    if (layer.type !== PaintType.AUTO_TILE)
+      throw new ProjectStateError(
+        "paintWithAutoTile only supported for auto-tile layers",
+        ProjectStateErrorCode.TYPE_ERROR,
+      );
+
+    const autoTile = this.getAutoTile(autoTileAsset.ref.id);
+
+    const data = this.getLayerData(layer.id);
+
+    const prevItems: AutoTileHistoryEntryItem[] = [];
+    const nextItems: AutoTileHistoryEntryItem[] = [];
+
+    // 1. create history entry items for prev, the currently painted tiles including neighbours, but remove duplicates.
+
+    for (const t of tiles) {
+      // only add the items that doesn't already exist in prev
+      if (
+        prevItems.find((i) => i.pos.col === t.col && i.pos.row === t.row) ===
+        undefined
+      ) {
+        const currTile = this.getTileAt(t.row, t.col, layer.id);
+        prevItems.push({
+          pos: t,
+          data: currTile as PaintedAutoTile | null,
+        });
+      }
+
+      const neighbours = getNeighbours(t, this.rows, this.cols, true);
+
+      for (const n of neighbours) {
+        // only add the items that doesn't already exist in prev
+        if (
+          prevItems.find((i) => i.pos.col === n.col && i.pos.row === n.row) ===
+          undefined
+        ) {
+          const currTile = this.getTileAt(n.row, n.col, layer.id);
+          prevItems.push({
+            pos: n,
+            data: currTile as PaintedAutoTile | null,
+          });
+        }
+      }
+    }
+
+    // 2. paint each tile according to auto tile rules
+
+    for (const t of tiles) {
+      const selectedTileRuleId = this.pickTileFromAutoTile(
+        t.row,
+        t.col,
+        autoTile,
+        layer.id,
+      );
+
+      data[t.row][t.col] = {
+        type: PaintType.AUTO_TILE,
+        ref: { id: autoTileAsset.ref.id },
+        selectedTileRuleId,
+      };
+
+      // Update neighbours
+
+      const neighbours = getNeighbours(t, this.rows, this.cols, true);
+
+      for (const n of neighbours) {
+        const currTile = this.getTileAt(n.row, n.col, layer.id);
+
+        if (
+          currTile !== null &&
+          currTile.type === PaintType.AUTO_TILE &&
+          currTile.ref.id === autoTileAsset.ref.id
+        ) {
+          const selectedTileRuleId = this.pickTileFromAutoTile(
+            n.row,
+            n.col,
+            autoTile,
+            layer.id,
+          );
+
+          data[n.row][n.col] = {
+            type: PaintType.AUTO_TILE,
+            ref: { id: autoTileAsset.ref.id },
+            selectedTileRuleId,
+          };
+        }
+      }
+    }
+
+    // 3. Create history entry items for next, now that they have been updated with new tiles, again remove duplicates
+
+    for (const t of tiles) {
+      // only add the items that doesn't already exist in next
+      if (
+        nextItems.find((i) => i.pos.col === t.col && i.pos.row === t.row) ===
+        undefined
+      ) {
+        const currTile = this.getTileAt(t.row, t.col, layer.id);
+        nextItems.push({
+          pos: t,
+          data: currTile as PaintedAutoTile | null,
+        });
+      }
+
+      const neighbours = getNeighbours(t, this.rows, this.cols, true);
+
+      for (const n of neighbours) {
+        // only add the items that doesn't already exist in prev
+        if (
+          nextItems.find((i) => i.pos.col === n.col && i.pos.row === n.row) ===
+          undefined
+        ) {
+          const currTile = this.getTileAt(n.row, n.col, layer.id);
+          nextItems.push({
+            pos: n,
+            data: currTile as PaintedAutoTile | null,
+          });
+        }
+      }
+    }
+
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
+      prev: { type: layer.type, layer: { id: layerID }, items: prevItems },
+      next: {
+        type: layer.type,
+        layer: { id: layerID },
+        items: nextItems,
       },
     });
 
-    return paintedTiles.map((t) => ({ ...t.pos }));
+    return nextItems.map((t) => t.pos);
+  }
+
+  eraseAutoTiles(tiles: Cell[], layerID: string): Cell[] {
+    const layer = this.getLayer(layerID);
+
+    if (layer.type !== PaintType.AUTO_TILE)
+      throw new ProjectStateError(
+        "paintWithAutoTile only supported for auto-tile layers",
+        ProjectStateErrorCode.TYPE_ERROR,
+      );
+
+    const data = this.getLayerData(layer.id);
+
+    const prevItems: AutoTileHistoryEntryItem[] = [];
+    const nextItems: AutoTileHistoryEntryItem[] = [];
+
+    // 1. create history entry items for prev, the currently painted tiles including neighbours, but remove duplicates.
+
+    for (const t of tiles) {
+      // only add the items that doesn't already exist in prev
+      if (
+        prevItems.find((i) => i.pos.col === t.col && i.pos.row === t.row) ===
+        undefined
+      ) {
+        const currTile = this.getTileAt(t.row, t.col, layer.id);
+        prevItems.push({
+          pos: t,
+          data: currTile as PaintedAutoTile | null,
+        });
+      }
+
+      const neighbours = getNeighbours(t, this.rows, this.cols, true);
+
+      for (const n of neighbours) {
+        // only add the items that doesn't already exist in prev
+        if (
+          prevItems.find((i) => i.pos.col === n.col && i.pos.row === n.row) ===
+          undefined
+        ) {
+          const currTile = this.getTileAt(n.row, n.col, layer.id);
+          prevItems.push({
+            pos: n,
+            data: currTile as PaintedAutoTile | null,
+          });
+        }
+      }
+    }
+
+    // 2. erase each tile and update the neighbours
+
+    for (const t of tiles) {
+      data[t.row][t.col] = null;
+
+      // Update neighbours
+
+      const neighbours = getNeighbours(t, this.rows, this.cols, true);
+
+      for (const n of neighbours) {
+        const currTile = this.getTileAt(n.row, n.col, layer.id);
+
+        if (currTile !== null && currTile.type === PaintType.AUTO_TILE) {
+          const autoTile = this.getAutoTile(currTile.ref.id);
+
+          const selectedTileRuleId = this.pickTileFromAutoTile(
+            n.row,
+            n.col,
+            autoTile,
+            layer.id,
+          );
+
+          data[n.row][n.col] = {
+            type: PaintType.AUTO_TILE,
+            ref: { id: autoTile.id },
+            selectedTileRuleId,
+          };
+        }
+      }
+    }
+
+    // 3. Create history entry items for next, now that they have been updated with new tiles, again remove duplicates
+
+    for (const t of tiles) {
+      // only add the items that doesn't already exist in next
+      if (
+        nextItems.find((i) => i.pos.col === t.col && i.pos.row === t.row) ===
+        undefined
+      ) {
+        const currTile = this.getTileAt(t.row, t.col, layer.id);
+        nextItems.push({
+          pos: t,
+          data: currTile as PaintedAutoTile | null,
+        });
+      }
+
+      const neighbours = getNeighbours(t, this.rows, this.cols, true);
+
+      for (const n of neighbours) {
+        // only add the items that doesn't already exist in prev
+        if (
+          nextItems.find((i) => i.pos.col === n.col && i.pos.row === n.row) ===
+          undefined
+        ) {
+          const currTile = this.getTileAt(n.row, n.col, layer.id);
+          nextItems.push({
+            pos: n,
+            data: currTile as PaintedAutoTile | null,
+          });
+        }
+      }
+    }
+
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
+      prev: { type: layer.type, layer: { id: layerID }, items: prevItems },
+      next: {
+        type: layer.type,
+        layer: { id: layerID },
+        items: nextItems,
+      },
+    });
+
+    return nextItems.map((t) => t.pos);
   }
 
   eraseAutoTile(row: number, col: number, layerID: string): Cell[] {
@@ -1001,9 +1308,20 @@ export class ProjectState {
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
-    const currTile = this.getTileAt(row, col, layerID);
-    // Ignore if tile already erased
-    if (currTile === null) return [];
+
+    const layer = this.getLayer(layerID);
+
+    if (layer.type !== PaintType.AUTO_TILE)
+      throw new ProjectStateError(
+        "eraseAutoTile only supported for auto-tile layers",
+        ProjectStateErrorCode.TYPE_ERROR,
+      );
+
+    const currTile = this.getTileAt(row, col, layer.id);
+
+    if (currTile === null) {
+      return [];
+    }
 
     if (currTile.type !== PaintType.AUTO_TILE)
       throw new ProjectStateError(
@@ -1013,28 +1331,21 @@ export class ProjectState {
 
     const autoTile = this.getAutoTile(currTile.ref.id);
 
-    const layer = this.getLayer(layerID);
-    const data = this.getLayerData(layerID);
+    const data = this.getLayerData(layer.id);
 
-    if (layer.type !== PaintType.AUTO_TILE)
-      throw new ProjectStateError(
-        "eraseAutoTile only supported for auto-tile layers",
-        ProjectStateErrorCode.TYPE_ERROR,
-      );
+    const prevItems: AutoTileHistoryEntryItem[] = [];
+    const nextItems: AutoTileHistoryEntryItem[] = [];
 
-    const prevTiles: AutoTileHistoryEntryItem[] = [];
-    const paintedTiles: AutoTileHistoryEntryItem[] = [];
-
-    prevTiles.push({ pos: { row, col }, data: { ...currTile } });
+    prevItems.push({ pos: { row, col }, data: currTile });
 
     data[row][col] = null;
 
-    paintedTiles.push({ pos: { row: row, col: col }, data: null });
+    nextItems.push({ pos: { row: row, col: col }, data: null });
 
     const neighbours = getNeighbours({ row, col }, this.rows, this.cols, true);
 
     for (const n of neighbours) {
-      const currTile = this.getTileAt(n.row, n.col, layerID);
+      const currTile = this.getTileAt(n.row, n.col, layer.id);
 
       // If painted with same auto tile, update its content
       if (
@@ -1042,19 +1353,19 @@ export class ProjectState {
         currTile.type === PaintType.AUTO_TILE &&
         currTile.ref.id === autoTile.id
       ) {
-        prevTiles.push({
+        prevItems.push({
           pos: { row: n.row, col: n.col },
-          data: { ...currTile },
+          data: currTile,
         });
 
         const tileRuleId = this.pickTileFromAutoTile(
           n.row,
           n.col,
           autoTile,
-          layerID,
+          layer.id,
         );
 
-        paintedTiles.push({
+        nextItems.push({
           pos: { row: n.row, col: n.col },
           data: { ...currTile, selectedTileRuleId: tileRuleId },
         });
@@ -1062,15 +1373,20 @@ export class ProjectState {
       }
     }
 
-    projectStateEvents.emit(ProjectStateEventType.LAYER_PAINT, {
-      prev: { type: layer.type, layer: { id: layerID }, items: prevTiles },
+    projectStateEvents.emit(ProjectStateEventType.PAINT, {
+      prev: {
+        type: layer.type,
+        layer: { id: layerID },
+        items: prevItems,
+      },
       next: {
         type: layer.type,
         layer: { id: layerID },
-        items: paintedTiles,
+        items: nextItems,
       },
     });
-    return paintedTiles.map((t) => ({ ...t.pos }));
+
+    return nextItems.map((t) => t.pos);
   }
 
   isSameAsset(a: AssetRef | null, b: AssetRef | null): boolean {
@@ -1092,9 +1408,269 @@ export class ProjectState {
     }
   }
 
-  private isWithinGridBounds(row: number, col: number) {
-    return row >= 0 && row < this.rows && col >= 0 && col < this.cols;
+  // Methods for Loads and exports of project //
+
+  async getFileExport(): Promise<Blob> {
+    const tilesets = this.tilesets.map((t) => {
+      // Convert the ImageBitmap to binary data that proto can read
+
+      const ctx = createCanvas(t.spritesheet.width, t.spritesheet.height);
+
+      ctx.drawImage(t.spritesheet, 0, 0);
+
+      return {
+        id: t.id,
+        name: t.name,
+        width: t.width,
+        height: t.height,
+        spritesheet: ctx.canvas.toDataURL(),
+      };
+    });
+
+    const attributes = Array.from(this.attributes.entries()).map((e) => {
+      const [row, col] = e[0].split(":").map(Number);
+
+      return {
+        pos: {
+          x: col * this.tileSize,
+          y: row * this.tileSize,
+        },
+        attributes: Object.fromEntries(e[1]),
+      };
+    });
+
+    const tileAttributes = Array.from(this.tileAttributes.entries()).map(
+      (e) => {
+        const [tilesetId, x, y] = e[0].split(":");
+
+        return {
+          tile: {
+            tilesetId,
+            tilesetPos: {
+              x: parseInt(x),
+              y: parseInt(y),
+            },
+          },
+          attributes: Object.fromEntries(e[1]),
+        };
+      },
+    );
+
+    const autoTileAttributes = Array.from(
+      this.autoTileAttributes.entries(),
+    ).map((e) => {
+      return {
+        autoTileId: e[0],
+        attributes: Object.fromEntries(e[1]),
+      };
+    });
+
+    const layers = this.layers.map((l) => {
+      const data = this.getLayerData(l.id);
+      return { ...l, data };
+    });
+
+    const data: ProjectFile = {
+      name: this.name,
+      tileSize: this.tileSize,
+      width: this.width,
+      height: this.height,
+      tilesets,
+      autoTiles: this.autoTiles,
+      attributes,
+      tileAttributes: tileAttributes,
+      autoTileAttributes,
+      layers,
+    };
+
+    return new Blob([JSON.stringify(data)], { type: "application/json" });
   }
+
+  createNewProject() {
+    this.name = "My project";
+    this._tileSize = ProjectState.DEFAULT_TILE_SIZE;
+    this._width = ProjectState.DEFAULT_WIDTH;
+    this._height = ProjectState.DEFAULT_HEIGHT;
+    this._rows = this._height / this._tileSize;
+    this._cols = this._width / this._tileSize;
+
+    this.layers = [];
+    this.tilesets = [];
+    this.autoTiles = [];
+    this.attributes = new Map();
+    this.tileAttributes = new Map();
+    this.autoTileAttributes = new Map();
+    this.layerData = new Map();
+
+    this.createDefaultLayers();
+
+    // TODO: wipe any state saved in indexed DB
+
+    projectStateEvents.emit(ProjectStateEventType.NEW_PROJECT, null);
+  }
+
+  async openFile(file: File): Promise<void> {
+    try {
+      if (file.type !== "application/json")
+        throw new ProjectStateError(
+          "Invalid project file type, accepts JSON",
+          ProjectStateErrorCode.BAD_REQUEST,
+        );
+
+      const json = await file.text();
+      const data: ProjectFile = JSON.parse(json); // TODO: you could argue that this should be runtime type validated
+
+      this.name = data.name;
+      this.tileSize = data.tileSize;
+      this.width = data.width;
+      this.height = data.height;
+
+      // Create attributes maps
+
+      for (const a of data.attributes) {
+        this.attributes.set(
+          `${a.pos.x / this.tileSize}:${a.pos.y / this.tileSize}`,
+          new Map(Object.entries(a.attributes)),
+        );
+      }
+
+      for (const a of data.tileAttributes) {
+        this.tileAttributes.set(
+          `${a.tile.tilesetId}:${a.tile.tilesetPos.x}:${a.tile.tilesetPos.y}`,
+          new Map(Object.entries(a.attributes)),
+        );
+      }
+
+      for (const a of data.autoTileAttributes) {
+        this.autoTileAttributes.set(
+          `${a.autoTileId}`,
+          new Map(Object.entries(a.attributes)),
+        );
+      }
+
+      // Convert data URL to ImageBitmap in tilesets
+      this.tilesets = await Promise.all(
+        data.tilesets.map(async (t) => {
+          const spritesheet = await dataURLToImageBitmap(t.spritesheet);
+          return { ...t, spritesheet };
+        }),
+      );
+
+      this.autoTiles = data.autoTiles;
+
+      // Create layers
+
+      this.layers = [];
+
+      this.layerData.clear();
+
+      for (const l of data.layers) {
+        this.layerData.set(l.id, l.data);
+        this.layers.push({ name: l.name, id: l.id, type: l.type });
+      }
+
+      // TODO: Update Indexed DB with this
+
+      projectStateEvents.emit(ProjectStateEventType.OPEN_FILE, null);
+    } catch (e) {
+      console.error(e);
+      throw new ProjectStateError(
+        "Failed to parse project file",
+        ProjectStateErrorCode.BAD_REQUEST,
+      );
+    }
+  }
+
+  async getPNGExport(): Promise<Blob> {
+    const ctx = this.paintProjectToCanvas();
+
+    try {
+      return await canvasToBlob(ctx.canvas);
+    } catch (e) {
+      throw new ProjectStateError(
+        "Failed to create blob",
+        ProjectStateErrorCode.SERVER_ERROR,
+      );
+    }
+  }
+
+  getJSONExport(): Blob {
+    const ctx = this.paintProjectToCanvas();
+
+    // Export a list of all tiles that have attributes and their positions.
+    // Order of importance for attributes are 1. Tile, 2. Autotile 3. painted tile / tile instance
+
+    const attributes: { pos: Point; attributes: { [k: string]: string } }[] =
+      [];
+
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const tileAttributes = this.hasAttributes(r, c)
+          ? this.getAttributes(r, c)
+          : new Map();
+
+        // Add auto tile attributes
+
+        for (const l of this.getLayers().filter(
+          (l) => l.type === PaintType.AUTO_TILE,
+        )) {
+          const paintedAsset = this.getTileAt(r, c, l.id);
+
+          if (paintedAsset === null) continue;
+          if (paintedAsset.type === PaintType.AUTO_TILE) {
+            if (this.hasAutoTileAttributes(paintedAsset.ref.id)) {
+              const atAttr = this.getAutoTileAttributes(paintedAsset.ref.id);
+              for (const [k, v] of atAttr.entries()) {
+                tileAttributes.set(k, v);
+              }
+            }
+          }
+        }
+
+        // Add tile attributes
+        for (const l of this.getLayers().filter(
+          (l) => l.type === PaintType.TILE,
+        )) {
+          const paintedAsset = this.getTileAt(r, c, l.id);
+
+          if (paintedAsset === null) continue;
+
+          if (paintedAsset.type === PaintType.TILE) {
+            if (this.hasTileAttributes(paintedAsset.ref)) {
+              const tAttr = this.getTileAttributes(paintedAsset.ref);
+              for (const [k, v] of tAttr.entries()) {
+                tileAttributes.set(k, v);
+              }
+            }
+          }
+        }
+
+        if (tileAttributes.size > 0) {
+          attributes.push({
+            pos: { x: c * this.tileSize, y: r * this.tileSize },
+            attributes: Object.fromEntries(tileAttributes.entries()),
+          });
+        }
+      }
+    }
+
+    const data: ProjectStateJSONExport = {
+      name: this.name,
+      tileSize: this.tileSize,
+      width: this.width,
+      height: this.height,
+      rows: this.rows,
+      cols: this.cols,
+      tilemap: ctx.canvas.toDataURL(),
+      attributes,
+    };
+
+    return new Blob([JSON.stringify(data)], {
+      type: "application/json",
+    });
+  }
+
+  // Private stuff //
 
   private paintProjectToCanvas(): CanvasRenderingContext2D {
     const ctx = createCanvas(this.width, this.height);
@@ -1168,225 +1744,6 @@ export class ProjectState {
     return ctx;
   }
 
-  async getFileExport(): Promise<Blob> {
-    const tilesets = this.tilesets.map((t) => {
-      // Convert the ImageBitmap to binary data that proto can read
-
-      const ctx = createCanvas(t.spritesheet.width, t.spritesheet.height);
-
-      ctx.drawImage(t.spritesheet, 0, 0);
-
-      return {
-        id: t.id,
-        name: t.name,
-        width: t.width,
-        height: t.height,
-        spritesheet: ctx.canvas.toDataURL(),
-      };
-    });
-
-    const attributes = Array.from(this.attributes.entries()).map((e) => {
-      const [row, col] = e[0].split(":").map(Number);
-
-      return {
-        pos: {
-          x: col * this.tileSize,
-          y: row * this.tileSize,
-        },
-        attributes: Object.fromEntries(e[1]),
-      };
-    });
-
-    const layers = this.layers.map((l) => {
-      const data = this.getLayerData(l.id);
-      return { ...l, data };
-    });
-
-    const data: ProjectFile = {
-      name: this.name,
-      tileSize: this.tileSize,
-      width: this.width,
-      height: this.height,
-      tilesets,
-      autoTiles: this.autoTiles,
-      attributes,
-      layers,
-    };
-
-    return new Blob([JSON.stringify(data)], { type: "application/json" });
-  }
-
-  reset() {
-    this.name = "My project";
-    this._tileSize = ProjectState.DEFAULT_TILE_SIZE;
-    this._width = ProjectState.DEFAULT_WIDTH;
-    this._height = ProjectState.DEFAULT_HEIGHT;
-
-    this.layers = [];
-    this.tilesets = [];
-    this.autoTiles = [];
-    this.attributes = new Map();
-    this.layerData = new Map();
-    this.createDefaultLayers();
-
-    projectStateEvents.emit(ProjectStateEventType.NEW_PROJECT, null);
-  }
-
-  async loadFile(file: File): Promise<void> {
-    // OBS: does not validated input JSON so don't touch the file contents
-    try {
-      if (file.type !== "application/json")
-        throw new ProjectStateError(
-          "Invalid project file type",
-          ProjectStateErrorCode.BAD_REQUEST,
-        );
-
-      const json = await file.text();
-      const data: ProjectFile = JSON.parse(json);
-
-      // Create attributes map
-
-      const attributes = new Map();
-
-      for (const a of data.attributes) {
-        attributes.set(
-          `${a.pos.x}:${a.pos.y}`,
-          new Map(Object.entries(a.attributes)),
-        );
-      }
-
-      // Add data to data map and create layers list
-      const layers: Layer[] = [];
-
-      this.layerData.clear();
-
-      for (const l of data.layers) {
-        this.layerData.set(l.id, l.data);
-        layers.push({ name: l.name, id: l.id, type: l.type });
-      }
-
-      // Convert data URL to ImageBitmap
-      const tilesets: Tileset[] = await Promise.all(
-        data.tilesets.map(async (t) => {
-          const spritesheet = await dataURLToImageBitmap(t.spritesheet);
-          return { ...t, spritesheet };
-        }),
-      );
-
-      this.name = data.name;
-      this.tileSize = data.tileSize;
-      this.width = data.width;
-      this.height = data.height;
-      this.tilesets = tilesets;
-      this.autoTiles = data.autoTiles;
-      this.attributes = attributes;
-      this.layers = layers;
-
-      projectStateEvents.emit(ProjectStateEventType.LOAD_FROM_FILE, null);
-    } catch (e) {
-      console.error(e);
-      throw new ProjectStateError(
-        "Failed to parse project file",
-        ProjectStateErrorCode.BAD_REQUEST,
-      );
-    }
-  }
-
-  async getPNGExport(): Promise<Blob> {
-    const ctx = this.paintProjectToCanvas();
-
-    try {
-      return await canvasToBlob(ctx.canvas);
-    } catch (e) {
-      throw new ProjectStateError(
-        "Failed to create blob",
-        ProjectStateErrorCode.SERVER_ERROR,
-      );
-    }
-  }
-
-  getJSONExport(): Blob {
-    const ctx = this.paintProjectToCanvas();
-
-    // Export a list of all tiles that have attributes and their positions.
-    // Order of importance for attributes are 1. Tile, 2. Autotile 3. painted tile / tile instance
-
-    const attributes: { pos: Point; attributes: { [k: string]: string } }[] =
-      [];
-
-    for (let r = 0; r < this.rows; r++) {
-      for (let c = 0; c < this.cols; c++) {
-        const tileAttributes = this.hasAttributes({
-          row: r,
-          col: c,
-        })
-          ? this.getAttributes({
-              row: r,
-              col: c,
-            })
-          : new Map();
-
-        // Add auto tile attributes
-
-        for (const l of this.getLayers().filter(
-          (l) => l.type === PaintType.AUTO_TILE,
-        )) {
-          const paintedAsset = this.getTileAt(r, c, l.id);
-
-          if (paintedAsset === null) continue;
-          if (paintedAsset.type === PaintType.AUTO_TILE) {
-            if (this.hasAutoTileAttributes(paintedAsset.ref.id)) {
-              const atAttr = this.getAutoTileAttributes(paintedAsset.ref.id);
-              for (const [k, v] of atAttr.entries()) {
-                tileAttributes.set(k, v);
-              }
-            }
-          }
-        }
-
-        // Add tile attributes
-        for (const l of this.getLayers().filter(
-          (l) => l.type === PaintType.TILE,
-        )) {
-          const paintedAsset = this.getTileAt(r, c, l.id);
-
-          if (paintedAsset === null) continue;
-
-          if (paintedAsset.type === PaintType.TILE) {
-            if (this.hasTileAttributes(paintedAsset.ref)) {
-              const tAttr = this.getTileAttributes(paintedAsset.ref);
-              for (const [k, v] of tAttr.entries()) {
-                tileAttributes.set(k, v);
-              }
-            }
-          }
-        }
-
-        if (tileAttributes.size > 0) {
-          attributes.push({
-            pos: { x: c * this.tileSize, y: r * this.tileSize },
-            attributes: Object.fromEntries(tileAttributes.entries()),
-          });
-        }
-      }
-    }
-
-    const data: ProjectStateJSONExport = {
-      name: this.name,
-      tileSize: this.tileSize,
-      width: this.width,
-      height: this.height,
-      rows: this.rows,
-      cols: this.cols,
-      tilemap: ctx.canvas.toDataURL(),
-      attributes,
-    };
-
-    return new Blob([JSON.stringify(data)], {
-      type: "application/json",
-    });
-  }
-
   private wipeLayerData() {
     for (const l of this.layers) {
       this.layerData.set(
@@ -1409,14 +1766,15 @@ export class ProjectState {
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
-    const n = this.getTileAt(row - 1, col, layerID);
-    const ne = this.getTileAt(row - 1, col + 1, layerID);
-    const e = this.getTileAt(row, col + 1, layerID);
-    const se = this.getTileAt(row + 1, col + 1, layerID);
-    const s = this.getTileAt(row + 1, col, layerID);
-    const sw = this.getTileAt(row + 1, col - 1, layerID);
-    const w = this.getTileAt(row, col - 1, layerID);
-    const nw = this.getTileAt(row + 1, col - 1, layerID);
+
+    const n = row > 0 ? this.getTileAtSafe(row - 1, col, layerID) : null;
+    const ne = this.getTileAtSafe(row - 1, col + 1, layerID);
+    const e = this.getTileAtSafe(row, col + 1, layerID);
+    const se = this.getTileAtSafe(row + 1, col + 1, layerID);
+    const s = this.getTileAtSafe(row + 1, col, layerID);
+    const sw = this.getTileAtSafe(row + 1, col - 1, layerID);
+    const w = this.getTileAtSafe(row, col - 1, layerID);
+    const nw = this.getTileAtSafe(row - 1, col - 1, layerID);
 
     const connections = {
       n:
@@ -1495,7 +1853,7 @@ export class ProjectState {
         .map((_) => new Array(ProjectState.DEFAULT_COLS).fill(null)),
     );
 
-    this.layers.push(DEFAULT_LAYER);
+    this.layers.push({ ...DEFAULT_LAYER });
 
     for (const { name, type } of [
       { name: "Roads", type: PaintType.AUTO_TILE },
@@ -1505,8 +1863,12 @@ export class ProjectState {
     }
   }
 
-  private generateId() {
-    return crypto.randomUUID();
+  isWithinGridBounds(row: number, col: number) {
+    return row >= 0 && row < this.rows && col >= 0 && col < this.cols;
+  }
+
+  private generateId<T extends PaintType>(): TypedId<T> {
+    return crypto.randomUUID() as TypedId<T>;
   }
 }
 
@@ -1516,14 +1878,14 @@ projectState.init();
 export const HistoryStack = (() => {
   // History management
   // Each action consists of two entries, the previous state and the next state after the action
-  // When undoing, we decrement the currIdx and repaint the previous state and then move back one more to point to the previous action
+  // When undoing, currIdx is first decremented once to move to the precious state which is repainted, then it is moved once more to get to the "next" of the previous state.
   // When redoing, we increment the currIdx by two to point to the next action and repaint that state
   // The stack listens to project state change events to build the history via the projectStateChangeEvents emitter
 
   const history: HistoryEntry[] = [];
-  let currIdx = 0;
+  let currIdx = -1;
 
-  projectStateEvents.on(ProjectStateEventType.LAYER_PAINT, (e) => {
+  projectStateEvents.on(ProjectStateEventType.PAINT, (e) => {
     if (currIdx !== history.length - 1) {
       history.splice(currIdx + 1);
     }
@@ -1545,19 +1907,14 @@ export const HistoryStack = (() => {
       throw new Error("type mismatch between layer and entry");
 
     for (const i of entry.items) {
-      projectState.applyPaintTileChange(
-        i.pos.row,
-        i.pos.col,
-        entry.layer.id,
-        i.data,
-      );
+      projectState.editTileAt(i.pos.row, i.pos.col, entry.layer.id, i.data);
     }
-    return entry.items.map((i) => ({ ...i.pos }));
+    return entry.items.map((i) => i.pos);
   };
 
   return {
     undo() {
-      if (currIdx === 0) return;
+      if (currIdx <= 0) return;
       currIdx--; // First repaint what was previously done
       const tiles = repaint();
       currIdx--; // Move to the previous state

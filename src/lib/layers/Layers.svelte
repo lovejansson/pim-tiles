@@ -10,8 +10,9 @@
   import { flip } from "svelte/animate";
   import LayerItem from "./LayerItem.svelte";
   import type { Layer, PaintType } from "../../types";
+  import type { SlIconButton } from "@shoelace-style/shoelace";
 
-  let createNewLayerDialogIsOpen = $state(false);
+  let dialogIsOpen = $state(false);
 
   let ulLayers: HTMLUListElement;
 
@@ -48,7 +49,7 @@
   };
 
   $effect(() => {
-    projectStateEvents.on(ProjectStateEventType.LOAD_FROM_FILE, () => {
+    projectStateEvents.on(ProjectStateEventType.OPEN_FILE, () => {
       layers = projectState.getLayers();
     });
 
@@ -59,7 +60,7 @@
 
   const updateVisibilityIcon = () => {
     for (const li of ulLayers.children) {
-      const eyeIcon = li.querySelector("sl-icon-button");
+      const eyeIcon: SlIconButton | null = li.querySelector("#icon-visibility") as (SlIconButton | null);
       if (eyeIcon) {
         if (guiState.visibleLayers[li.id]) {
           eyeIcon.name = "eye";
@@ -114,7 +115,7 @@
 
     <sl-button
       onclick={() => {
-        createNewLayerDialogIsOpen = true;
+        dialogIsOpen = true;
       }}
     >
       <sl-icon label="New layer" library="pixelarticons" name="plus"
@@ -122,6 +123,9 @@
     >
   </header>
 
+
+
+ 
   <ul
     bind:this={ulLayers}
     use:dndzone={{
@@ -134,7 +138,8 @@
     onfinalize={handleDndFinalize}
   >
     {#each layers as layer, _ (layer.id)}
-      <li id={layer.id} animate:flip={{ duration: 100 }}>
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <li tabindex={0}  id={layer.id} animate:flip={{ duration: 100 }}>
         <LayerItem
           {layer}
           onRename={(name: string) => renameLayer(layer.id, name)}
@@ -144,10 +149,12 @@
     {/each}
   </ul>
 </section>
-<CreateNewLayerDialog
-  onCreate={createLayer}
-  bind:open={createNewLayerDialogIsOpen}
-/>
+
+{#if dialogIsOpen}
+  <CreateNewLayerDialog
+    onCreate={createLayer}
+    bind:open={dialogIsOpen}
+  />{/if}
 
 <style lang="postcss">
   header {

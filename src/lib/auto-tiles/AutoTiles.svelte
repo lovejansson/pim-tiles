@@ -1,9 +1,9 @@
 <script lang="ts">
-  import CreateAutoTileDialog from "./AutoTileDialog.svelte";
+  import AutoTileDialog from "./AutoTileDialog.svelte";
   import { projectState } from "../../state.svelte";
   import AutoTileItem from "./AutoTileItem.svelte";
 
-  let createDialogIsOpen = $state(false);
+  let dialogIsOpen = $state(false);
 </script>
 
 <section id="auto-tiles">
@@ -12,7 +12,7 @@
 
     <sl-button
       onclick={() => {
-        createDialogIsOpen = true;
+        dialogIsOpen = true;
       }}
       ><sl-icon label="New auto tile" library="pixelarticons" name="plus"
       ></sl-icon></sl-button
@@ -23,7 +23,7 @@
     <ul>
       {#each projectState.getAutoTiles() as autoTile, idx}
         <li>
-          <AutoTileItem {autoTile} {idx} />
+          <AutoTileItem {autoTile} />
         </li>
       {/each}
     </ul>
@@ -33,7 +33,9 @@
     </div>
   {/if}
 
-  <CreateAutoTileDialog bind:open={createDialogIsOpen} />
+  {#if dialogIsOpen}
+    <AutoTileDialog bind:open={dialogIsOpen} />
+  {/if}
 </section>
 
 <style>
@@ -64,5 +66,9 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  li {
+    width: 100%;
   }
 </style>

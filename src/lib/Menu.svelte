@@ -22,7 +22,7 @@
         const input = e.currentTarget as HTMLInputElement;
 
         if (input.files !== null) {
-          await projectState.loadFile(input.files[0]);
+          await projectState.openFile(input.files[0]);
 
           const firstLayer = projectState.getLayers()[0];
 
@@ -33,6 +33,10 @@
             selectedTool: Tool.PAINT,
             fillToolIsActive: false,
           };
+
+          for (const l of projectState.getLayers()) {
+            guiState.visibleLayers[l.id] = true;
+          }
         } else {
           console.error("Why is files null?");
         }
@@ -73,7 +77,7 @@
   };
 
   const createNew = () => {
-    projectState.reset();
+    projectState.createNewProject();
 
     const firstLayer = projectState.getLayers()[0];
 
@@ -186,7 +190,9 @@
   </sl-menu>
 </sl-dropdown>
 
-<SettingsDialog bind:open={settingsDialogIsOpen} />
+{#if settingsDialogIsOpen}
+  <SettingsDialog bind:open={settingsDialogIsOpen} />
+{/if}
 
 <style>
   sl-menu {

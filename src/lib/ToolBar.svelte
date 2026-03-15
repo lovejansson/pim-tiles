@@ -7,6 +7,8 @@
   import Tilesets from "./tilesets/Tilesets.svelte";
   import Tools from "./Tools.svelte";
   import Menu from "./Menu.svelte";
+
+  
 </script>
 
 <section id="toolbar">
@@ -52,6 +54,7 @@
     width: 400px;
     align-items: stretch;
     position: relative;
+    overflow-x: hidden;
   }
 
   #grid-settings {

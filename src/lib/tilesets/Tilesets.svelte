@@ -78,7 +78,6 @@
         <sl-tab-panel name={tileset.name}>
           <TilesCanvas
             {tileset}
-            multipleSelection
             onSelect={handleOnSelectTiles}
           />
         </sl-tab-panel>

@@ -1,8 +1,7 @@
 <script lang="ts">
-  import type { SlIconButton, SlMenuItem } from "@shoelace-style/shoelace";
+  import type { SlIconButton } from "@shoelace-style/shoelace";
   import { guiState } from "../../state.svelte";
   import { PaintType, type Layer } from "../../types";
-  import ContextMenu from "../common/ContextMenu.svelte";
   import EditableText from "../common/EditableText.svelte";
 
   type LayerItemProps = {
@@ -17,14 +16,6 @@
 
   let name = $state(layer.name);
   let isEditingName = $state(false);
-
-  const handleSelectMenuItem = (item: SlMenuItem) => {
-    if (item.value === "delete") {
-      onDelete();
-    } else if (item.value === "rename") {
-      isEditingName = true;
-    }
-  };
 
   $effect(() => {
     if (name !== layer.name) onRename(name);
@@ -52,31 +43,36 @@
   };
 </script>
 
-<ContextMenu
-  onSelect={handleSelectMenuItem}
-  menuItems={[
-    { label: "Rename", value: "rename", icon: "edit-box" },
-    { label: "Delete", value: "delete", icon: "close" },
-  ]}
->
-  <div id="layer" onclick={selectLayer}>
-    {#if layer.type === PaintType.TILE}
-      <sl-tooltip content="Tile layer">
-        <sl-icon library="pixelarticons" name="chess"></sl-icon>
-      </sl-tooltip>
-    {:else if layer.type === PaintType.AUTO_TILE}
-      <sl-tooltip content="Autotile layer">
-        <sl-icon library="pixelarticons" name="grid"></sl-icon>
-      </sl-tooltip>
-    {/if}
+<div id="layer" onclick={selectLayer}>
+  {#if layer.type === PaintType.TILE}
+    <sl-tooltip content="Tile layer">
+      <sl-icon library="pixelarticons" name="chess"></sl-icon>
+    </sl-tooltip>
+  {:else if layer.type === PaintType.AUTO_TILE}
+    <sl-tooltip content="Autotile layer">
+      <sl-icon library="pixelarticons" name="grid"></sl-icon>
+    </sl-tooltip>
+  {/if}
 
-    <EditableText
-      bind:isEditing={isEditingName}
-      bind:text={name}
-      inputWidth="100%"
-    />
+  <EditableText
+    bind:isEditing={isEditingName}
+    bind:text={name}
+    inputWidth="100%"
+  />
+
+  <sl-button-group>
+    <sl-icon-button
+      library="pixelarticons"
+      name="edit"
+      onclick={(e: MouseEvent) => {
+        e.stopPropagation();
+        isEditingName = true;
+      }}
+    >
+    </sl-icon-button>
 
     <sl-icon-button
+      id="icon-visibility"
       bind:this={icon}
       onclick={(e: MouseEvent) => {
         e.stopPropagation();
@@ -86,8 +82,17 @@
       name={guiState.visibleLayers[layer.id] ? "eye" : "eye-closed"}
     >
     </sl-icon-button>
-  </div>
-</ContextMenu>
+    <sl-icon-button
+      library="pixelarticons"
+      name="close"
+      onclick={(e: MouseEvent) => {
+        e.stopPropagation();
+        onDelete();
+      }}
+    >
+    </sl-icon-button>
+  </sl-button-group>
+</div>
 
 <style lang="postcss">
   #layer {

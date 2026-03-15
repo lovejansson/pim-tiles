@@ -12,7 +12,7 @@
   import AttributesDialog from "../attributes/AttributesDialog.svelte";
 
   type AutoTileDialogProps = {
-    autoTile: AutoTile;
+    autoTile?: AutoTile;
     open: boolean;
   };
 
@@ -223,14 +223,12 @@
         <div>
           <sl-button
             onclick={createRoadTileRules}
-            onkeydown={createRoadTileRules}
           >
             Add Roads NESW (16)
           </sl-button>
 
           <sl-button
             onclick={createGroundTileRules}
-            onkeydown={createGroundTileRules}
           >
             Add Ground (9)
           </sl-button>

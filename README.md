@@ -9,9 +9,9 @@ A tilemap editor for creating pixel worlds!
 - Paint and erase tile(s)
 - Rule based 8-direction auto tiles
 - Manage tile attributes
-- Download and Upload saved project (.ptm)
+- Save and open saved project (.json)
 - Export JSON
-- Export a PNG
+- Export PNG
 
 ## Tech stack
 

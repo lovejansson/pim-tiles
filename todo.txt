@@ -1,10 +1,13 @@
 # Todo 
 
-* Auto save project with browser data indexed DB or localStorage
+5. Save state in indexed DB
 
-# Bugs 
+1. Gillar inte hur templat hanteringne med PaintType har fungerat, det ger inte det typstöd jag vill ha 
 
-* Use deviceDependedpixel size to avoid blur for grid lines
+2. Make auto tiling faster by using bitmask for lookup a tilerule than looping throught the rules.
+
+3. pass by reference / copy, right now t
+
 
 # Backlog
 
@@ -12,8 +15,8 @@
 
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
 
-* Implement select and fill tool for auto tiles
+* Implement fill tool for auto tiles
 
-# Super backlog
+* Use deviceDependedpixel size to avoid blur for grid lines, not very noticable
 
 * Svelte reactivity for conditional attributes don't work with dnd reordering of layers. There are workarounds in place now. 

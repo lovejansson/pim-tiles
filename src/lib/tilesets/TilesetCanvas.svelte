@@ -16,11 +16,10 @@
 
   type TilesCanvasProps = {
     tileset: Tileset;
-    multipleSelection?: boolean;
     onSelect: (selectedTiles: TileAsset[]) => void;
   };
 
-  let { tileset, onSelect, multipleSelection }: TilesCanvasProps = $props();
+  let { tileset, onSelect }: TilesCanvasProps = $props();
 
   let container!: HTMLDivElement;
   let tilemapViewport!: TilemapViewport;
@@ -54,7 +53,8 @@
       tilemapViewport.width = entry.contentRect.width;
       tilemapViewport.height = entry.contentRect.height;
       ro.disconnect();
-      tilemapViewport.init();
+    
+    tilemapViewport.init();
 
       tilemapViewport.addEventListener("selection-change", (e) => {
         updateSelectedTiles((e as TilemapViewportSelectionChangeEvent).tiles);
@@ -71,7 +71,7 @@
   });
 
   $effect(() => {
-    tilemapViewport.tileSize = projectState.tileSize;
+    tilemapViewport.updateGridSize(tileset.width, tileset.height, projectState.tileSize);
   });
 
   $effect(() => {
@@ -123,7 +123,7 @@
 
 <div bind:this={container}></div>
 
-{#if attributesTile !== null}
+{#if attributesDialogIsOpen && attributesTile !== null}
   <TileAttributesDialog
     bind:open={attributesDialogIsOpen}
     tile={attributesTile}

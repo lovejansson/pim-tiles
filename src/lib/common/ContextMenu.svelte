@@ -18,7 +18,11 @@
   class:open={isOpen}
 ></div>
 
+<!-- Want the context menu to be able to open via keyboard -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
+  id="context-menu"
+  tabindex={0}
   oncontextmenu={(e) => {
     isOpen = true;
     top = e.pageY;
@@ -54,6 +58,11 @@
     display: none;
     position: fixed;
     z-index: 2;
+  }
+
+  #context-menu::focus {
+    outline: 1px solid var(--color-0);
+
   }
 
   #context-menu-backdrop {

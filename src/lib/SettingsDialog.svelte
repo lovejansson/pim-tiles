@@ -42,7 +42,7 @@
   let confirmDialogIsOpen = $state(false);
 
   $effect(() => {
-    projectStateEvents.on(ProjectStateEventType.LOAD_FROM_FILE, () => {
+    projectStateEvents.on(ProjectStateEventType.OPEN_FILE, () => {
       tileSize = projectState.tileSize;
       cols = projectState.width / projectState.tileSize;
       rows = projectState.height / projectState.tileSize;

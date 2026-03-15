@@ -1,24 +1,20 @@
 <script lang="ts">
   import { projectState } from "../../state.svelte";
-  import type { Cell } from "../../types";
-  import { isSameCell } from "../../utils";
   import AttributesDialog from "./AttributesDialog.svelte";
 
   // This is the dialog for editing attributes for a painted tile
 
   type AttributesDialogProps = {
-    cell: Cell;
+    row: number;
+    col: number;
     open: boolean;
   };
 
-  let { open = $bindable(), cell }: AttributesDialogProps = $props();
+  let { open = $bindable(), row, col }: AttributesDialogProps = $props();
 
-  let tile = $state(cell);
-
-
-  const getAttributesArray = (cell: Cell) => {
+  const getAttributesArray = (row: number, col: number) => {
     try {
-      const attributes = projectState.getAttributes(cell);
+      const attributes = projectState.getAttributes(row, col);
       return Array.from(attributes.entries());
     } catch (e) {
       return [];
@@ -26,33 +22,21 @@
   };
 
   // Using an array of tuples since the Map is not reactive!
-  let attributes: [string, string][] = $state(
-    cell !== undefined ? getAttributesArray(cell) : [],
+  let attributes: [string, string][] = $state( getAttributesArray(row, col),
   );
-
-  // ! had do update state inside of an effect since i want to sync the attributes state with current tile and at the same time update the attributes in local component.
-  $effect(() => {
-    if (!isSameCell(cell, tile)) {
-      tile = cell;
-      const tileAttributes = getAttributesArray(tile);
-      attributes = tileAttributes;
-    }
-  });
 
   const save = () => {
     if (attributes.length > 0) {
-      projectState.updateAttributes(tile, new Map(attributes));
-    } else if (projectState.hasAttributes(tile)) {
-      projectState.deleteAttributes(tile);
+      projectState.updateAttributes(row, col, new Map(attributes));
+    } else if (projectState.hasAttributes(row, col)) {
+      projectState.deleteAttributes(row, col);
     }
   };
-
 </script>
 
 <AttributesDialog
-  title={`Tile attributes for r${tile.row} c${tile.col}`}
+  title={`Tile attributes for r${row} c${col}`}
   onSave={save}
   bind:attributes
   bind:open
 />
-

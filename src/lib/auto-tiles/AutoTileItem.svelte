@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { SlMenuItem } from "@shoelace-style/shoelace";
   import { guiState, projectState } from "../../state.svelte";
-  import ContextMenu from "../common/ContextMenu.svelte";
   import {
     type AutoTileLayerState,
     type AutoTile,
@@ -24,14 +22,6 @@
 
   let dialogIsOpen = $state(false);
 
-  const handleSelectMenuItem = (item: SlMenuItem) => {
-    if (item.value === "delete") {
-      projectState.deleteAutoTile(autoTile.id);
-    } else if (item.value === "edit") {
-      dialogIsOpen = true;
-    }
-  };
-
   const selectAutoTile = () => {
     tilemapEditorState.selectedAsset = {
       type: PaintType.AUTO_TILE,
@@ -40,13 +30,7 @@
   };
 </script>
 
-<ContextMenu
-  onSelect={handleSelectMenuItem}
-  menuItems={[
-    { label: "Edit", value: "edit", icon: "edit" },
-    { label: "Delete", value: "delete", icon: "close" },
-  ]}
->
+<div>
   <sl-button
     id="auto-tile-item"
     variant="text"
@@ -55,13 +39,41 @@
   >
     {autoTile.name}
   </sl-button>
-</ContextMenu>
+
+  <sl-button-group>
+    <sl-icon-button
+      library="pixelarticons"
+      name="edit"
+      onclick={(e: MouseEvent) => {
+        e.stopPropagation();
+        dialogIsOpen = true;
+      }}
+    >
+    </sl-icon-button>
+
+    <sl-icon-button
+      library="pixelarticons"
+      name="close"
+      onclick={(e: MouseEvent) => {
+        e.stopPropagation();
+        projectState.deleteAutoTile(autoTile.id);
+      }}
+    >
+    </sl-icon-button>
+  </sl-button-group>
+</div>
 
 {#if dialogIsOpen}
   <AutoTileDialog bind:open={dialogIsOpen} {autoTile} />
 {/if}
 
 <style lang="postcss">
+  div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   #auto-tile-item {
     display: flex;
     align-items: flex-start;
