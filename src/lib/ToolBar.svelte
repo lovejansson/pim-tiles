@@ -1,14 +1,12 @@
 <script lang="ts">
   import { SlCheckbox, type SlChangeEvent } from "@shoelace-style/shoelace";
-  import { guiState } from "../state.svelte";
+  import { guiState, tilemapEditorState } from "../projectState.svelte";
   import { PaintType } from "../types";
   import AutoTiles from "./auto-tiles/AutoTiles.svelte";
   import Layers from "./layers/Layers.svelte";
   import Tilesets from "./tilesets/Tilesets.svelte";
   import Tools from "./Tools.svelte";
   import Menu from "./Menu.svelte";
-
-  
 </script>
 
 <section id="toolbar">
@@ -34,10 +32,10 @@
 
   <sl-divider></sl-divider>
 
-  {#if guiState.tilemapEditorState.type === PaintType.TILE}
+  {#if tilemapEditorState.type === PaintType.TILE}
     <Tools />
     <Tilesets />
-  {:else if guiState.tilemapEditorState.type === PaintType.AUTO_TILE}
+  {:else if tilemapEditorState.type === PaintType.AUTO_TILE}
     <Tools />
     <AutoTiles />
   {/if}

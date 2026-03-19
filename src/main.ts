@@ -1,22 +1,22 @@
-import { mount } from 'svelte'
-import '@shoelace-style/shoelace/dist/themes/light.css';
-import { setBasePath, registerIconLibrary } from '@shoelace-style/shoelace';
+import { mount } from "svelte";
+import "@shoelace-style/shoelace/dist/themes/light.css";
+import { setBasePath, registerIconLibrary } from "@shoelace-style/shoelace";
 import App from "./App.svelte";
-import './app.css'
+import "./app.css";
 
-setBasePath('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/');
+setBasePath(
+  "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/",
+);
 
-registerIconLibrary('pixelarticons', {
-    resolver: name => {
- 
-      return `/assets/icons/${name}.svg`
-    },
-    mutator: svg => svg.setAttribute('fill', 'currentColor')
+registerIconLibrary("pixelarticons", {
+  resolver: (name) => {
+    return `/assets/icons/${name}.svg`;
+  },
+  mutator: (svg) => svg.setAttribute("fill", "currentColor"),
 });
 
 const app = mount(App, {
-  target: document.getElementById('app')!,
-})
+  target: document.getElementById("app")!,
+});
 
-export default app
-
+export default app;

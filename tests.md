@@ -22,10 +22,10 @@
 | Layers     | Drag do reorder layers, layers are rendered in their order                                     | BUGGY  | Svelte DND laggs when it comes to dynamic classes |
 | Layers     | Different types of layers, tile and auto-tile are shown as icon/tooltip                        | OK     |                                                   |
 | --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
-| Tilesets   | Upload tileset in any image format                                                             | OK     |                                                   |
+| Tilesets   | Upload tileset in png format                                                                   | OK     |                                                   |
 | Tilesets   | Uploaded tileset is named after filename                                                       | OK     |                                                   |
 | Tilesets   | If tileset with filename already exists the name is suffixed with (n)                          | OK     |                                                   |
-| Tilesets   | Delete tileset                                                                                 | BUGGY  | Need to fix state of selected tab                 |
+| Tilesets   | Delete tileset                                                                                 | OK     |                                                   |
 | Tilesets   | Can't delete tileset that is used in auto tile or tilemap                                      | OK     |                                                   |
 | Tilesets   | Select tiles to paint with in tileset by selecting area on canvas                              | OK     |                                                   |
 | Tilesets   | Selected tiles can only be painted on tile layers                                              | OK     |                                                   |
@@ -42,11 +42,11 @@
 | --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
 | Tilemap    | Paint with 1 or more tiles                                                                     | OK     |                                                   |
 | Tilemap    | Paint with an auto tile and see how the neighbours update according to rules                   | OK     |                                                   |
-| Tilemap    | Fill tool can be used to fill tiles on tile layers                                             | OK     |                                                   |
+| Tilemap    | Fill tool can be used to fill tiles on tile layers on tile layers                              | OK     |                                                   |
 | Tilemap    | Use select tool to select areas of tiles to be moved, copied or deleted, works on tile layers  | OK     |                                                   |
 | Tilemap    | Pan and zoom tilemap view                                                                      | OK     |                                                   |
 | Tilemap    | Tilemap view is initially rendered with grid centered                                          | OK     |                                                   |
 | --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
 | Attributes | Create attributes for painted tile, tile and auto-tile                                         | OK     |                                                   |
 | Attributes | The order of importance for attributes in case of collide is tile > auto-tile > painted tile   | OK     |                                                   |
-| Attributes | The order of importance for attributes in case of collide is tile > auto-tile > painted tile   | OK     |                                                   |
+

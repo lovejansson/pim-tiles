@@ -4,12 +4,14 @@
     projectState,
     projectStateEvents,
     ProjectStateEventType,
-  } from "../../state.svelte";
+    tilemapEditorState,
+    updateTilemapEditorState,
+  } from "../../projectState.svelte";
   import CreateNewLayerDialog from "./CreateNewLayerDialog.svelte";
   import { dndzone, type DndEvent, type Item } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
   import LayerItem from "./LayerItem.svelte";
-  import type { Layer, PaintType } from "../../types";
+  import { type LayerComp, type PaintType } from "../../types";
   import type { SlIconButton } from "@shoelace-style/shoelace";
 
   let dialogIsOpen = $state(false);
@@ -18,7 +20,7 @@
 
   $effect(() => {
     // Workaround due to bug in dnd kit, svelte's reactive DOM didn't work so style for layer items are updated the hard way
-    if (guiState.tilemapEditorState.selectedLayer) {
+    if (tilemapEditorState.selectedLayer) {
       updateSelectedStyles();
     }
   });
@@ -28,11 +30,11 @@
   // IMPORTANTE that this syncs well with the SOT projectState, delete, update of name and reordering is done only in this component.
   let layers = $state(projectState.getLayers());
 
-  const handleDndConsider = (e: CustomEvent<DndEvent<Layer>>) => {
+  const handleDndConsider = (e: CustomEvent<DndEvent<LayerComp>>) => {
     layers = e.detail.items; // Update only UI state here since it isn't finalized
   };
 
-  const handleDndFinalize = (e: CustomEvent<DndEvent<Layer>>) => {
+  const handleDndFinalize = (e: CustomEvent<DndEvent<LayerComp>>) => {
     projectState.setReorderedLayers(e.detail.items); // Update the SOT state here
     layers = e.detail.items; // Sync UI state with SOT state
     updateSelectedStyles();
@@ -42,7 +44,7 @@
   const styleDragged = (el?: HTMLElement, data?: Item) => {
     if (el && data) {
       el.style.outline = "var(--color-0) solid 1px";
-      if (data.id === guiState.tilemapEditorState.selectedLayer)
+      if (data.id === tilemapEditorState.selectedLayer)
         el.style.backgroundColor = "var(--color-2)";
       return el;
     }
@@ -60,7 +62,9 @@
 
   const updateVisibilityIcon = () => {
     for (const li of ulLayers.children) {
-      const eyeIcon: SlIconButton | null = li.querySelector("#icon-visibility") as (SlIconButton | null);
+      const eyeIcon: SlIconButton | null = li.querySelector(
+        "#icon-visibility",
+      ) as SlIconButton | null;
       if (eyeIcon) {
         if (guiState.visibleLayers[li.id]) {
           eyeIcon.name = "eye";
@@ -73,7 +77,7 @@
 
   const updateSelectedStyles = () => {
     for (const li of ulLayers.children) {
-      if (li.id === guiState.tilemapEditorState.selectedLayer) {
+      if (li.id === tilemapEditorState.selectedLayer) {
         (li as HTMLLIElement).style.backgroundColor = "var(--color-2)";
       } else {
         (li as HTMLLIElement).style.backgroundColor = "var(--color-3)";
@@ -103,9 +107,17 @@
 
     layers = projectState.getLayers();
 
-    if (id === guiState.tilemapEditorState.selectedLayer)
-      guiState.tilemapEditorState.selectedLayer =
-        projectState.getLayers()[0].id;
+    // Set selected layer to first layer
+    if (id === tilemapEditorState.selectedLayer) {
+      const firstLayer = projectState.getLayers()[0];
+
+      updateTilemapEditorState({
+        type: firstLayer.type,
+        selectedLayer: firstLayer.id,
+
+        selection: { tiles: [] },
+      });
+    }
   };
 </script>
 
@@ -123,9 +135,6 @@
     >
   </header>
 
-
-
- 
   <ul
     bind:this={ulLayers}
     use:dndzone={{
@@ -139,7 +148,7 @@
   >
     {#each layers as layer, _ (layer.id)}
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-      <li tabindex={0}  id={layer.id} animate:flip={{ duration: 100 }}>
+      <li tabindex={0} id={layer.id} animate:flip={{ duration: 100 }}>
         <LayerItem
           {layer}
           onRename={(name: string) => renameLayer(layer.id, name)}
@@ -151,10 +160,7 @@
 </section>
 
 {#if dialogIsOpen}
-  <CreateNewLayerDialog
-    onCreate={createLayer}
-    bind:open={dialogIsOpen}
-  />{/if}
+  <CreateNewLayerDialog onCreate={createLayer} bind:open={dialogIsOpen} />{/if}
 
 <style lang="postcss">
   header {

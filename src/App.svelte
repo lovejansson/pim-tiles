@@ -2,33 +2,39 @@
   import TilemapEditor from "./lib/TilemapEditor.svelte";
   import Toast from "./lib/common/Toast.svelte";
   import ToolBar from "./lib/ToolBar.svelte";
+  import Load from "./Load.svelte";
+
+  let loading = $state(true);
 </script>
 
 <svelte:boundary>
-  <Toast />
+  {#if loading}
+    <Load bind:loading />
+  {:else}
+    <Toast />
 
-  <div id="content">
-    <ToolBar />
-    <TilemapEditor />
-  </div>
+    <div id="content">
+      <ToolBar />
+      <TilemapEditor />
+    </div>
 
-  {#snippet failed(error, reset)}
-    <div id="error">
-      <sl-alert variant="danger" open>
-        <sl-icon slot="icon" library="pixelarticons" name="warning-diamond"
-        ></sl-icon>
-       
+    {#snippet failed(error, reset)}
+      <div id="error">
+        <sl-alert variant="danger" open>
+          <sl-icon slot="icon" library="pixelarticons" name="warning-diamond"
+          ></sl-icon>
+
           <strong style="display:flex;align-items: center; gap:4px;"
             >Something crashed <sl-icon library="pixelarticons" name="annoyed"
             ></sl-icon></strong
           >
           <p>Error: {error && (error as any).message}</p>
 
-          <sl-button style="width:100%;"  onclick={reset}>Reload</sl-button>
-      
-      </sl-alert>
-    </div>
-  {/snippet}
+          <sl-button style="width:100%;" onclick={reset}>Reload</sl-button>
+        </sl-alert>
+      </div>
+    {/snippet}
+  {/if}
 </svelte:boundary>
 
 <style>

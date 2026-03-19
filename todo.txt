@@ -1,13 +1,5 @@
 # Todo 
 
-5. Save state in indexed DB
-
-1. Gillar inte hur templat hanteringne med PaintType har fungerat, det ger inte det typstöd jag vill ha 
-
-2. Make auto tiling faster by using bitmask for lookup a tilerule than looping throught the rules.
-
-3. pass by reference / copy, right now t
-
 
 # Backlog
 
@@ -15,8 +7,17 @@
 
 * Add animated tiles which consists of 1-4 tiles that are running an animation instead of a static image
 
-* Implement fill tool for auto tiles
-
 * Use deviceDependedpixel size to avoid blur for grid lines, not very noticable
 
-* Svelte reactivity for conditional attributes don't work with dnd reordering of layers. There are workarounds in place now. 
+* Svelte reactivity for conditional attributes don't work with dnd reordering of layers. There are workarounds in place now.
+
+# Bugs 
+
+Sometimes a tile is left on the tilemap even if it doesn't exist in data, probably due to cache miss? Kan bero på att jag målar på fel lager också lol
+
+Sometimes there is a cache miss for layer when drawing probably due to cache miss again, meaning that the cache doesn't update when layers do
+
+Sometimes the undo command hangs
+
+Flood fill to slow for large auto tile paint areas
+

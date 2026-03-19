@@ -7,7 +7,7 @@
     type TileAsset,
     type Tileset,
   } from "../../types";
-  import { guiState, projectState } from "../../state.svelte";
+  import { guiState, projectState } from "../../projectState.svelte";
   import TilemapViewport, {
     TilemapViewportRightClickEvent,
     TilemapViewportSelectionChangeEvent,
@@ -53,8 +53,8 @@
       tilemapViewport.width = entry.contentRect.width;
       tilemapViewport.height = entry.contentRect.height;
       ro.disconnect();
-    
-    tilemapViewport.init();
+
+      tilemapViewport.init();
 
       tilemapViewport.addEventListener("selection-change", (e) => {
         updateSelectedTiles((e as TilemapViewportSelectionChangeEvent).tiles);
@@ -71,7 +71,11 @@
   });
 
   $effect(() => {
-    tilemapViewport.updateGridSize(tileset.width, tileset.height, projectState.tileSize);
+    tilemapViewport.updateGridSize(
+      tileset.width,
+      tileset.height,
+      projectState.tileSize,
+    );
   });
 
   $effect(() => {
@@ -91,10 +95,8 @@
           type: PaintType.TILE,
           ref: {
             tilesetId: tileset.id,
-            tilesetPos: {
-              x: t.col * projectState.tileSize,
-              y: t.row * projectState.tileSize,
-            },
+            x: t.col * projectState.tileSize,
+            y: t.row * projectState.tileSize,
           },
         });
       }
@@ -108,10 +110,8 @@
 
     attributesTile = {
       tilesetId: tileset.id,
-      tilesetPos: {
-        x: col * projectState.tileSize,
-        y: row * projectState.tileSize,
-      },
+      x: col * projectState.tileSize,
+      y: row * projectState.tileSize,
     };
     attributesDialogIsOpen = true;
   };

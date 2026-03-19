@@ -10,7 +10,7 @@
     ProjectState,
     projectStateEvents,
     ProjectStateEventType,
-  } from "../state.svelte";
+  } from "../projectState.svelte";
   import ConfirmDialog from "./common/ConfirmDialog.svelte";
 
   let { open = $bindable() } = $props();
@@ -51,10 +51,8 @@
   });
 
   const handleConfirm = () => {
-    projectState.tileSize = tileSize;
+    projectState.setDimensions(tileSize, cols * tileSize, rows * tileSize);
     projectState.name = name;
-    projectState.width = cols * tileSize;
-    projectState.height = rows * tileSize;
     guiState.gridColor = gridColor;
     confirmDialogIsOpen = false;
   };

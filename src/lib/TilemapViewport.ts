@@ -316,7 +316,7 @@ export default class TilemapViewport extends EventTarget {
     }
   }
 
-  disabledSelection() {
+  disableSelection() {
     if (this.isSelectionEnabled(this.selectionSettings)) {
       this.selectionSettings.isActive = false;
       this.selection = null;
@@ -628,7 +628,7 @@ export default class TilemapViewport extends EventTarget {
             this.mouseAction = {
               type: MouseActionType.PAN,
               data: {
-                startPos: { ...canvasPos },
+                startPos: canvasPos,
                 startTranslation: { ...this.translation },
               },
             };
@@ -652,7 +652,7 @@ export default class TilemapViewport extends EventTarget {
                 this.mouseAction = {
                   type: MouseActionType.MOVE_SELECTION,
                   data: {
-                    startPos: { ...worldPos },
+                    startPos: worldPos,
                     selection: this.selection,
                     startSelection: { ...this.selection },
                   },
@@ -670,7 +670,7 @@ export default class TilemapViewport extends EventTarget {
                 this.mouseAction = {
                   type: MouseActionType.SELECT,
                   data: {
-                    pos: { ...worldPos },
+                    pos: worldPos,
                     selection: this.getSelectionRect(worldPos, worldPos),
                   },
                 };
@@ -680,7 +680,7 @@ export default class TilemapViewport extends EventTarget {
               if (isWithinGridBounds) {
                 this.mouseAction = {
                   type: MouseActionType.PAINT,
-                  data: { lastPaintedTile: { ...tile } },
+                  data: { lastPaintedTile: tile },
                 };
                 this.dispatchEvent(new TilemapViewportPaintEvent(tile));
               }

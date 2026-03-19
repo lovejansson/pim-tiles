@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { projectState } from "../../state.svelte";
+  import { projectState } from "../../projectState.svelte";
   import {
     type TileRule,
     type TileAsset,

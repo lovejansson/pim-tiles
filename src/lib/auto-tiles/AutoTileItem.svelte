@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { guiState, projectState } from "../../state.svelte";
+  import {  projectState, tilemapEditorState } from "../../projectState.svelte";
   import {
-    type AutoTileLayerState,
     type AutoTile,
     PaintType,
+    type TilemapEditorState,
   } from "../../types";
   import AutoTileDialog from "./AutoTileDialog.svelte";
 
@@ -11,9 +11,9 @@
     autoTile: AutoTile;
   };
 
-  const tilemapEditorState = $derived.by((): AutoTileLayerState => {
-    if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
-      return guiState.tilemapEditorState;
+  const editorState = $derived.by((): TilemapEditorState<PaintType.AUTO_TILE> => {
+    if (tilemapEditorState.type === PaintType.AUTO_TILE)
+      return tilemapEditorState;
 
     throw new Error("Invalid UI state");
   });
@@ -23,7 +23,7 @@
   let dialogIsOpen = $state(false);
 
   const selectAutoTile = () => {
-    tilemapEditorState.selectedAsset = {
+    editorState.selectedAsset = {
       type: PaintType.AUTO_TILE,
       ref: { id: autoTile.id },
     };
@@ -34,7 +34,7 @@
   <sl-button
     id="auto-tile-item"
     variant="text"
-    class:selected={tilemapEditorState.selectedAsset?.ref.id === autoTile.id}
+    class:selected={editorState.selectedAsset?.ref.id === autoTile.id}
     onclick={selectAutoTile}
   >
     {autoTile.name}

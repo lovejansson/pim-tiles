@@ -1,22 +1,6 @@
 <script lang="ts">
-  import { guiState } from "../state.svelte";
-  import {
-    PaintType,
-    Tool,
-    type AutoTileLayerState,
-    type TileLayerState,
-  } from "../types";
-
-  const tilemapEditorState = $derived.by(
-    (): TileLayerState | AutoTileLayerState => {
-      if (guiState.tilemapEditorState.type === PaintType.TILE)
-        return guiState.tilemapEditorState;
-      if (guiState.tilemapEditorState.type === PaintType.AUTO_TILE)
-        return guiState.tilemapEditorState;
-
-      throw new Error("Invalid UI state");
-    },
-  );
+  import { tilemapEditorState } from "../projectState.svelte";
+  import { PaintType, Tool } from "../types";
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
@@ -76,20 +60,18 @@
     </sl-tooltip>
   </sl-button-group>
 
-  {#if tilemapEditorState.type === PaintType.TILE}
-    <sl-button-group label="Modifiers">
-      <sl-tooltip content="Fill tool (R)">
-        <sl-button
-          class:selected-tool={tilemapEditorState.fillToolIsActive}
-          onclick={() =>
-            (tilemapEditorState.fillToolIsActive =
-              !tilemapEditorState.fillToolIsActive)}
-          ><sl-icon library="pixelarticons" name="paint-bucket"
-          ></sl-icon></sl-button
-        >
-      </sl-tooltip>
-    </sl-button-group>
-  {/if}
+  <sl-button-group label="Modifiers">
+    <sl-tooltip content="Fill tool (R)">
+      <sl-button
+        class:selected-tool={tilemapEditorState.fillToolIsActive}
+        onclick={() =>
+          (tilemapEditorState.fillToolIsActive =
+            !tilemapEditorState.fillToolIsActive)}
+        ><sl-icon library="pixelarticons" name="paint-bucket"
+        ></sl-icon></sl-button
+      >
+    </sl-tooltip>
+  </sl-button-group>
 </section>
 
 <style lang="postcss">

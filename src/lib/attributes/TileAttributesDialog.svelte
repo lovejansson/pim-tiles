@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { projectState } from "../../state.svelte";
+  import { projectState } from "../../projectState.svelte";
   import type { Tile } from "../../types";
   import AttributesDialog from "./AttributesDialog.svelte";
 

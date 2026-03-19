@@ -1,6 +1,6 @@
 <script lang="ts">
   import { SlInput, type SlChangeEvent } from "@shoelace-style/shoelace";
-  import { projectState } from "../../state.svelte";
+  import { projectState } from "../../projectState.svelte";
   import {
     type TileRule,
     type TileAsset,
@@ -88,7 +88,6 @@
       } else if (projectState.hasAutoTileAttributes(autoTile.id)) {
         projectState.deleteAutoTileAttributes(autoTile.id);
       }
-      
     } else {
       const createdAutotile = projectState.createAutoTile(
         name,
@@ -105,7 +104,6 @@
     }
 
     hide();
-
   };
 
   const newRule = () => {
@@ -221,15 +219,11 @@
         >
 
         <div>
-          <sl-button
-            onclick={createRoadTileRules}
-          >
+          <sl-button onclick={createRoadTileRules}>
             Add Roads NESW (16)
           </sl-button>
 
-          <sl-button
-            onclick={createGroundTileRules}
-          >
+          <sl-button onclick={createGroundTileRules}>
             Add Ground (9)
           </sl-button>
         </div>
@@ -380,7 +374,7 @@
   }
 
   #section-tilesets {
-    flex: 1;
+    width: 400px;
   }
 
   #div-empty {

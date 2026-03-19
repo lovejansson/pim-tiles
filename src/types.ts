@@ -1,14 +1,16 @@
-type Tile = {
-  readonly tilesetId: string;
-  readonly tilesetPos: Point;
-};
-
 type Tileset = {
   id: string;
   name: string;
   width: number;
   height: number;
   spritesheet: ImageBitmap;
+};
+
+type AutoTile = {
+  id: string;
+  name: string;
+  rules: TileRule[];
+  defaultTile: TileAsset;
 };
 
 type Point = {
@@ -40,7 +42,13 @@ enum Tool {
 }
 
 type IdRef = {
- readonly id: string;
+  readonly id: string;
+};
+
+type Tile = {
+  readonly tilesetId: string;
+  readonly x: number;
+  readonly y: number;
 };
 
 type AssetRefT<T extends PaintType> = {
@@ -48,49 +56,35 @@ type AssetRefT<T extends PaintType> = {
   readonly ref: T extends PaintType.TILE ? Tile : IdRef;
 };
 
-type PaintedAssetT<T extends PaintType> = T extends PaintType.AUTO_TILE
-  ? AssetRefT<T> & { selectedTileRuleId: IdRef | null }
+type PaintedAsset<T extends PaintType> = T extends PaintType.AUTO_TILE
+  ? AssetRefT<T> & { readonly selectedTileRuleId: IdRef | null }
   : AssetRefT<T>;
 
-type LayerDataT<T extends PaintType> = (PaintedAssetT<T> | null)[][];
+type LayerData<T extends PaintType> = (PaintedAsset<T> | null)[][];
 
-type LayerData = LayerDataT<PaintType.TILE> | LayerDataT<PaintType.AUTO_TILE>;
+type LayerDataComp = LayerData<PaintType.TILE> | LayerData<PaintType.AUTO_TILE>;
 
+type LayerComp = Layer<PaintType.TILE> | Layer<PaintType.AUTO_TILE>;
 
-type TypedId<T extends PaintType> = string & { __brand: T };
-
-type TileId = TypedId<PaintType.TILE>;
-
-type AutoTileId = TypedId<PaintType.AUTO_TILE>;
-
-type LayerT<T extends PaintType> = {
-  id: string;
+type Layer<T extends PaintType> = {
+  id: LayerId<T>;
   type: T;
   name: string;
 };
 
-type PaintedTile = PaintedAssetT<PaintType.TILE>;
-type PaintedAutoTile = PaintedAssetT<PaintType.AUTO_TILE>;
+type LayerId<T extends PaintType> = string & { __brand: T };
 
-type PaintedAsset = PaintedTile | PaintedAutoTile;
+type PaintedTile = PaintedAsset<PaintType.TILE>;
+type PaintedAutoTile = PaintedAsset<PaintType.AUTO_TILE>;
 
-type TileLayer = LayerT<PaintType.TILE>;
-type AutoTileLayer = LayerT<PaintType.AUTO_TILE>;
-
-type Layer = TileLayer | AutoTileLayer;
+type TileLayer = Layer<PaintType.TILE>;
+type AutoTileLayer = Layer<PaintType.AUTO_TILE>;
 
 enum TileRequirement {
   REQUIRED = "required",
   EXCLUDED = "excluded",
   OPTIONAL = "optional",
 }
-
-type AutoTile = {
-  id: string;
-  name: string;
-  rules: TileRule[];
-  defaultTile: TileAsset;
-};
 
 type TileConnections = {
   n: TileRequirement;
@@ -114,27 +108,30 @@ type AutoTileAsset = AssetRefT<PaintType.AUTO_TILE>;
 
 type AssetRef = TileAsset | AutoTileAsset;
 
-type TilemapEditorState = TileLayerState | AutoTileLayerState;
+type SelectedAsset<T extends PaintType> = T extends PaintType.TILE
+  ? AssetRefT<PaintType.TILE>[]
+  : AssetRefT<T>;
 
-type TileLayerState = {
-  type: PaintType.TILE;
-  selectedTool: Tool;
-  selectedLayer: string;
-  selectedAsset: TileAsset[] | null;
-  fillToolIsActive: boolean;
+type Selection<T extends PaintType> = {
+  tiles: {
+    org: Cell;
+    prev: Cell;
+    curr: Cell;
+    tile: PaintedAsset<T>;
+  }[];
 };
 
-type AutoTileLayerState = {
-  type: PaintType.AUTO_TILE;
+type TilemapEditorState<T extends PaintType> = {
+  type: T;
   selectedTool: Tool;
-  selectedLayer: string;
-  selectedAsset: AutoTileAsset | null;
+  selectedLayer: LayerId<T>;
+  selectedAsset: SelectedAsset<T> | null;
   fillToolIsActive: boolean;
+  selection: Selection<T>;
 };
 
 type GUIState = {
   notification: Notification | null;
-  tilemapEditorState: TilemapEditorState;
   showGrid: boolean;
   gridColor: string;
   mouseTilePos: { row: number; col: number };
@@ -157,7 +154,7 @@ type ProjectFile = {
   tileSize: number;
   width: number;
   height: number;
-  layers: (Layer & { data: LayerData })[];
+  layers: (LayerComp & { data: LayerDataComp })[];
   tilesets: (Omit<Tileset, "spritesheet"> & { spritesheet: string })[];
   autoTiles: AutoTile[];
   attributes: { pos: Point; attributes: { [key: string]: any } }[];
@@ -174,7 +171,7 @@ type Notification = {
   msg: string;
 };
 
-type HistoryEntryData<T extends PaintType> = PaintedAssetT<T>;
+type HistoryEntryData<T extends PaintType> = PaintedAsset<T>;
 
 type HistoryEntryItem<T extends PaintType> = {
   data: HistoryEntryData<T> | null;
@@ -186,7 +183,7 @@ type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
 
 type HistoryEntryT<T extends PaintType> = {
   type: T;
-  layer: IdRef;
+  layerId: LayerId<T>;
   items: HistoryEntryItem<T>[];
 };
 
@@ -200,14 +197,12 @@ export {
   type PaintedTile,
   type PaintedAutoTile,
   type PaintedAsset,
-  type LayerT,
-  type PaintedAssetT,
+  type Layer,
+  type LayerData,
+  type LayerDataComp,
+  type LayerComp,
   type AutoTileHistoryEntryItem,
   type TileHistoryEntryItem,
-  type LayerData,
-  type TypedId,
-  type AutoTileId,
-  type TileId,
   PaintType,
   Tool,
   TileRequirement,
@@ -218,13 +213,10 @@ export {
   type AssetRef,
   type TileAsset,
   type AutoTileAsset,
-  type TileLayerState,
-  type AutoTileLayerState,
   type Point,
   type Rect,
   type GUIState,
   type Notification,
-  type Layer,
   type TileLayer,
   type Tileset,
   type Tile,
@@ -234,4 +226,5 @@ export {
   type Cell,
   type IdRef,
   type AutoTileLayer,
+  type LayerId,
 };

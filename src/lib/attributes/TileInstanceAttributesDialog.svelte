@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { projectState } from "../../state.svelte";
+  import { projectState } from "../../projectState.svelte";
   import AttributesDialog from "./AttributesDialog.svelte";
 
   // This is the dialog for editing attributes for a painted tile

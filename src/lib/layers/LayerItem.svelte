@@ -1,11 +1,15 @@
 <script lang="ts">
   import type { SlIconButton } from "@shoelace-style/shoelace";
-  import { guiState } from "../../state.svelte";
-  import { PaintType, type Layer } from "../../types";
+  import {
+    guiState,
+    tilemapEditorState,
+    updateTilemapEditorState,
+  } from "../../projectState.svelte";
+  import { PaintType, Tool, type LayerComp } from "../../types";
   import EditableText from "../common/EditableText.svelte";
 
   type LayerItemProps = {
-    layer: Layer;
+    layer: LayerComp;
     onDelete: () => void;
     onRename: (name: string) => void;
   };
@@ -22,13 +26,24 @@
   });
 
   const selectLayer = () => {
-    if (layer.id !== guiState.tilemapEditorState.selectedLayer) {
-      guiState.tilemapEditorState.selectedLayer = layer.id;
-      // Clear the selected tool only if the new selected layer isn't the same type of layer so that the user can continue painting with selected tiles!
-      if (layer.type !== guiState.tilemapEditorState.type)
-        guiState.tilemapEditorState.selectedAsset = null;
-
-      guiState.tilemapEditorState.type = layer.type;
+    if (layer.id !== tilemapEditorState.selectedLayer) {
+      updateTilemapEditorState({
+        type: layer.type,
+        selectedLayer: layer.id,
+        selectedAsset:
+          layer.type === tilemapEditorState.type
+            ? tilemapEditorState.selectedAsset
+            : null,
+        selectedTool:
+          layer.type === tilemapEditorState.type
+            ? tilemapEditorState.selectedTool
+            : Tool.PAINT,
+        fillToolIsActive:
+          layer.type === tilemapEditorState.type
+            ? tilemapEditorState.fillToolIsActive
+            : false,
+        selection: { tiles: [] },
+      });
     }
   };
 

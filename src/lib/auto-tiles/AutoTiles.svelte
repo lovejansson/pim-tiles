@@ -1,9 +1,10 @@
 <script lang="ts">
   import AutoTileDialog from "./AutoTileDialog.svelte";
-  import { projectState } from "../../state.svelte";
+  import { projectState } from "../../projectState.svelte";
   import AutoTileItem from "./AutoTileItem.svelte";
 
   let dialogIsOpen = $state(false);
+
 </script>
 
 <section id="auto-tiles">
@@ -21,7 +22,7 @@
 
   {#if projectState.getAutoTiles().length > 0}
     <ul>
-      {#each projectState.getAutoTiles() as autoTile, idx}
+      {#each projectState.getAutoTiles() as autoTile}
         <li>
           <AutoTileItem {autoTile} />
         </li>

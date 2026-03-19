@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { guiState, projectState } from "../../state.svelte";
+  import { guiState, projectState, tilemapEditorState } from "../../projectState.svelte";
   import FilePicker from "../common/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
   import TilesCanvas from "./TilesetCanvas.svelte";
@@ -37,7 +37,7 @@
   };
 
   const handleOnSelectTiles = (selectedTiles: TileAsset[]) => {
-    guiState.tilemapEditorState.selectedAsset = selectedTiles;
+    tilemapEditorState.selectedAsset = selectedTiles;
   };
 
   const deleteTileset = (id: string, idx: number) => {

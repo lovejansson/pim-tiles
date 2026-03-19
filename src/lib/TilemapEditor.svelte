@@ -2,16 +2,17 @@
   import {
     guiState,
     projectState,
-    HistoryStack,
     projectStateEvents,
     ProjectStateEventType,
-  } from "../state.svelte";
+    tilemapEditorState,
+  } from "../projectState.svelte";
+  import { HistoryStack } from "../history";
+
   import {
     PaintType,
     Tool,
     type AutoTileAsset,
     type Cell,
-    type PaintedAssetT,
     type PaintedAutoTile,
     type PaintedTile,
     type TileAsset,
@@ -35,21 +36,6 @@
 
   const dirtyTiles: Cell[] = [];
 
-  type Selection<T extends PaintType> = {
-    type: T;
-    tiles: {
-      org: Cell;
-      prev: Cell;
-      curr: Cell;
-      tile: PaintedAssetT<T>;
-    }[];
-  };
-
-  let selection: Selection<PaintType.TILE | PaintType.AUTO_TILE> = {
-    type: PaintType.TILE,
-    tiles: [],
-  };
-
   let copySelection = false;
 
   let container!: HTMLElement;
@@ -57,32 +43,7 @@
 
   let canvasCache: Map<string, CanvasRenderingContext2D> = new Map();
 
-  $effect(() => {
-    // Sync canvasCache with updated layers in project state
-
-    const addedLayers = projectState
-      .getLayers()
-      .filter((l) => !canvasCache.has(l.id));
-
-    const deletedLayers = Array.from(canvasCache.keys()).filter(
-      (k) => projectState.getLayers().find((l) => l.id === k) === undefined,
-    );
-
-    for (const l of addedLayers) {
-      const ctx = createCanvas(projectState.width, projectState.height);
-      canvasCache.set(l.id, ctx);
-    }
-
-    for (const l of deletedLayers) {
-      canvasCache.delete(l);
-    }
-  });
-
-  $effect(() => {
-    if (projectState.width || projectState.height || projectState.tileSize) {
-      clearCache();
-    }
-  });
+  let selectionHasMovedFirstTime = false;
 
   onMount(() => {
     if (container === undefined) return;
@@ -100,7 +61,7 @@
       draw: draw,
       defaultCursor: "crosshair",
       selection: {
-        isActive: guiState.tilemapEditorState.selectedTool === Tool.SELECT,
+        isActive: tilemapEditorState.selectedTool === Tool.SELECT,
         move: true,
         copy: true,
         delete: true,
@@ -131,6 +92,8 @@
 
     tilemapViewport.addEventListener("mouse-pos", handleMousePosChange);
 
+    recreateCache(true);
+
     tilemapViewport.init({ center: true, resize: true });
 
     projectStateEvents.on(ProjectStateEventType.OPEN_FILE, () => {
@@ -138,9 +101,15 @@
       recreateCache(true);
     });
 
-    projectStateEvents.on(ProjectStateEventType.DIMENSIONS_CHANGE, () => {
+    projectStateEvents.on(ProjectStateEventType.DIMENSIONS_UPDATE, () => {
       // When the width, height or tilesize changes we only need to clear the contents of each cached layer
-      clearCache();
+      clearCacheCanvases();
+      tilemapViewport.updateGridSize(
+        projectState.width,
+        projectState.height,
+        projectState.tileSize,
+        true,
+      );
     });
 
     projectStateEvents.on(ProjectStateEventType.NEW_PROJECT, () => {
@@ -148,13 +117,32 @@
       recreateCache(false);
     });
 
-    projectStateEvents.on(ProjectStateEventType.ASSET_UPDATE, (e) => {
+    projectStateEvents.on(ProjectStateEventType.AUTO_TILES_UPDATE, (e) => {
       // When an autotile is updated the layers that is painted with those needs to be updated
-      repaintLayers(e.detail.layers);
+      repaintAutoTileLayers();
+    });
+
+    projectStateEvents.on(ProjectStateEventType.LAYERS_UPDATE, (e) => {
+      const addedLayers = projectState
+        .getLayers()
+        .filter((l) => !canvasCache.has(l.id));
+
+      const deletedLayers = Array.from(canvasCache.keys()).filter(
+        (k) => projectState.getLayers().find((l) => l.id === k) === undefined,
+      );
+
+      for (const l of addedLayers) {
+        const ctx = createCanvas(projectState.width, projectState.height);
+        canvasCache.set(l.id, ctx);
+      }
+
+      for (const l of deletedLayers) {
+        canvasCache.delete(l);
+      }
     });
   });
 
-  function clearCache() {
+  function clearCacheCanvases() {
     canvasCache.values().forEach((c) => {
       c.canvas.width = projectState.width;
       c.canvas.height = projectState.height;
@@ -162,9 +150,9 @@
     });
   }
 
-  function repaintLayers(layers: string[]) {
+  function repaintAutoTileLayers() {
     for (const l of projectState.getLayers()) {
-      if (layers.includes(l.id)) {
+      if (l.type === PaintType.AUTO_TILE) {
         const cached = canvasCache.get(l.id);
 
         if (cached === undefined) throw new Error("Cache for layer not found");
@@ -179,59 +167,28 @@
             y = row * projectState.tileSize;
             x = col * projectState.tileSize;
 
-            switch (l.type) {
-              case PaintType.TILE:
-                const paintedTile = data[row][col] as PaintedTile | null;
+            const paintedAutoTile = data[row][col] as PaintedAutoTile | null;
 
-                if (paintedTile !== null) {
-                  const tileset = projectState.getTileset(
-                    paintedTile.ref.tilesetId,
-                  );
+            if (paintedAutoTile !== null) {
+              const autoTile = projectState.getAutoTile(paintedAutoTile.ref.id);
+              const tile =
+                autoTile.rules.find(
+                  (tr) => tr.id === paintedAutoTile.selectedTileRuleId?.id,
+                )?.tile ?? autoTile.defaultTile;
 
-                  cached.drawImage(
-                    tileset.spritesheet,
-                    paintedTile.ref.tilesetPos.x,
-                    paintedTile.ref.tilesetPos.y,
-                    projectState.tileSize,
-                    projectState.tileSize,
-                    x,
-                    y,
-                    projectState.tileSize,
-                    projectState.tileSize,
-                  );
-                }
+              const tileset = projectState.getTileset(tile.ref.tilesetId);
 
-                break;
-              case PaintType.AUTO_TILE:
-                const paintedAutoTile = data[row][
-                  col
-                ] as PaintedAutoTile | null;
-
-                if (paintedAutoTile !== null) {
-                  const autoTile = projectState.getAutoTile(
-                    paintedAutoTile.ref.id,
-                  );
-                  const tile =
-                    autoTile.rules.find(
-                      (tr) => tr.id === paintedAutoTile.selectedTileRuleId?.id,
-                    )?.tile ?? autoTile.defaultTile;
-
-                  const tileset = projectState.getTileset(tile.ref.tilesetId);
-
-                  cached.drawImage(
-                    tileset.spritesheet,
-                    tile.ref.tilesetPos.x,
-                    tile.ref.tilesetPos.y,
-                    projectState.tileSize,
-                    projectState.tileSize,
-                    x,
-                    y,
-                    projectState.tileSize,
-                    projectState.tileSize,
-                  );
-                }
-
-                break;
+              cached.drawImage(
+                tileset.spritesheet,
+                tile.ref.x,
+                tile.ref.y,
+                projectState.tileSize,
+                projectState.tileSize,
+                x,
+                y,
+                projectState.tileSize,
+                projectState.tileSize,
+              );
             }
           }
         }
@@ -272,8 +229,8 @@
 
                   ctx.drawImage(
                     tileset.spritesheet,
-                    paintedTile.ref.tilesetPos.x,
-                    paintedTile.ref.tilesetPos.y,
+                    paintedTile.ref.x,
+                    paintedTile.ref.y,
                     projectState.tileSize,
                     projectState.tileSize,
                     x,
@@ -302,8 +259,8 @@
 
                   ctx.drawImage(
                     tileset.spritesheet,
-                    tile.ref.tilesetPos.x,
-                    tile.ref.tilesetPos.y,
+                    tile.ref.x,
+                    tile.ref.y,
                     projectState.tileSize,
                     projectState.tileSize,
                     x,
@@ -323,15 +280,6 @@
   }
 
   $effect(() => {
-    tilemapViewport.updateGridSize(
-      projectState.width,
-      projectState.height,
-      projectState.tileSize,
-      true,
-    );
-  });
-
-  $effect(() => {
     tilemapViewport.gridColor = guiState.gridColor;
   });
 
@@ -340,30 +288,26 @@
   });
 
   $effect(() => {
-    if (guiState.tilemapEditorState.selectedTool === Tool.SELECT) {
+    if (tilemapEditorState.selectedTool === Tool.SELECT) {
       tilemapViewport.enableSelection();
     } else {
-      tilemapViewport.disabledSelection();
+      tilemapViewport.disableSelection();
     }
   });
 
   const handleSelectionChange = (e: Event) => {
     // If previously selected tiles have been moved they are painted to that location
-    if (selection.tiles.length > 0) {
-      const hasBeenMoved = selection.tiles.some(
-        (t) => t.org.col !== t.curr.col || t.org.row !== t.curr.row,
-      );
-
-      if (hasBeenMoved) {
-        const tilesInsideGrid = selection.tiles.filter((t) =>
+    if (tilemapEditorState.selection.tiles.length > 0) {
+      if (selectionHasMovedFirstTime) {
+        const tilesInsideGrid = tilemapEditorState.selection.tiles.filter((t) =>
           projectState.isWithinGridBounds(t.curr.row, t.curr.col),
         );
 
         if (tilesInsideGrid.length > 0) {
-          switch (selection.type) {
+          switch (tilemapEditorState.type) {
             case PaintType.TILE:
               projectState.paintTiles(
-                guiState.tilemapEditorState.selectedLayer,
+                tilemapEditorState.selectedLayer,
                 tilesInsideGrid.map((t) => ({
                   row: t.curr.row,
                   col: t.curr.col,
@@ -374,8 +318,8 @@
               break;
             case PaintType.AUTO_TILE:
               const tiles = projectState.paintAutoTiles(
-                guiState.tilemapEditorState.selectedLayer,
-                tilesInsideGrid.map((t) => ({ ...t.curr })),
+                tilemapEditorState.selectedLayer,
+                tilesInsideGrid.map((t) => t.curr),
                 tilesInsideGrid[0].tile as AutoTileAsset,
               );
               dirtyTiles.push(...tiles);
@@ -384,10 +328,9 @@
         }
       }
 
-      selection.tiles = [];
+      selectionHasMovedFirstTime = false;
+      tilemapEditorState.selection.tiles = [];
     }
-
-    selection.type = guiState.tilemapEditorState.type;
 
     const tiles = (e as TilemapViewportSelectionChangeEvent).tiles;
 
@@ -396,19 +339,43 @@
     if (tiles !== null) {
       // Add tile to selected tiles
       for (const { row, col } of tiles) {
-        const tile = projectState.getTileAt(
-          row,
-          col,
-          guiState.tilemapEditorState.selectedLayer,
-        );
+        switch (tilemapEditorState.type) {
+          case PaintType.TILE:
+            {
+              const tile = projectState.getTileAt(
+                tilemapEditorState.selectedLayer,
+                row,
+                col,
+              );
 
-        if (tile !== null) {
-          selection.tiles.push({
-            org: { row, col },
-            prev: { row, col },
-            curr: { row, col },
-            tile,
-          });
+              if (tile !== null) {
+                tilemapEditorState.selection.tiles.push({
+                  org: { row, col },
+                  prev: { row, col },
+                  curr: { row, col },
+                  tile,
+                });
+              }
+            }
+            break;
+          case PaintType.AUTO_TILE:
+            {
+              const tile = projectState.getTileAt(
+                tilemapEditorState.selectedLayer,
+                row,
+                col,
+              );
+
+              if (tile !== null) {
+                tilemapEditorState.selection.tiles.push({
+                  org: { row, col },
+                  prev: { row, col },
+                  curr: { row, col },
+                  tile,
+                });
+              }
+            }
+            break;
         }
       }
     }
@@ -429,32 +396,31 @@
      *
      */
 
-    const hasBeenMoved = selection.tiles.some(
-      (t) => t.org.col !== t.curr.col || t.org.row !== t.curr.row,
-    );
 
-    if (hasBeenMoved) {
+    if (selectionHasMovedFirstTime) {
       if (copySelection) {
-        switch (selection.type) {
+        switch (tilemapEditorState.type) {
           case PaintType.TILE:
             projectState.paintTiles(
-              guiState.tilemapEditorState.selectedLayer,
-              selection.tiles.map((t) => ({
+              tilemapEditorState.selectedLayer,
+              tilemapEditorState.selection.tiles.map((t) => ({
                 row: t.curr.row,
                 col: t.curr.col,
                 tileAsset: t.tile as TileAsset,
               })),
             );
-            dirtyTiles.push(...selection.tiles.map((t) => t.curr));
+            dirtyTiles.push(
+              ...tilemapEditorState.selection.tiles.map((t) => t.curr),
+            );
             break;
           case PaintType.AUTO_TILE:
             const tiles = projectState.paintAutoTiles(
-              guiState.tilemapEditorState.selectedLayer,
-              selection.tiles.map((t) => ({
+              tilemapEditorState.selectedLayer,
+              tilemapEditorState.selection.tiles.map((t) => ({
                 row: t.curr.row,
                 col: t.curr.col,
               })),
-              selection.tiles[0].tile as AutoTileAsset,
+              tilemapEditorState.selection.tiles[0].tile as AutoTileAsset,
             );
             dirtyTiles.push(...tiles);
             break;
@@ -462,18 +428,26 @@
       }
     } else {
       if (!copySelection) {
-        switch (selection.type) {
+        switch (tilemapEditorState.type) {
           case PaintType.TILE:
             projectState.eraseTiles(
-              selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
-              guiState.tilemapEditorState.selectedLayer,
+              tilemapEditorState.selectedLayer,
+              tilemapEditorState.selection.tiles.map((t) => ({
+                row: t.org.row,
+                col: t.org.col,
+              })),
             );
-            dirtyTiles.push(...selection.tiles.map((t) => t.org));
+            dirtyTiles.push(
+              ...tilemapEditorState.selection.tiles.map((t) => t.org),
+            );
             break;
           case PaintType.AUTO_TILE:
             const tiles = projectState.eraseAutoTiles(
-              selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
-              guiState.tilemapEditorState.selectedLayer,
+              tilemapEditorState.selectedLayer,
+              tilemapEditorState.selection.tiles.map((t) => ({
+                row: t.org.row,
+                col: t.org.col,
+              })),
             );
 
             dirtyTiles.push(...tiles);
@@ -482,6 +456,7 @@
       }
     }
 
+    selectionHasMovedFirstTime = true;
     copySelection = false;
   };
 
@@ -491,14 +466,14 @@
     const rowDelta = delta.y / projectState.tileSize;
     const colDelta = delta.x / projectState.tileSize;
 
-    for (const t of selection.tiles) {
+    for (const t of tilemapEditorState.selection.tiles) {
       t.curr.row = t.prev.row + rowDelta;
       t.curr.col = t.prev.col + colDelta;
     }
   };
 
   const handleSelectionMoveEnd = () => {
-    for (const t of selection.tiles) {
+    for (const t of tilemapEditorState.selection.tiles) {
       t.prev.row = t.curr.row;
       t.prev.col = t.curr.col;
     }
@@ -514,23 +489,31 @@
      *
      */
 
-    const hasBeenMoved = selection.tiles.some(
+    const hasBeenMoved = tilemapEditorState.selection.tiles.some(
       (t) => t.org.col !== t.curr.col || t.org.row !== t.curr.row,
     );
 
     if (!hasBeenMoved) {
-      switch (selection.type) {
+      switch (tilemapEditorState.type) {
         case PaintType.TILE:
           projectState.eraseTiles(
-            selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
-            guiState.tilemapEditorState.selectedLayer,
+            tilemapEditorState.selectedLayer,
+            tilemapEditorState.selection.tiles.map((t) => ({
+              row: t.org.row,
+              col: t.org.col,
+            })),
           );
-          dirtyTiles.push(...selection.tiles.map((t) => t.org));
+          dirtyTiles.push(
+            ...tilemapEditorState.selection.tiles.map((t) => t.org),
+          );
           break;
         case PaintType.AUTO_TILE:
           const tiles = projectState.eraseAutoTiles(
-            selection.tiles.map((t) => ({ row: t.org.row, col: t.org.col })),
-            guiState.tilemapEditorState.selectedLayer,
+            tilemapEditorState.selectedLayer,
+            tilemapEditorState.selection.tiles.map((t) => ({
+              row: t.org.row,
+              col: t.org.col,
+            })),
           );
 
           dirtyTiles.push(...tiles);
@@ -539,11 +522,11 @@
       }
     }
 
-    selection.tiles = [];
+    tilemapEditorState.selection.tiles = [];
   };
 
   const handleSelectionCopy = () => {
-    if (selection.tiles.length > 0) {
+    if (tilemapEditorState.selection.tiles.length > 0) {
       copySelection = true;
     }
 
@@ -563,91 +546,91 @@
   const handleCanvasPaint = (e: Event) => {
     const { row, col } = (e as TilemapViewportPaintEvent).cell;
 
-    if (guiState.visibleLayers[guiState.tilemapEditorState.selectedLayer]) {
-      switch (guiState.tilemapEditorState.type) {
+    if (guiState.visibleLayers[tilemapEditorState.selectedLayer]) {
+      switch (tilemapEditorState.type) {
         case PaintType.TILE:
-          if (guiState.tilemapEditorState.fillToolIsActive) {
-            switch (guiState.tilemapEditorState.selectedTool) {
+          if (tilemapEditorState.fillToolIsActive) {
+            switch (tilemapEditorState.selectedTool) {
               case Tool.PAINT:
-                if (guiState.tilemapEditorState.selectedAsset !== null) {
+                if (tilemapEditorState.selectedAsset !== null) {
                   const filledTiles = projectState.floodFill(
-                    guiState.tilemapEditorState.selectedLayer,
+                    tilemapEditorState.selectedLayer,
                     row,
                     col,
-                    guiState.tilemapEditorState.selectedAsset[0], // Flood fill only takes first tile into account
+                    tilemapEditorState.selectedAsset[0], // Flood fill only takes first tile into account
                   );
 
                   for (const t of filledTiles) {
-                    dirtyTiles.push({ ...t });
+                    dirtyTiles.push(t);
                   }
                 }
                 break;
               case Tool.ERASE: {
                 const erasedTiles = projectState.floodFill(
-                  guiState.tilemapEditorState.selectedLayer,
+                  tilemapEditorState.selectedLayer,
                   row,
                   col,
                   null,
                 );
 
                 for (const t of erasedTiles) {
-                  dirtyTiles.push({ ...t });
+                  dirtyTiles.push(t);
                 }
                 break;
               }
             }
           } else {
-            switch (guiState.tilemapEditorState.selectedTool) {
+            switch (tilemapEditorState.selectedTool) {
               case Tool.PAINT:
-                if (guiState.tilemapEditorState.selectedAsset !== null) {
+                if (tilemapEditorState.selectedAsset !== null) {
                   // Calculate which tiles should be painted
                   const minX = Math.min(
-                    ...guiState.tilemapEditorState.selectedAsset.map(
-                      (t) => t.ref.tilesetPos.x,
-                    ),
+                    ...tilemapEditorState.selectedAsset.map((t) => t.ref.x),
                   );
                   const minY = Math.min(
-                    ...guiState.tilemapEditorState.selectedAsset.map(
-                      (t) => t.ref.tilesetPos.y,
-                    ),
+                    ...tilemapEditorState.selectedAsset.map((t) => t.ref.y),
                   );
 
-                  const tiles: { row: number, col: number, tileAsset: TileAsset }[] = [];
+                  const tiles: {
+                    row: number;
+                    col: number;
+                    tileAsset: TileAsset;
+                  }[] = [];
 
-                  for (const t of guiState.tilemapEditorState.selectedAsset) {
+                  for (const t of tilemapEditorState.selectedAsset) {
                     const r =
                       row +
-                      Math.floor(
-                        (t.ref.tilesetPos.y - minY) / projectState.tileSize,
-                      );
+                      Math.floor((t.ref.y - minY) / projectState.tileSize);
                     const c =
                       col +
-                      Math.floor(
-                        (t.ref.tilesetPos.x - minX) / projectState.tileSize,
-                      );
+                      Math.floor((t.ref.x - minX) / projectState.tileSize);
 
                     if (r >= projectState.rows || c >= projectState.cols)
                       continue; // out of bounds
 
-                    tiles.push({ row: r, col: c, tileAsset: t });
+                    tiles.push({
+                      row: r,
+                      col: c,
+                      tileAsset: $state.snapshot(t),
+                    });
                   }
 
                   const paintedTiles = projectState.paintTiles(
-                    guiState.tilemapEditorState.selectedLayer,
+                    tilemapEditorState.selectedLayer,
                     tiles,
                   );
 
                   for (const t of paintedTiles) {
-                    dirtyTiles.push({ ...t });
+                    dirtyTiles.push(t);
                   }
                 }
 
                 break;
               case Tool.ERASE:
                 projectState.eraseTile(
+                  tilemapEditorState.selectedLayer,
                   row,
                   col,
-                  guiState.tilemapEditorState.selectedLayer,
                 );
 
                 dirtyTiles.push({ row, col });
@@ -657,33 +640,65 @@
 
           break;
         case PaintType.AUTO_TILE:
-          switch (guiState.tilemapEditorState.selectedTool) {
-            case Tool.PAINT: {
-              if (guiState.tilemapEditorState.selectedAsset !== null) {
-                const tiles = projectState.paintAutoTile(
+          if (tilemapEditorState.fillToolIsActive) {
+            switch (tilemapEditorState.selectedTool) {
+              case Tool.PAINT:
+                if (tilemapEditorState.selectedAsset !== null) {
+                  const filledTiles = projectState.floodFill(
+                    tilemapEditorState.selectedLayer,
+                    row,
+                    col,
+                    tilemapEditorState.selectedAsset,
+                  );
+
+                  for (const t of filledTiles) {
+                    dirtyTiles.push(t);
+                  }
+                }
+                break;
+              case Tool.ERASE: {
+                const erasedTiles = projectState.floodFill(
+                  tilemapEditorState.selectedLayer,
                   row,
                   col,
-                  guiState.tilemapEditorState.selectedLayer,
-                  guiState.tilemapEditorState.selectedAsset,
+                  null,
                 );
 
-                for (const t of tiles) {
-                  dirtyTiles.push({ ...t });
+                for (const t of erasedTiles) {
+                  dirtyTiles.push(t);
                 }
+                break;
               }
-
-              break;
             }
-            case Tool.ERASE: {
-              const tiles = projectState.eraseAutoTile(
-                row,
-                col,
-                guiState.tilemapEditorState.selectedLayer,
-              );
-              for (const t of tiles) {
-                dirtyTiles.push({ ...t });
+          } else {
+            switch (tilemapEditorState.selectedTool) {
+              case Tool.PAINT: {
+                if (tilemapEditorState.selectedAsset !== null) {
+                  const tiles = projectState.paintAutoTile(
+                    tilemapEditorState.selectedLayer,
+                    row,
+                    col,
+                    tilemapEditorState.selectedAsset,
+                  );
+
+                  for (const t of tiles) {
+                    dirtyTiles.push(t);
+                  }
+                }
+
+                break;
               }
-              break;
+              case Tool.ERASE: {
+                const tiles = projectState.eraseAutoTile(
+                  tilemapEditorState.selectedLayer,
+                  row,
+                  col,
+                );
+                for (const t of tiles) {
+                  dirtyTiles.push(t);
+                }
+                break;
+              }
             }
           }
           break;
@@ -702,12 +717,7 @@
     if (e.ctrlKey || e.metaKey) ctrlKeyIsDown = true;
 
     // If some selection is beeing moved, don't trigger state updates since it makes it look weird
-    if (
-      selection.tiles.some(
-        (t) => t.curr.col !== t.org.col || t.org.row !== t.curr.row,
-      )
-    )
-      return;
+    if (tilemapEditorState.selection.tiles.length > 0) return;
 
     switch (e.key.toLowerCase()) {
       case "z":
@@ -772,8 +782,8 @@
 
               cached.drawImage(
                 tileset.spritesheet,
-                paintedTile.ref.tilesetPos.x,
-                paintedTile.ref.tilesetPos.y,
+                paintedTile.ref.x,
+                paintedTile.ref.y,
                 projectState.tileSize,
                 projectState.tileSize,
                 x,
@@ -802,8 +812,8 @@
 
               cached.drawImage(
                 tileset.spritesheet,
-                tile.ref.tilesetPos.x,
-                tile.ref.tilesetPos.y,
+                tile.ref.x,
+                tile.ref.y,
                 projectState.tileSize,
                 projectState.tileSize,
                 x,
@@ -835,58 +845,58 @@
 
       if (guiState.visibleLayers[l.id]) {
         ctx.drawImage(cached.canvas, 0, 0);
-      }
 
-      if (
-        l.id === guiState.tilemapEditorState.selectedLayer &&
-        selection.tiles.length > 0
-      ) {
-        for (const t of selection.tiles) {
-          if (projectState.isWithinGridBounds(t.curr.row, t.curr.col)) {
-            x = t.curr.col * projectState.tileSize;
-            y = t.curr.row * projectState.tileSize;
+        if (
+          l.id === tilemapEditorState.selectedLayer &&
+          tilemapEditorState.selection.tiles.length > 0
+        ) {
+          for (const t of tilemapEditorState.selection.tiles) {
+            if (projectState.isWithinGridBounds(t.curr.row, t.curr.col)) {
+              x = t.curr.col * projectState.tileSize;
+              y = t.curr.row * projectState.tileSize;
 
-            switch (t.tile.type) {
-              case PaintType.TILE: {
-                const tileset = projectState.getTileset(t.tile.ref.tilesetId);
+              switch (t.tile.type) {
+                case PaintType.TILE: {
+                  const tileset = projectState.getTileset(t.tile.ref.tilesetId);
 
-                ctx.drawImage(
-                  tileset.spritesheet,
-                  t.tile.ref.tilesetPos.x,
-                  t.tile.ref.tilesetPos.y,
-                  projectState.tileSize,
-                  projectState.tileSize,
-                  x,
-                  y,
-                  projectState.tileSize,
-                  projectState.tileSize,
-                );
-                break;
-              }
-              case PaintType.AUTO_TILE: {
-                const autoTile = projectState.getAutoTile(t.tile.ref.id);
-                const tile =
-                  autoTile.rules.find(
-                    (tr) =>
-                      tr.id ===
-                      (t.tile as PaintedAutoTile).selectedTileRuleId?.id,
-                  )?.tile ?? autoTile.defaultTile;
+                  ctx.drawImage(
+                    tileset.spritesheet,
+                    t.tile.ref.x,
+                    t.tile.ref.y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                    x,
+                    y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                  );
+                  break;
+                }
+                case PaintType.AUTO_TILE: {
+                  const autoTile = projectState.getAutoTile(t.tile.ref.id);
+                  const tile =
+                    autoTile.rules.find(
+                      (tr) =>
+                        tr.id ===
+                        (t.tile as PaintedAutoTile).selectedTileRuleId?.id,
+                    )?.tile ?? autoTile.defaultTile;
 
-                const tileset = projectState.getTileset(tile.ref.tilesetId);
+                  const tileset = projectState.getTileset(tile.ref.tilesetId);
 
-                ctx.drawImage(
-                  tileset.spritesheet,
-                  tile.ref.tilesetPos.x,
-                  tile.ref.tilesetPos.y,
-                  projectState.tileSize,
-                  projectState.tileSize,
-                  x,
-                  y,
-                  projectState.tileSize,
-                  projectState.tileSize,
-                );
+                  ctx.drawImage(
+                    tileset.spritesheet,
+                    tile.ref.x,
+                    tile.ref.y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                    x,
+                    y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                  );
 
-                break;
+                  break;
+                }
               }
             }
           }
@@ -906,7 +916,11 @@
 <section bind:this={container} id="tilemap-editor"></section>
 
 {#if attributesDialogIsOpen}
-  <AttributesDialog bind:open={attributesDialogIsOpen} row={attributesCell.row} col={attributesCell.col} />
+  <AttributesDialog
+    bind:open={attributesDialogIsOpen}
+    row={attributesCell.row}
+    col={attributesCell.col}
+  />
 {/if}
 
 <style lang="postcss">
