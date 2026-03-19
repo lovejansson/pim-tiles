@@ -10,13 +10,13 @@ Tile size is limited to 16 or 32 pixels, and the number of rows and columns is l
 
 ## Layers
 
-There are three types of layers: **tile layers** and **autotile layers**.
+There are two types of layers: **tile layers** and **autotile layers**.
 
 Depending on which layer type is selected in the Layers list, you can paint using different assets.
 
 ## Assets
 
-There are three types of assets: **tilesets**, and **autotiles**.
+There are two types of assets: **tilesets**, and **autotiles**.
 
 ### Tilesets
 
@@ -53,6 +53,16 @@ There are 3 types of tools to edit the tilemap:
 And there is also a modifier:
 
 - **Fill (shortcut key R/r)** – Flood fills parts of the tilemap. Can be used on tile layers when either paint or erase tool is active.
+
+## Attributes
+
+There are three levels of attributes that a tile in the tilemap can inherit from:
+
+- **Painted tile attributes** – Attributes for a painted tile, can be edited by right clicking a tile in the tilemap.
+- **Autotile attributes** – Attributes for an autotile, can be edited in the auto tile dialog. All tiles included in the autotile inherits this attribute.
+- **Tile attributes** – Attributes for the tile asset, can be edited by right clicking the tile in the tileset canvas.
+
+The order of importance in case of name collisions are: tile attributes, autotile attributes and last painted tile attributes. 
 
 ## Export
 
