@@ -72,10 +72,7 @@
     aria-label="Place tile here"
   >
     {#if ruleTile.tile !== null}
-      <img
-        src={projectState.getTileDataUrl(ruleTile.tile.ref)}
-        alt="tile"
-      />
+      <img src={projectState.getTileDataUrl(ruleTile.tile.ref)} alt="tile" />
     {/if}</sl-button
   >
 

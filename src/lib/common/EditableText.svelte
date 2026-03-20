@@ -26,29 +26,28 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 
-  {#if isEditing}
-    <sl-input
-      style={`width:${inputWidth}`}
-      value={text}
-      size="small"
-      onkeydown={(e: KeyboardEvent) => {
-        if (e.key === "Enter") {
-          isEditing = false;
-        }
-      }}
-      bind:this={inputName}
-      onblur={() => {
+{#if isEditing}
+  <sl-input
+    style={`width:${inputWidth}`}
+    value={text}
+    size="small"
+    onkeydown={(e: KeyboardEvent) => {
+      if (e.key === "Enter") {
         isEditing = false;
-      }}
-      onsl-change={(e: SlChangeEvent) => {
-        text = (e.target as SlInput).value;
-      }}
-    ></sl-input>
-  {:else}
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-    <p>{text}</p>
-  {/if}
-
+      }
+    }}
+    bind:this={inputName}
+    onblur={() => {
+      isEditing = false;
+    }}
+    onsl-change={(e: SlChangeEvent) => {
+      text = (e.target as SlInput).value;
+    }}
+  ></sl-input>
+{:else}
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <p>{text}</p>
+{/if}
 
 <style lang="postcss">
   p {

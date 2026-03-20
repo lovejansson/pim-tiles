@@ -62,7 +62,7 @@ There are three levels of attributes that a tile in the tilemap can inherit from
 - **Autotile attributes** – Attributes for an autotile, can be edited in the auto tile dialog. All tiles included in the autotile inherits this attribute.
 - **Tile attributes** – Attributes for the tile asset, can be edited by right clicking the tile in the tileset canvas.
 
-The order of importance in case of name collisions are: tile attributes, autotile attributes and last painted tile attributes. 
+The order of importance in case of name collisions are: tile attributes, autotile attributes and last painted tile attributes.
 
 ## Export
 

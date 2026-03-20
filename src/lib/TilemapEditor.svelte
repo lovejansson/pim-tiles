@@ -396,34 +396,41 @@
      *
      */
 
-
     if (selectionHasMovedFirstTime) {
       if (copySelection) {
         switch (tilemapEditorState.type) {
-          case PaintType.TILE:
+          case PaintType.TILE: {
+            const tilesInsideGrid = tilemapEditorState.selection.tiles.filter(
+              (t) => projectState.isWithinGridBounds(t.curr.row, t.curr.col),
+            );
+            dirtyTiles.push(...tilesInsideGrid.map((t) => t.curr));
             projectState.paintTiles(
               tilemapEditorState.selectedLayer,
-              tilemapEditorState.selection.tiles.map((t) => ({
+              tilesInsideGrid.map((t) => ({
                 row: t.curr.row,
                 col: t.curr.col,
                 tileAsset: t.tile as TileAsset,
               })),
             );
-            dirtyTiles.push(
-              ...tilemapEditorState.selection.tiles.map((t) => t.curr),
-            );
+
             break;
-          case PaintType.AUTO_TILE:
+          }
+          case PaintType.AUTO_TILE: {
+            const tilesInsideGrid = tilemapEditorState.selection.tiles.filter(
+              (t) => projectState.isWithinGridBounds(t.curr.row, t.curr.col),
+            );
+
             const tiles = projectState.paintAutoTiles(
               tilemapEditorState.selectedLayer,
-              tilemapEditorState.selection.tiles.map((t) => ({
+              tilesInsideGrid.map((t) => ({
                 row: t.curr.row,
                 col: t.curr.col,
               })),
-              tilemapEditorState.selection.tiles[0].tile as AutoTileAsset,
+              tilesInsideGrid[0].tile as AutoTileAsset,
             );
             dirtyTiles.push(...tiles);
             break;
+          }
         }
       }
     } else {
@@ -489,11 +496,7 @@
      *
      */
 
-    const hasBeenMoved = tilemapEditorState.selection.tiles.some(
-      (t) => t.org.col !== t.curr.col || t.org.row !== t.curr.row,
-    );
-
-    if (!hasBeenMoved) {
+    if (!selectionHasMovedFirstTime) {
       switch (tilemapEditorState.type) {
         case PaintType.TILE:
           projectState.eraseTiles(
@@ -529,12 +532,6 @@
     if (tilemapEditorState.selection.tiles.length > 0) {
       copySelection = true;
     }
-
-    // 1. selection ändras ( om selection har flyttats från org så ska de ritas in (state udpate))
-    // 2. move start -> kolla om selection ska kopieras eller ej, om det ska deletas så ska det uppdater state
-    // 3. uppdatera bara pos
-    // 4. copy sätter bara copy state så när en move påbörjas igen
-    // 4. listen for delete (just deletes it) // deletes selection, if not moved, delete state, if moved to new place reset selected tiles
   };
 
   const handleMousePosChange = (e: Event) => {
@@ -716,8 +713,9 @@
 
     if (e.ctrlKey || e.metaKey) ctrlKeyIsDown = true;
 
-    // If some selection is beeing moved, don't trigger state updates since it makes it look weird
-    if (tilemapEditorState.selection.tiles.length > 0) return;
+    // TODO: looks weird when user is selecting something and at the same time is using Ctrl z since they can see the operation that deleted the selection from the moved place coming back
+
+    if (tilemapEditorState.selection.tiles.length > 1) return;
 
     switch (e.key.toLowerCase()) {
       case "z":
@@ -766,7 +764,7 @@
 
         switch (layer.type) {
           case PaintType.TILE:
-            const paintedTile = data[row][col] as PaintedTile | null;
+            const paintedTile = projectState.getTileAt(layer.id, row, col);
 
             cached.clearRect(
               x,

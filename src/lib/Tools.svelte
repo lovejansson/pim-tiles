@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tilemapEditorState } from "../projectState.svelte";
-  import { PaintType, Tool } from "../types";
+  import { Tool } from "../types";
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
@@ -16,10 +16,9 @@
         tilemapEditorState.selectedTool = Tool.SELECT;
         break;
       case "r":
-        if (tilemapEditorState.type === PaintType.TILE) {
-          tilemapEditorState.fillToolIsActive =
-            !tilemapEditorState.fillToolIsActive;
-        }
+        tilemapEditorState.fillToolIsActive =
+          !tilemapEditorState.fillToolIsActive;
+
         break;
     }
   };

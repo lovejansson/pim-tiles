@@ -737,6 +737,9 @@ export class ProjectState {
 
   setReorderedLayers(layers: LayerComp[]) {
     this.layers = layers;
+    projectStateEvents.emit(ProjectStateEventType.LAYERS_UPDATE, {
+      layers: $state.snapshot(this.layers),
+    });
   }
 
   getLayer<T extends PaintType>(id: LayerId<T>): Layer<T> {
@@ -747,6 +750,14 @@ export class ProjectState {
         `Layer ${id} not found`,
         ProjectStateErrorCode.NOT_FOUND,
       );
+
+    return layer as Layer<T>;
+  }
+
+  getLayerSafe<T extends PaintType>(id: LayerId<T>): Layer<T> | null {
+    const layer = this.layers.find((l) => l.id === id);
+
+    if (layer === undefined) return null;
 
     return layer as Layer<T>;
   }
@@ -855,6 +866,10 @@ export class ProjectState {
     const data = this.getLayerData(layerId);
 
     data[row][col] = $state.snapshot(asset) as PaintedAsset<T> | null;
+
+    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
+      layerData: this.layerData,
+    });
   }
 
   getTileAt<T extends PaintType>(
@@ -905,19 +920,17 @@ export class ProjectState {
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: {
+        id: this.generateId(),
         type: PaintType.TILE,
         layerId,
         items: [{ data: curr as PaintedTile | null, pos: { row, col } }],
       },
       next: {
+        id: this.generateId(),
         type: tileAsset.type,
         layerId,
         items: [{ data: tileAsset, pos: { row, col } }],
       },
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
     });
   }
 
@@ -956,19 +969,17 @@ export class ProjectState {
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: {
+        id: this.generateId(),
         type: layer.type as PaintType.TILE,
         layerId,
         items: prevTiles,
       },
       next: {
+        id: this.generateId(),
         type: layer.type as PaintType.TILE,
         layerId,
         items: nextTiles,
       },
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
     });
 
     return nextTiles.map((t) => t.pos);
@@ -993,18 +1004,17 @@ export class ProjectState {
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: {
+        id: this.generateId(),
         type: layer.type,
         layerId,
         items: [{ data: curr as PaintedTile | null, pos: { row, col } }],
       },
       next: {
+        id: this.generateId(),
         type: layer.type,
         layerId,
         items: [{ data: null, pos: { row, col } }],
       },
-    });
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
     });
   }
 
@@ -1038,11 +1048,18 @@ export class ProjectState {
     }
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
-      prev: { type: layer.type, layerId, items: prevTiles },
-      next: { type: layer.type, layerId, items: nextTiles },
-    });
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
+      prev: {
+        id: this.generateId(),
+        type: layer.type,
+        layerId,
+        items: prevTiles,
+      },
+      next: {
+        id: this.generateId(),
+        type: layer.type,
+        layerId,
+        items: nextTiles,
+      },
     });
   }
 
@@ -1074,11 +1091,14 @@ export class ProjectState {
 
     const filledTiles: { row: number; col: number }[] = [];
 
-    const MAX_FILL = layer.type === PaintType.AUTO_TILE ? 64 * 64 : ProjectState.MAX_TILES * ProjectState.MAX_TILES; // Just to prevent operation from beeing to slow, usually i don't fill larger areas
+    const MAX_FILL =
+      layer.type === PaintType.AUTO_TILE
+        ? 64 * 64
+        : ProjectState.MAX_TILES * ProjectState.MAX_TILES; // Just to prevent operation from beeing to slow, usually i don't fill larger areas
 
     while (stack.length > 0) {
       if (filledTiles.length > MAX_FILL) {
-        console.error("Filled area to large..")
+        console.error("Filled area to large..");
         return [];
       }
 
@@ -1153,10 +1173,6 @@ export class ProjectState {
         }
         break;
     }
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
-    });
 
     return filledTiles;
   }
@@ -1240,16 +1256,20 @@ export class ProjectState {
     }
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
-      prev: { type: layer.type, layerId, items: prevItems },
+      prev: {
+        id: this.generateId(),
+        type: layer.type,
+        layerId,
+        items: prevItems,
+      },
       next: {
+        id: this.generateId(),
         type: layer.type,
         layerId,
         items: nextItems,
       },
     });
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
-    });
+
     return nextItems.map((t) => t.pos);
   }
 
@@ -1375,17 +1395,20 @@ export class ProjectState {
     }
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
-      prev: { type: PaintType.AUTO_TILE, layerId, items: prevItems },
+      prev: {
+        id: this.generateId(),
+        type: PaintType.AUTO_TILE,
+        layerId,
+        items: prevItems,
+      },
       next: {
+        id: this.generateId(),
         type: PaintType.AUTO_TILE,
         layerId,
         items: nextItems,
       },
     });
 
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
-    });
     return nextItems.map((t) => t.pos);
   }
 
@@ -1489,16 +1512,18 @@ export class ProjectState {
     }
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
-      prev: { type: PaintType.AUTO_TILE, layerId, items: prevItems },
+      prev: {
+        id: this.generateId(),
+        type: PaintType.AUTO_TILE,
+        layerId,
+        items: prevItems,
+      },
       next: {
+        id: this.generateId(),
         type: PaintType.AUTO_TILE,
         layerId,
         items: nextItems,
       },
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
     });
 
     return nextItems.map((t) => t.pos);
@@ -1577,19 +1602,17 @@ export class ProjectState {
 
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: {
+        id: this.generateId(),
         type: layer.type,
         layerId,
         items: prevItems,
       },
       next: {
+        id: this.generateId(),
         type: layer.type,
         layerId,
         items: nextItems,
       },
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
     });
 
     return nextItems.map((t) => t.pos);
@@ -1721,8 +1744,6 @@ export class ProjectState {
 
       const json = await file.text();
       const data: ProjectFile = JSON.parse(json); // you could argue that this should be runtime type validated
-
-      console.log(data);
 
       this.name = data.name;
       this._tileSize = data.tileSize;

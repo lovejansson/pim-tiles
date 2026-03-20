@@ -34,14 +34,8 @@
           layer.type === tilemapEditorState.type
             ? tilemapEditorState.selectedAsset
             : null,
-        selectedTool:
-          layer.type === tilemapEditorState.type
-            ? tilemapEditorState.selectedTool
-            : Tool.PAINT,
-        fillToolIsActive:
-          layer.type === tilemapEditorState.type
-            ? tilemapEditorState.fillToolIsActive
-            : false,
+        selectedTool: tilemapEditorState.selectedTool,
+        fillToolIsActive: tilemapEditorState.fillToolIsActive,
         selection: { tiles: [] },
       });
     }
@@ -87,7 +81,6 @@
     </sl-icon-button>
 
     <sl-icon-button
-      id="icon-visibility"
       bind:this={icon}
       onclick={(e: MouseEvent) => {
         e.stopPropagation();

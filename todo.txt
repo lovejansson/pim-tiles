@@ -1,6 +1,30 @@
 # Todo 
 
-# Backlog
+* Build GB town
+
+# Bugs 
+
+* När man lägger dit nya lager så försvinner reaktiviteten för t.ex. is visible och får detta error: 
+
+chunk-YUTDRR6G.js?v=db1b4a4a:4872 Uncaught TypeError: Cannot set properties of undefined (setting 'name')
+    at toggleVisibility (LayerItem.svelte:56:16)
+    at LayerItem.sl_icon_button_1.__click (LayerItem.svelte:94:9)
+
+    Probably something with the DND kit again that is bad
+
+* Svelte reactivity for conditional attributes don't work with dnd reordering of layers. There are workarounds in place now.
+
+* Selection for bigger areas is a bit slow and selection contains some bugs about grid bounds. Problems that arise when testing edge cases like moving and copying bigger areas 
+
+# Improvements 
+
+* Use pixie JS for rendering maybe
+
+* To fill areas with rect instead of flood fill
+
+* Replace the DND kit if it doesn't work
+
+# Future backlog
 
 * Maze tool 
 
@@ -8,14 +32,3 @@
 
 * Use deviceDependedpixel size to avoid blur for grid lines, not very noticable
 
-# Bugs 
-
-* Sometimes a tile is left on the tilemap even if it doesn't exist in data, probably due to cache miss? Kan bero på att jag målar på fel lager också lol
-
-* Sometimes there is a cache miss for layer when drawing probably due to cache miss again, meaning that the cache doesn't update when layers do
-
-* Sometimes the undo command hangs
-
-* Flood fill to slow for large auto tile paint areas
-
-* Svelte reactivity for conditional attributes don't work with dnd reordering of layers. There are workarounds in place now.

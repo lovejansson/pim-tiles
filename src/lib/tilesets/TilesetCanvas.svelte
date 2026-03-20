@@ -37,7 +37,7 @@
       grid: {
         tileSize: projectState.tileSize,
         gridColor: guiState.gridColor,
-        showGrid: guiState.showGrid,
+        showGrid: false,
         width: tileset.width,
         height: tileset.height,
       },
@@ -76,14 +76,6 @@
       tileset.height,
       projectState.tileSize,
     );
-  });
-
-  $effect(() => {
-    tilemapViewport.showGrid = guiState.showGrid;
-  });
-
-  $effect(() => {
-    tilemapViewport.gridColor = guiState.gridColor;
   });
 
   const updateSelectedTiles = (tiles: Cell[] | null) => {

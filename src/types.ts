@@ -183,6 +183,7 @@ type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
 
 type HistoryEntryT<T extends PaintType> = {
   type: T;
+  id: string;
   layerId: LayerId<T>;
   items: HistoryEntryItem<T>[];
 };

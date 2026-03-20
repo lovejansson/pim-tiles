@@ -62,7 +62,6 @@
 
   #context-menu::focus {
     outline: 1px solid var(--color-0);
-
   }
 
   #context-menu-backdrop {

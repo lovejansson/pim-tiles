@@ -12,7 +12,7 @@ export const HistoryStack = (() => {
   // When redoing, we increment the currIdx by two to point to the next action and repaint that state
   // The stack listens to project state change events to build the history via the projectStateChangeEvents emitter
 
-  const history: HistoryEntry[] = [];
+  let history: HistoryEntry[] = [];
   let currIdx = -1;
 
   projectStateEvents.on(ProjectStateEventType.PAINT, (e) => {
@@ -26,6 +26,37 @@ export const HistoryStack = (() => {
     currIdx = history.length - 1;
   });
 
+  projectStateEvents.on(ProjectStateEventType.LAYERS_UPDATE, () => {
+    const hasEntriesForDeletedLayers =
+      history.find((e) => projectState.getLayerSafe(e.layerId) === null) !==
+      undefined;
+    if (!hasEntriesForDeletedLayers) return;
+
+    let nextCurrIdx = currIdx;
+    let nextCurrEntry = history[nextCurrIdx];
+
+    while (
+      projectState.getLayerSafe(nextCurrEntry.layerId) === null &&
+      nextCurrIdx > 0
+    ) {
+      --nextCurrIdx;
+      nextCurrEntry = history[nextCurrIdx];
+    }
+
+    history = history.filter(
+      (e) => projectState.getLayerSafe(e.layerId) !== null,
+    );
+
+    if (history.length === 0) {
+      currIdx = -1;
+    } else {
+      currIdx = history.findIndex((e) => e.id === nextCurrEntry.id);
+
+      if (currIdx === -1)
+        throw new Error("currId should be able to be -1 here");
+    }
+  });
+
   const repaint = () => {
     const entry = history[currIdx];
 
@@ -34,6 +65,7 @@ export const HistoryStack = (() => {
     for (const i of entry.items) {
       projectState.setTile(entry.layerId, i.pos.row, i.pos.col, i.data);
     }
+
     return entry.items.map((i) => i.pos);
   };
 
