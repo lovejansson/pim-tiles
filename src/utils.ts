@@ -10,6 +10,8 @@ function createCanvas(width: number, height: number) {
 
   if (ctx === null) throw new Error("ctx is null");
 
+  ctx.imageSmoothingEnabled = false;
+
   return ctx;
 }
 

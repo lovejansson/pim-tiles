@@ -3,8 +3,23 @@
   import Toast from "./lib/common/Toast.svelte";
   import ToolBar from "./lib/ToolBar.svelte";
   import Load from "./Load.svelte";
+  import { broadcastChannelService } from "./BroadcastChannelService";
 
   let loading = $state(true);
+  let anotherTabHasUpdatedStateDialog = $state(false);
+
+  $effect(() => {
+    broadcastChannelService.listen((event: MessageEvent<string>) => {
+      if (event.data === "indexed-db-update") {
+        anotherTabHasUpdatedStateDialog = true;
+      }
+    });
+  });
+
+  const reload = () => {
+    anotherTabHasUpdatedStateDialog = false;
+    window.location.reload();
+  };
 </script>
 
 <svelte:boundary>
@@ -35,6 +50,24 @@
       </div>
     {/snippet}
   {/if}
+
+  {#if anotherTabHasUpdatedStateDialog}
+    <sl-dialog label="Reload" onsl-after-hide={reload} {open}>
+      <sl-icon-button
+        slot="header-actions"
+        library="pixelarticons"
+        name="close"
+        style="font-size: 1.6rem;"
+        onclick={reload}
+      >
+      </sl-icon-button>
+      <p>Project has been modified in another tab!</p>
+
+      <sl-button onclick={reload} slot="footer" variant="primary"
+        >Reload</sl-button
+      >
+    </sl-dialog>
+  {/if}
 </svelte:boundary>
 
 <style>
@@ -54,5 +87,17 @@
 
   sl-alert::part(base) {
     width: fit-content;
+  }
+  sl-dialog::part(body) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+  }
+
+  sl-dialog {
+    --width: 300px;
+  }
+  sl-dialog::part(close-button) {
+    display: none;
   }
 </style>

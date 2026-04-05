@@ -30,6 +30,7 @@
   <sl-button-group label="Tools">
     <sl-tooltip content="Tile paint (Q)">
       <sl-button
+       size="large"
         class:selected-tool={tilemapEditorState.selectedTool === Tool.PAINT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.PAINT)}
         ><sl-icon library="pixelarticons" name="edit" label="Tile paint"
@@ -39,6 +40,7 @@
 
     <sl-tooltip content="Erase (W)">
       <sl-button
+       size="large"
         class:selected-tool={tilemapEditorState.selectedTool === Tool.ERASE}
         onclick={() => (tilemapEditorState.selectedTool = Tool.ERASE)}
         ><sl-icon
@@ -51,6 +53,7 @@
 
     <sl-tooltip content="Selection (E)">
       <sl-button
+       size="large"
         class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
         ><sl-icon library="pixelarticons" name="drop-area" label="Select"
@@ -62,6 +65,7 @@
   <sl-button-group label="Modifiers">
     <sl-tooltip content="Fill tool (R)">
       <sl-button
+      
         class:selected-tool={tilemapEditorState.fillToolIsActive}
         onclick={() =>
           (tilemapEditorState.fillToolIsActive =

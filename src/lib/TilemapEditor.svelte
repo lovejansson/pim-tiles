@@ -167,7 +167,6 @@
   });
 
   function clearLayerCache() {
-    console.log("CLEARING?");
     layerCache.values().forEach((c) => {
       c.canvas.width = projectState.width;
       c.canvas.height = projectState.height;

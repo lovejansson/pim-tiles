@@ -2,17 +2,103 @@
 
 * Create object layer
 
+
+- still paint with selection of tiles, not whole images 
+- Export objects on object layers as standalone objects. Requires width, height, pos, and the image to be painted with (base64URL) and can also have other attributes that should be added as "user_data": 
+- User creates an object by marking the top left tile of the object as an object, naming width and height, other data, if user paints with this object all object at their positions is exported as instances of that object
+- Alternativt, select the whole object, right click on the selection to open create object or class dialog where u enter attributes for that object, 
+
+- user can also create objet by adding attributes on the paitned tiles and this takes precedence over any objects marked on the tile in the tileset view. 
+
+- Add a seprate object layer that works just as the tile layer does, but will be exported differently 
+
+- objects should not be painted to tilemap since they will be drawn sepratly in the JS engine to be able to sort out which object should be drawn first 
+
+// Tile canvas
+if(selection) {
+    open create object dialog 
+
+    type Class = {
+        tile: Tile[], // tiles in order that they appear in the object from top left scanning to bottom right
+        width: number,
+        height: number,
+        ...attributes
+    }
+
+}
+
+// använd attributes och känn igen alla "object" keys, create objects of these with all of the properties added to that tile included as attributes for the object 
+
+
+// Find all places where classes are drawn and create object on that pos
+
+for(const c of this.classObjects) {
+    for(const l of this.layers) {
+        if(l.type === PaintType.Object) {
+            for(let row = 0; row < this.rows; ++row) {
+            for(let = col = 0; col< this.cols; ++col) {
+                const t = this.getTileAt(l.id, row, col);
+
+                if(t !== null) {
+                  t.ref === c.tiles[0]
+
+                  const firstTilePos = c.tiles[0].tilesetPos;
+                  let diffRow = 0;
+                  let diffCol = 0;
+                  let foundObj = true;
+
+                  for(const t of c.tiles) {
+
+                    const t2 = this.getTileAt(l, row + diffRow, col + diffCol);
+
+                    if(t2 is not same tile as t) {
+                        foundObj = false;
+                        break;
+                    }
+
+                  }  
+
+                  if(foundObj) {
+                    const obj = {x: col / tileSize, y: row / tileSize, width: c.width, height: c.height, attributes: c.attributes}
+                  }
+                } 
+            }
+        }
+        }
+      
+    }
+}
+
+// tilemap
+
+if(selection) {
+
+    open create object dialog
+
+     type Object = {
+        pos: Vec2,
+        widht: number,
+        height number,
+        ...attributes
+    }
+}
+
+exported objects [{x, y, width, height, attributes: {[key: string]: any}}] 
+
+
 * Build GB town 
 
 # Bugs 
 
-# Improvements 
-
-* Sync of changes in indexed db between tabs
-
-* Auto tiles finns kvar även om alla auto tile lager är borta, oklart om det ska vara så
-
 * Selection for bigger areas is a bit slow and selection contains some bugs about grid bounds. Problems that arise when testing edge cases like moving and copying bigger areas 
+
+* Replace the DND kit if it doesn't work, has problems with reactivity UI on several places like the eye icon not working at all
+---------> chunk-YUTDRR6G.js?v=db1b4a4a:4872 Uncaught TypeError: Cannot set properties of undefined (setting 'name')
+    at toggleVisibility (LayerItem.svelte:56:16)
+    at LayerItem.sl_icon_button_1.__click (LayerItem.svelte:94:9)
+
+
+# Backlog
 
 * make it possible to change dimensions without wiping the canvas, place current content inside of new dimensions 
 and choose where to start drawing the old content, 
@@ -21,18 +107,14 @@ and choose where to start drawing the old content,
 
 * To fill areas with rect instead of flood fill 
 
-* Replace the DND kit if it doesn't work, has problems with reactivity UI on several places like the eye icon not working at all
----------> chunk-YUTDRR6G.js?v=db1b4a4a:4872 Uncaught TypeError: Cannot set properties of undefined (setting 'name')
-    at toggleVisibility (LayerItem.svelte:56:16)
-    at LayerItem.sl_icon_button_1.__click (LayerItem.svelte:94:9)
+* Use deviceDependedpixel size to avoid blur for grid lines
 
-
-# Future backlog
+* Use pixie JS for rendering
 
 * Maze tool 
 
 * Animated tiles
 
-* Use deviceDependedpixel size to avoid blur for grid lines, not very noticable
+# Frågor
 
-* Use pixie JS for rendering
+* Auto tiles ligger kvar även om alla auto tile layer är borta

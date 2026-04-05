@@ -66,11 +66,18 @@ type LayerDataComp = LayerData<PaintType.TILE> | LayerData<PaintType.AUTO_TILE>;
 
 type LayerComp = Layer<PaintType.TILE> | Layer<PaintType.AUTO_TILE>;
 
-type Layer<T extends PaintType> = {
-  id: LayerId<T>;
-  type: T;
-  name: string;
-};
+type Layer<T extends PaintType> = T extends PaintType.TILE
+  ? {
+      id: LayerId<T>;
+      type: T;
+      name: string;
+      isObjectLayer: boolean;
+    }
+  : {
+      id: LayerId<T>;
+      type: T;
+      name: string;
+    };
 
 type LayerId<T extends PaintType> = string & { __brand: T };
 
@@ -147,6 +154,7 @@ type ProjectJSONExport = {
   rows: number;
   cols: number;
   attributes: { pos: Point; attributes: { [key: string]: any } }[];
+  objects: {image: string, pos: Point, width: number, height: number, name: string, attributes: { [key: string]: any}}[]
 };
 
 type ProjectFile = {

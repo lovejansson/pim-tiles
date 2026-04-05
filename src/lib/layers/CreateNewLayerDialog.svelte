@@ -8,7 +8,7 @@
 
   type CreateLayerDialogProps = {
     open: boolean;
-    onCreate: (name: string, type: PaintType) => void;
+    onCreate: (name: string, type: PaintType, isObjectLayer?: boolean) => void;
   };
   let { open = $bindable(), onCreate }: CreateLayerDialogProps = $props();
 
@@ -16,11 +16,18 @@
     open = false;
   };
 
+  type PaintTypeExtended = 4;
+
   let name = $state("New layer");
-  let layerType: PaintType = $state(PaintType.TILE);
+  let layerType: PaintType | PaintTypeExtended = $state(PaintType.TILE);
 
   const saveLayer = () => {
-    onCreate(name, layerType);
+    if (layerType === 4) {
+      onCreate(name, PaintType.TILE, true);
+    } else {
+      onCreate(name, layerType);
+    }
+
     open = false;
   };
 </script>
@@ -56,6 +63,7 @@
   >
     <sl-radio value={PaintType.TILE}>Tile</sl-radio>
     <sl-radio value={PaintType.AUTO_TILE}>Auto tile</sl-radio>
+    <sl-radio value={4}>Object</sl-radio>
   </sl-radio-group>
 
   <sl-button variant="primary" onclick={saveLayer}>Save</sl-button>

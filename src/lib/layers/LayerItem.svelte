@@ -63,7 +63,11 @@
 </script>
 
 <div id="layer" onclick={selectLayer}>
-  {#if layer.type === PaintType.TILE}
+  {#if layer.type === PaintType.TILE && layer.isObjectLayer}
+    <sl-tooltip content="Object layer">
+      <sl-icon library="pixelarticons" name="toke-square"></sl-icon>
+    </sl-tooltip>
+  {:else if layer.type === PaintType.TILE}
     <sl-tooltip content="Tile layer">
       <sl-icon library="pixelarticons" name="chess"></sl-icon>
     </sl-tooltip>
@@ -126,7 +130,7 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    gap: 0.5rem;
+    gap: 1rem;
     padding: 0.5rem;
     padding: none;
     border: none;

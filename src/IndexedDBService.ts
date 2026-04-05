@@ -1,9 +1,7 @@
 import {
   broadcastChannelService,
-  type BroadcastChannelMessage,
 } from "./BroadcastChannelService";
 import {
-  projectState,
   projectStateEvents,
   ProjectStateEventType,
   type ProjectStateEvent,
@@ -25,16 +23,6 @@ class IndexedDBError extends Error {
     this.code = code;
   }
 }
-
-type IndexedDBUpdate = {
-  [T in StoreName]: {
-    storeName: T;
-    key: keyof IndexedDBSchema[T];
-  };
-}[StoreName];
-
-type IndexedDBBroadcastChannelMessage =
-  BroadcastChannelMessage<IndexedDBUpdate>;
 
 type IndexedDBSchema = {
   settings: {
@@ -236,14 +224,6 @@ class IndexedDBService {
             }
           },
         );
-
-        // broadcastChannelService.listen(
-        //   (event: MessageEvent<IndexedDBBroadcastChannelMessage>) => {
-        //     if (event.data.name === "indexed-db-update") {
-        //       this.handleBcEvent(event.data.data);
-        //     }
-        //   },
-        // );
         resolve();
       };
 
@@ -271,10 +251,7 @@ class IndexedDBService {
       const req = store.put(value, key as string);
 
       req.onsuccess = () => {
-        // broadcastChannelService.send({
-        //   name: "indexed-db-updated",
-        //   data: { storeName, key },
-        // });
+        broadcastChannelService.send("indexed-db-update");
         resolve();
       };
       req.onerror = () => reject(req.error);

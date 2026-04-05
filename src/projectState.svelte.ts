@@ -35,12 +35,14 @@ import {
   canvasToBlob,
   dataURLToImageBitmap,
   isSameCell,
+  isSamePos,
 } from "./utils";
 
 const DEFAULT_LAYER: TileLayer = {
   id: crypto.randomUUID() as LayerId<PaintType.TILE>,
   name: "bg",
   type: PaintType.TILE,
+  isObjectLayer: false,
 };
 
 export const guiState: GUIState = $state({
@@ -642,7 +644,6 @@ export class ProjectState {
     col: number,
     attributes: Map<string, string>,
   ): void {
-
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
@@ -814,7 +815,7 @@ export class ProjectState {
 
     return data as LayerData<T>;
   }
-  createLayer(name: string, type: PaintType) {
+  createLayer(name: string, type: PaintType, isObjectLayer: boolean = false) {
     switch (type) {
       case PaintType.TILE:
         {
@@ -824,6 +825,7 @@ export class ProjectState {
             id,
             name,
             type,
+            isObjectLayer,
           });
 
           this.layerData.set(
@@ -919,7 +921,7 @@ export class ProjectState {
   ): PaintedAsset<T> | null {
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
-        "row and/or col is out of bounds for grid",
+        `row and/or col ${row}:${col} is out of bounds for grid`,
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
 
@@ -1875,7 +1877,7 @@ export class ProjectState {
   }
 
   async getPNGExport(): Promise<Blob> {
-    const ctx = this.paintProjectToCanvas();
+    const ctx = this.paintProjectToCanvas(true);
 
     try {
       return await canvasToBlob(ctx.canvas);
@@ -1888,7 +1890,7 @@ export class ProjectState {
   }
 
   getJSONExport(): Blob {
-    const ctx = this.paintProjectToCanvas();
+    const ctx = this.paintProjectToCanvas(false);
 
     // Export a list of all tiles that have attributes and their positions.
     // Order of importance for attributes are 1. painted tile / tile instance, 2. Tile 3. Auto tile
@@ -1979,6 +1981,86 @@ export class ProjectState {
       }
     }
 
+    // Create objects based of the 'object' attributes
+
+    const objects: {
+      image: string;
+      pos: Point;
+      width: number;
+      height: number;
+      name: string;
+      attributes: { [key: string]: any };
+    }[] = [];
+
+    const attrIndexesToRemove: number[] = [];
+
+    for (const l of this.layers) {
+      if (l.type !== PaintType.TILE || !l.isObjectLayer) continue;
+
+      for (let r = 0; r < this.rows; ++r) {
+        for (let c = 0; c < this.cols; ++c) {
+          const tAttrsIdx = attributes.findIndex((a) =>
+            isSamePos(a.pos, { x: c * this.tileSize, y: r * this.tileSize }),
+          );
+
+          const tAttrs = attributes.at(tAttrsIdx);
+
+          if (
+            tAttrsIdx !== -1 &&
+            tAttrs !== undefined &&
+            tAttrs.attributes.hasOwnProperty("object") &&
+            tAttrs.attributes.hasOwnProperty("width") &&
+            tAttrs.attributes.hasOwnProperty("height")
+          ) {
+            const { object, width, height, ...rest } = tAttrs.attributes;
+            const widthInt = parseInt(width);
+            const heightInt = parseInt(height);
+            const rows = heightInt / this.tileSize;
+            const cols = widthInt / this.tileSize;
+
+            attrIndexesToRemove.push(tAttrsIdx);
+
+            const ctx = createCanvas(widthInt, heightInt);
+
+            for (let r2 = r; r2 < r + rows; ++r2) {
+              for (let c2 = c; c2 < c + cols; ++c2) {
+                const t = this.getTileAt(l.id, r2, c2);
+
+                if (t !== null) {
+                  const tileset = this.getTileset(t.ref.tilesetId);
+
+                  ctx.drawImage(
+                    tileset.spritesheet,
+                    t.ref.x,
+                    t.ref.y,
+                    this.tileSize,
+                    this.tileSize,
+                    (c2 - c) * this.tileSize,
+                    (r2 - r) * this.tileSize,
+                    this.tileSize,
+                    this.tileSize,
+                  );
+                }
+              }
+            }
+
+            objects.push({
+              image: ctx.canvas.toDataURL(),
+              name: object,
+              width: parseInt(width),
+              height: parseInt(height),
+              pos: { x: c * this.tileSize, y: r * this.tileSize },
+              attributes: rest,
+            });
+          }
+        }
+      }
+    }
+
+    const attrsExcludingObjects = attributes.filter(
+      (_, i) => !attrIndexesToRemove.includes(i),
+    );
+
     const data: ProjectStateJSONExport = {
       name: this.name,
       tileSize: this.tileSize,
@@ -1987,7 +2069,8 @@ export class ProjectState {
       rows: this.rows,
       cols: this.cols,
       tilemap: ctx.canvas.toDataURL(),
-      attributes,
+      attributes: attrsExcludingObjects,
+      objects,
     };
 
     return new Blob([JSON.stringify(data)], {
@@ -1997,7 +2080,9 @@ export class ProjectState {
 
   // Private stuff //
 
-  private paintProjectToCanvas(): CanvasRenderingContext2D {
+  private paintProjectToCanvas(
+    paintObjectLayers: boolean,
+  ): CanvasRenderingContext2D {
     const ctx = createCanvas(this.width, this.height);
 
     // Paint all tile and auto tile layers on canvas
@@ -2006,6 +2091,7 @@ export class ProjectState {
       switch (layer.type) {
         case PaintType.TILE:
           {
+            if (layer.isObjectLayer && !paintObjectLayers) continue;
             let tile: PaintedTile | null = null;
 
             for (let r = 0; r < this.rows; ++r) {
