@@ -24,7 +24,7 @@
     TilemapViewportSelectionChangeEvent,
     TilemapViewportSelectionMoveEvent,
   } from "./TilemapViewport";
-  import AttributesDialog from "./attributes/TileInstanceAttributesDialog.svelte";
+  import PaintedTileAttributesDialog from "./attributes/PaintedTileAttributesDialog.svelte";
   import { onMount } from "svelte";
   import { createCanvas } from "../utils";
 
@@ -41,7 +41,7 @@
   let container!: HTMLElement;
   let tilemapViewport!: TilemapViewport;
 
-  let canvasCache: Map<string, CanvasRenderingContext2D> = new Map();
+  let layerCache: Map<string, CanvasRenderingContext2D> = new Map();
 
   let selectionHasMovedFirstTime = false;
 
@@ -92,18 +92,22 @@
 
     tilemapViewport.addEventListener("mouse-pos", handleMousePosChange);
 
-    recreateCache(true);
+    recreateLayerCache(true);
 
     tilemapViewport.init({ center: true, resize: true });
 
-    projectStateEvents.on(ProjectStateEventType.OPEN_FILE, () => {
-      // When loading from file we need to remove all of the entries in the canvas cache for each layer and recreate the cache
-      recreateCache(true);
+    projectStateEvents.on(ProjectStateEventType.DIMENSIONS_UPDATE, () => {
+      clearLayerCache();
+      tilemapViewport.updateGridSize(
+        projectState.width,
+        projectState.height,
+        projectState.tileSize,
+        true,
+      );
     });
 
-    projectStateEvents.on(ProjectStateEventType.DIMENSIONS_UPDATE, () => {
-      // When the width, height or tilesize changes we only need to clear the contents of each cached layer
-      clearCacheCanvases();
+    projectStateEvents.on(ProjectStateEventType.OPEN_FILE, () => {
+      recreateLayerCache(true);
       tilemapViewport.updateGridSize(
         projectState.width,
         projectState.height,
@@ -113,37 +117,58 @@
     });
 
     projectStateEvents.on(ProjectStateEventType.NEW_PROJECT, () => {
-      // When the width, height or tilesize changes we only need to clear the contents of each cached layer
-      recreateCache(false);
+      recreateLayerCache(false);
+      tilemapViewport.updateGridSize(
+        projectState.width,
+        projectState.height,
+        projectState.tileSize,
+        true,
+      );
     });
 
-    projectStateEvents.on(ProjectStateEventType.AUTO_TILES_UPDATE, (e) => {
-      // When an autotile is updated the layers that is painted with those needs to be updated
+    projectStateEvents.on(ProjectStateEventType.AUTO_TILES_UPDATE, () => {
       repaintAutoTileLayers();
     });
 
-    projectStateEvents.on(ProjectStateEventType.LAYERS_UPDATE, (e) => {
+    projectStateEvents.on(ProjectStateEventType.LAYERS_UPDATE, () => {
       const addedLayers = projectState
         .getLayers()
-        .filter((l) => !canvasCache.has(l.id));
+        .filter((l) => !layerCache.has(l.id));
 
-      const deletedLayers = Array.from(canvasCache.keys()).filter(
+      const deletedLayers = Array.from(layerCache.keys()).filter(
         (k) => projectState.getLayers().find((l) => l.id === k) === undefined,
       );
 
       for (const l of addedLayers) {
         const ctx = createCanvas(projectState.width, projectState.height);
-        canvasCache.set(l.id, ctx);
+        layerCache.set(l.id, ctx);
       }
 
       for (const l of deletedLayers) {
-        canvasCache.delete(l);
+        layerCache.delete(l);
       }
     });
   });
 
-  function clearCacheCanvases() {
-    canvasCache.values().forEach((c) => {
+  $effect(() => {
+    tilemapViewport.gridColor = guiState.gridColor;
+  });
+
+  $effect(() => {
+    tilemapViewport.showGrid = guiState.showGrid;
+  });
+
+  $effect(() => {
+    if (tilemapEditorState.selectedTool === Tool.SELECT) {
+      tilemapViewport.enableSelection();
+    } else {
+      tilemapViewport.disableSelection();
+    }
+  });
+
+  function clearLayerCache() {
+    console.log("CLEARING?");
+    layerCache.values().forEach((c) => {
       c.canvas.width = projectState.width;
       c.canvas.height = projectState.height;
       c.imageSmoothingEnabled = false;
@@ -153,7 +178,7 @@
   function repaintAutoTileLayers() {
     for (const l of projectState.getLayers()) {
       if (l.type === PaintType.AUTO_TILE) {
-        const cached = canvasCache.get(l.id);
+        const cached = layerCache.get(l.id);
 
         if (cached === undefined) throw new Error("Cache for layer not found");
 
@@ -196,10 +221,10 @@
     }
   }
 
-  function recreateCache(draw: boolean = false) {
+  function recreateLayerCache(draw: boolean = false) {
     // Clear the contents of current cache and create a new entry for each layer and paint current content of the layer
 
-    canvasCache.clear();
+    layerCache.clear();
 
     for (const l of projectState.getLayers()) {
       const ctx = createCanvas(projectState.width, projectState.height);
@@ -275,29 +300,14 @@
           }
         }
       }
-      canvasCache.set(l.id, ctx);
+      layerCache.set(l.id, ctx);
     }
   }
-
-  $effect(() => {
-    tilemapViewport.gridColor = guiState.gridColor;
-  });
-
-  $effect(() => {
-    tilemapViewport.showGrid = guiState.showGrid;
-  });
-
-  $effect(() => {
-    if (tilemapEditorState.selectedTool === Tool.SELECT) {
-      tilemapViewport.enableSelection();
-    } else {
-      tilemapViewport.disableSelection();
-    }
-  });
 
   const handleSelectionChange = (e: Event) => {
     // If previously selected tiles have been moved they are painted to that location
     if (tilemapEditorState.selection.tiles.length > 0) {
+      copySelection = false; // Reset copy state for previous selection
       if (selectionHasMovedFirstTime) {
         const tilesInsideGrid = tilemapEditorState.selection.tiles.filter((t) =>
           projectState.isWithinGridBounds(t.curr.row, t.curr.col),
@@ -751,7 +761,7 @@
     for (const layer of projectState.getLayers()) {
       const data = projectState.getLayerData(layer.id);
 
-      cached = canvasCache.get(layer.id);
+      cached = layerCache.get(layer.id);
 
       if (cached === undefined)
         throw new Error("Cached canvas for layer doesn't exist!");
@@ -836,7 +846,7 @@
     let y = 0;
 
     for (const l of projectState.getLayers()) {
-      cached = canvasCache.get(l.id);
+      cached = layerCache.get(l.id);
 
       if (cached === undefined)
         throw new Error("Cached canvas for layer doesn't exist!");
@@ -914,7 +924,7 @@
 <section bind:this={container} id="tilemap-editor"></section>
 
 {#if attributesDialogIsOpen}
-  <AttributesDialog
+  <PaintedTileAttributesDialog
     bind:open={attributesDialogIsOpen}
     row={attributesCell.row}
     col={attributesCell.col}

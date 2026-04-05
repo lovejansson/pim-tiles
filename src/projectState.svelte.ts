@@ -68,6 +68,12 @@ export function updateTilemapEditorState<T extends PaintType>(
   Object.assign(tilemapEditorState, data);
 }
 
+export function setAllLayersVisible() {
+  for (const l of projectState.getLayers()) {
+    guiState.visibleLayers[l.id] = true;
+  }
+}
+
 export enum ProjectStateErrorCode {
   NOT_FOUND = "not-found",
   BAD_REQUEST = "bad-request",
@@ -95,7 +101,6 @@ export enum ProjectStateEventType {
   AUTO_TILES_UPDATE = "auto-tiles-update",
   TILESETS_UPDATE = "tilesets-update",
   LAYERS_UPDATE = "layers-update",
-  SETTINGS_UPDATE = "settings-update",
   ATTRIBUTES_UPDATE = "attributes-update",
   TILE_ATTRIBUTES_UPDATE = "tile-attributes-update",
   AUTO_TILE_ATTRIBUTES_UPDATE = "auto-tile-attributes-update",
@@ -139,7 +144,11 @@ type ProjectStateEventDetail<T extends ProjectStateEventType> =
                             tileSize: number;
                           };
                         }
-                      : null;
+                      : T extends ProjectStateEventType.OPEN_FILE
+                        ? ProjectStateMembers
+                        : T extends ProjectStateEventType.NEW_PROJECT
+                          ? ProjectStateMembers
+                          : null;
 
 export type ProjectStateEvent<T extends ProjectStateEventType> = CustomEvent<
   ProjectStateEventDetail<T>
@@ -230,7 +239,7 @@ export class ProjectState {
       if (data.attributes) this.attributes = data.attributes;
       if (data.autoTiles) this.autoTiles = data.autoTiles;
       if (data.tilesets) this.tilesets = data.tilesets;
-      if (data.name) this.name = data.name;
+      if (data.name) this._name = data.name;
 
       if (data.tileSize) this._tileSize = data.tileSize;
       if (data.width) this._width = data.width;
@@ -277,15 +286,13 @@ export class ProjectState {
           layerData: this.layerData,
         });
       }
+
+      setAllLayersVisible();
     } catch (e) {
       throw new ProjectStateError(
         "Failed to initialize state",
         ProjectStateErrorCode.SERVER_ERROR,
       );
-    }
-
-    for (const l of this.layers) {
-      guiState.visibleLayers[l.id] = true;
     }
   }
 
@@ -585,7 +592,7 @@ export class ProjectState {
 
   // Methods attributes //
 
-  getAttributes(row: number, col: number) {
+  getAttributes(row: number, col: number): Map<string, string> {
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
@@ -602,7 +609,40 @@ export class ProjectState {
     return attributes;
   }
 
-  updateAttributes(row: number, col: number, attributes: Map<string, string>) {
+  getInheritedAttributes(row: number, col: number): Map<string, string> | null {
+    for (const l of this.layers) {
+      const t = this.getTileAt(l.id, row, col);
+
+      if (t !== null) {
+        if (t.type === PaintType.TILE) {
+          try {
+            const attrs = this.getTileAttributes(t.ref);
+
+            return attrs;
+          } catch (e) {
+            // No tile attributes
+          }
+        } else if (t.type === PaintType.AUTO_TILE) {
+          try {
+            const attrs = this.getAutoTileAttributes(t.ref.id);
+
+            return attrs;
+          } catch (e) {
+            // No tile attributes
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  updateAttributes(
+    row: number,
+    col: number,
+    attributes: Map<string, string>,
+  ): void {
+
     if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
@@ -1731,7 +1771,19 @@ export class ProjectState {
 
     this.createDefaultLayers();
 
-    this.emitProjectStateMembersEvents();
+    projectStateEvents.emit(ProjectStateEventType.NEW_PROJECT, {
+      attributes: this.attributes,
+      tileAttributes: this.tileAttributes,
+      autoTileAttributes: this.autoTileAttributes,
+      autoTiles: $state.snapshot(this.autoTiles),
+      height: $state.snapshot(this._height),
+      width: $state.snapshot(this._width),
+      name: $state.snapshot(this._name),
+      layerData: this.layerData,
+      tilesets: $state.snapshot(this.tilesets),
+      layers: $state.snapshot(this.layers),
+      tileSize: $state.snapshot(this._tileSize),
+    });
   }
 
   async openFile(file: File): Promise<void> {
@@ -1800,9 +1852,19 @@ export class ProjectState {
         this.layers.push({ name: l.name, id, type: l.type } as LayerComp);
       }
 
-      projectStateEvents.emit(ProjectStateEventType.OPEN_FILE, null);
-
-      this.emitProjectStateMembersEvents();
+      projectStateEvents.emit(ProjectStateEventType.OPEN_FILE, {
+        attributes: this.attributes,
+        tileAttributes: this.tileAttributes,
+        autoTileAttributes: this.autoTileAttributes,
+        autoTiles: $state.snapshot(this.autoTiles),
+        height: $state.snapshot(this._height),
+        width: $state.snapshot(this._width),
+        name: $state.snapshot(this._name),
+        layerData: this.layerData,
+        tilesets: $state.snapshot(this.tilesets),
+        layers: $state.snapshot(this.layers),
+        tileSize: $state.snapshot(this._tileSize),
+      });
     } catch (e) {
       console.error(e);
       throw new ProjectStateError(
@@ -1829,16 +1891,14 @@ export class ProjectState {
     const ctx = this.paintProjectToCanvas();
 
     // Export a list of all tiles that have attributes and their positions.
-    // Order of importance for attributes are 1. Tile, 2. Autotile 3. painted tile / tile instance
+    // Order of importance for attributes are 1. painted tile / tile instance, 2. Tile 3. Auto tile
 
     const attributes: { pos: Point; attributes: { [k: string]: string } }[] =
       [];
 
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
-        const tileAttributes = this.hasAttributes(r, c)
-          ? this.getAttributes(r, c)
-          : new Map();
+        const tileAttributes = new Map();
 
         // Add auto tile attributes
 
@@ -1859,20 +1919,54 @@ export class ProjectState {
         }
 
         // Add tile attributes
-        for (const l of this.getLayers().filter(
-          (l) => l.type === PaintType.TILE,
-        )) {
+        for (const l of this.getLayers()) {
           const paintedAsset = this.getTileAt(l.id, r, c);
-
           if (paintedAsset === null) continue;
 
-          if (paintedAsset.type === PaintType.TILE) {
-            if (this.hasTileAttributes(paintedAsset.ref)) {
-              const tAttr = this.getTileAttributes(paintedAsset.ref);
-              for (const [k, v] of tAttr.entries()) {
-                tileAttributes.set(k, v);
+          switch (paintedAsset.type) {
+            case PaintType.TILE:
+              if (this.hasTileAttributes(paintedAsset.ref)) {
+                const tAttr = this.getTileAttributes(paintedAsset.ref);
+                for (const [k, v] of tAttr.entries()) {
+                  tileAttributes.set(k, v);
+                }
               }
-            }
+              break;
+            case PaintType.AUTO_TILE:
+              const autoTile = this.getAutoTile(paintedAsset.ref.id);
+              let tile = null;
+
+              if (paintedAsset.selectedTileRuleId !== null) {
+                const rule = autoTile.rules.find(
+                  (r) => r.id === paintedAsset.selectedTileRuleId!.id,
+                );
+                if (rule !== undefined) {
+                  tile = rule.tile.ref;
+                } else {
+                  tile = autoTile.defaultTile.ref;
+                }
+
+                if (tile !== null) {
+                  if (this.hasTileAttributes(tile)) {
+                    const attrs = this.getTileAttributes(tile);
+                    for (const [k, v] of attrs.entries()) {
+                      tileAttributes.set(k, v);
+                    }
+                  }
+                }
+              }
+
+              break;
+          }
+        }
+
+        // Add painted tile attributes
+
+        if (this.hasAttributes(r, c)) {
+          const paintedTileAttributes = this.getAttributes(r, c);
+
+          for (const [k, v] of paintedTileAttributes.entries()) {
+            tileAttributes.set(k, v);
           }
         }
 
@@ -1902,48 +1996,6 @@ export class ProjectState {
   }
 
   // Private stuff //
-
-  private emitProjectStateMembersEvents() {
-    projectStateEvents.emit(ProjectStateEventType.LAYERS_UPDATE, {
-      layers: $state.snapshot(this.layers),
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.LAYER_DATA_UPDATE, {
-      layerData: this.layerData,
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.AUTO_TILE_ATTRIBUTES_UPDATE, {
-      autoTileAttributes: this.autoTileAttributes,
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.TILE_ATTRIBUTES_UPDATE, {
-      tileAttributes: this.tileAttributes,
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.ATTRIBUTES_UPDATE, {
-      attributes: this.attributes,
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.AUTO_TILES_UPDATE, {
-      autoTiles: $state.snapshot(this.autoTiles),
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.TILESETS_UPDATE, {
-      tilesets: $state.snapshot(this.tilesets),
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.NAME_UPDATE, {
-      name: $state.snapshot(this._name),
-    });
-
-    projectStateEvents.emit(ProjectStateEventType.DIMENSIONS_UPDATE, {
-      dimensions: {
-        tileSize: $state.snapshot(this._tileSize),
-        width: $state.snapshot(this._width),
-        height: $state.snapshot(this._height),
-      },
-    });
-  }
 
   private paintProjectToCanvas(): CanvasRenderingContext2D {
     const ctx = createCanvas(this.width, this.height);

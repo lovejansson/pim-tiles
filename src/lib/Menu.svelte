@@ -2,6 +2,7 @@
   import {
     guiState,
     projectState,
+    setAllLayersVisible,
     updateTilemapEditorState,
   } from "../projectState.svelte";
   import { Tool } from "../types";
@@ -11,37 +12,27 @@
   let settingsDialogIsOpen = $state(false);
 
   const open = () => {
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = "application/json";
-    fileInput.showPicker();
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+    input.showPicker();
 
-    fileInput.addEventListener("change", async (e: Event) => {
+    input.addEventListener("change", async () => {
       try {
-        if (e.currentTarget === null)
-          alert("current Target is null unclear why");
-        const input = e.currentTarget as HTMLInputElement;
+        await projectState.openFile(input.files![0]); // .files is not null on inputs with type file
 
-        if (input.files !== null) {
-          await projectState.openFile(input.files[0]);
+        const firstLayer = projectState.getLayers()[0];
 
-          const firstLayer = projectState.getLayers()[0];
+        updateTilemapEditorState({
+          type: firstLayer.type,
+          selectedLayer: firstLayer.id,
+          fillToolIsActive: false,
+          selectedAsset: null,
+          selectedTool: Tool.PAINT,
+          selection: { tiles: [] },
+        });
 
-          updateTilemapEditorState({
-            type: firstLayer.type,
-            selectedLayer: firstLayer.id,
-            fillToolIsActive: false,
-            selectedAsset: null,
-            selectedTool: Tool.PAINT,
-            selection: { tiles: [] },
-          });
-
-          for (const l of projectState.getLayers()) {
-            guiState.visibleLayers[l.id] = true;
-          }
-        } else {
-          console.error("Why is files null?");
-        }
+        setAllLayersVisible();
       } catch (e) {
         console.error(e);
         guiState.notification = {
@@ -50,7 +41,7 @@
           title: "Failed to load file",
         };
       } finally {
-        fileInput.value = "";
+        input.value = "";
       }
     });
   };
@@ -75,7 +66,7 @@
 
   const exportJSON = () => {
     const blob = projectState.getJSONExport();
-    download(blob, projectState.name, "json");
+    download(blob, `tilemap-${projectState.name}`, "json");
   };
 
   const createNew = () => {
@@ -90,6 +81,8 @@
       selectedTool: Tool.PAINT,
       selection: { tiles: [] },
     });
+
+    setAllLayersVisible();
   };
 
   const handleMenuSelect = async (e: CustomEvent) => {

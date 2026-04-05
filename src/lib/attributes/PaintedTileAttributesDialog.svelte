@@ -12,6 +12,8 @@
 
   let { open = $bindable(), row, col }: AttributesDialogProps = $props();
 
+  console.log("ARE WE HEREdasd")
+
   const getAttributesArray = (row: number, col: number) => {
     try {
       const attributes = projectState.getAttributes(row, col);
@@ -21,11 +23,26 @@
     }
   };
 
+  const getInheritedAttributes = (row: number, col: number) => {
+    console.log("JFKSL")
+    const attributes = projectState.getInheritedAttributes(row, col);
+    if (attributes !== null) {
+      return Array.from(attributes.entries());
+    }
+
+    return [];
+  };
+
   // Using an array of tuples since the Map is not reactive!
-  let attributes: [string, string][] = $state( getAttributesArray(row, col),
+  let attributes: [string, string][] = $state(getAttributesArray(row, col));
+
+  let inheritedAttributes: [string, string][] = $state(
+    getInheritedAttributes(row, col),
   );
 
   const save = () => {
+       console.log("SAVE2");
+
     if (attributes.length > 0) {
       projectState.updateAttributes(row, col, new Map(attributes));
     } else if (projectState.hasAttributes(row, col)) {
@@ -38,5 +55,6 @@
   title={`Tile attributes for r${row} c${col}`}
   onSave={save}
   bind:attributes
+  inheritedAttributes={inheritedAttributes}
   bind:open
 />

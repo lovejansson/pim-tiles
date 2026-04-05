@@ -8,6 +8,7 @@
   type AttributesDialogProps = {
     title: string;
     attributes: [string, string][];
+    inheritedAttributes?: [string, string][];
     onSave: () => void;
     open: boolean;
     img?: string;
@@ -17,12 +18,14 @@
     title,
     open = $bindable(),
     attributes = $bindable(),
+    inheritedAttributes,
     onSave,
     img,
   }: AttributesDialogProps = $props();
 
   let deleteButtons: SlIconButton[] = $state([]);
   let focusBtnIdx: number | null = $state(null);
+  let attributeNameEls: SlInput[] = $state([]);
 
   $effect(() => {
     if (focusBtnIdx !== null) {
@@ -48,6 +51,10 @@
     countNameNew > 0
       ? attributes.push([`new(${countNameNew})`, ""])
       : attributes.push(["new", ""]);
+
+    requestAnimationFrame(() => {
+      attributeNameEls[attributes.length - 1].focus();
+    });
   };
 
   const deleteAttribute = (idx: number) => {
@@ -89,11 +96,22 @@
   {/if}
 
   <section id="section-attributes">
+    {#if inheritedAttributes?.length}
+      <p style="font-size: smaller;margin:0;">Inherited from tile or autotile</p>
+      {#each inheritedAttributes as [key, value]}
+        <li class="attribute inherited-attribute">
+          <sl-input disabled label="Name" type="text" value={key}></sl-input>
+          <sl-input disabled label="Value" type="text" {value}></sl-input>
+        </li>
+      {/each}
+    {/if}
+
     {#if attributes.length > 0}
       <ul id="attributes">
         {#each attributes as [key, value], idx}
           <li class="attribute">
             <sl-input
+              bind:this={attributeNameEls[idx]}
               label="Name"
               type="text"
               value={key}

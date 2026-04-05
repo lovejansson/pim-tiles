@@ -1,3 +1,4 @@
+import { SlInput } from "@shoelace-style/shoelace";
 import { type Cell, type Point } from "../types";
 import { isPointInRect } from "../utils";
 
@@ -583,6 +584,8 @@ export default class TilemapViewport extends EventTarget {
       this.isSelectionEnabled(this.selectionSettings)
     ) {
       addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.target instanceof SlInput) return; // Ignore all key downs if user is typing
+
         if (!this.isPanEnabled(this.panSettings)) return;
 
         if (e.key === this.panSettings.key) {
@@ -609,6 +612,7 @@ export default class TilemapViewport extends EventTarget {
       });
 
       addEventListener("keyup", (e: KeyboardEvent) => {
+        if (e.target instanceof SlInput) return; // Ignore all key downs if user is typing
         if (!this.isPanEnabled(this.panSettings)) return;
 
         if (e.key === this.panSettings.key) {

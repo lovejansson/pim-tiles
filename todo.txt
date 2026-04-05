@@ -1,28 +1,31 @@
 # Todo 
 
-* Build GB town
+* Create object layer
+
+* Build GB town 
 
 # Bugs 
 
-* När man lägger dit nya lager så försvinner reaktiviteten för t.ex. is visible och får detta error: 
+# Improvements 
 
-chunk-YUTDRR6G.js?v=db1b4a4a:4872 Uncaught TypeError: Cannot set properties of undefined (setting 'name')
-    at toggleVisibility (LayerItem.svelte:56:16)
-    at LayerItem.sl_icon_button_1.__click (LayerItem.svelte:94:9)
+* Sync of changes in indexed db between tabs
 
-    Probably something with the DND kit again that is bad
-
-* Svelte reactivity for conditional attributes don't work with dnd reordering of layers. There are workarounds in place now.
+* Auto tiles finns kvar även om alla auto tile lager är borta, oklart om det ska vara så
 
 * Selection for bigger areas is a bit slow and selection contains some bugs about grid bounds. Problems that arise when testing edge cases like moving and copying bigger areas 
 
-# Improvements 
+* make it possible to change dimensions without wiping the canvas, place current content inside of new dimensions 
+and choose where to start drawing the old content, 
 
-* Use pixie JS for rendering maybe
+* Lägg till feature för enkla aritmetiska beräkningar i inputs, / * + och - 
 
-* To fill areas with rect instead of flood fill
+* To fill areas with rect instead of flood fill 
 
-* Replace the DND kit if it doesn't work
+* Replace the DND kit if it doesn't work, has problems with reactivity UI on several places like the eye icon not working at all
+---------> chunk-YUTDRR6G.js?v=db1b4a4a:4872 Uncaught TypeError: Cannot set properties of undefined (setting 'name')
+    at toggleVisibility (LayerItem.svelte:56:16)
+    at LayerItem.sl_icon_button_1.__click (LayerItem.svelte:94:9)
+
 
 # Future backlog
 
@@ -32,3 +35,4 @@ chunk-YUTDRR6G.js?v=db1b4a4a:4872 Uncaught TypeError: Cannot set properties of u
 
 * Use deviceDependedpixel size to avoid blur for grid lines, not very noticable
 
+* Use pixie JS for rendering

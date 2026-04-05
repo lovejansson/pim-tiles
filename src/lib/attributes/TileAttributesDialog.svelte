@@ -21,6 +21,8 @@
     }
   };
 
+    console.log("ARE WE HERE F")
+
   // Using an array of tuples since the Map is not reactive!
   let attributes: [string, string][] = $state(
     tile !== undefined ? getTileAttributesArray(tile) : [],

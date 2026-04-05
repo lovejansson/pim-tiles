@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { indexedDBService } from "./indexedDB";
+  import { indexedDBService } from "./IndexedDBService";
   import {
     projectState,
     type ProjectStateMembers,

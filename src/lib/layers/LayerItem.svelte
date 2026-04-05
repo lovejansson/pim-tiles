@@ -7,6 +7,7 @@
   } from "../../projectState.svelte";
   import { PaintType, Tool, type LayerComp } from "../../types";
   import EditableText from "../common/EditableText.svelte";
+  import ConfirmDialog from "../common/ConfirmDialog.svelte";
 
   type LayerItemProps = {
     layer: LayerComp;
@@ -20,6 +21,7 @@
 
   let name = $state(layer.name);
   let isEditingName = $state(false);
+  let confirmDialogIsOpen = $state(false);
 
   $effect(() => {
     if (name !== layer.name) onRename(name);
@@ -50,6 +52,14 @@
       icon.name = "eye";
     }
   };
+
+  const handleConfirm = () => {
+    onDelete();
+  };
+
+  const handleCancel = () => {
+    confirmDialogIsOpen = false;
+  };
 </script>
 
 <div id="layer" onclick={selectLayer}>
@@ -66,7 +76,7 @@
   <EditableText
     bind:isEditing={isEditingName}
     bind:text={name}
-    inputWidth="100%"
+    inputWidth="fit-content"
   />
 
   <sl-button-group>
@@ -75,7 +85,7 @@
       name="edit"
       onclick={(e: MouseEvent) => {
         e.stopPropagation();
-        isEditingName = true;
+        isEditingName = !isEditingName;
       }}
     >
     </sl-icon-button>
@@ -94,13 +104,21 @@
       library="pixelarticons"
       name="close"
       onclick={(e: MouseEvent) => {
+        confirmDialogIsOpen = true;
         e.stopPropagation();
-        onDelete();
       }}
     >
     </sl-icon-button>
   </sl-button-group>
 </div>
+
+<ConfirmDialog
+  open={confirmDialogIsOpen}
+  label="Delete layer"
+  msg="Deleting a layer will erase the painted tilemap and is irreversable. Are you sure you want to do that?"
+  cancel={handleCancel}
+  confirm={handleConfirm}
+/>
 
 <style lang="postcss">
   #layer {

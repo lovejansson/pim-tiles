@@ -1,7 +1,13 @@
 import {
+  broadcastChannelService,
+  type BroadcastChannelMessage,
+} from "./BroadcastChannelService";
+import {
+  projectState,
   projectStateEvents,
   ProjectStateEventType,
   type ProjectStateEvent,
+  type ProjectStateMembers,
 } from "./projectState.svelte";
 import type { AutoTile, LayerComp, LayerDataComp, Tileset } from "./types";
 
@@ -19,6 +25,57 @@ class IndexedDBError extends Error {
     this.code = code;
   }
 }
+
+type IndexedDBUpdate = {
+  [T in StoreName]: {
+    storeName: T;
+    key: keyof IndexedDBSchema[T];
+  };
+}[StoreName];
+
+type IndexedDBBroadcastChannelMessage =
+  BroadcastChannelMessage<IndexedDBUpdate>;
+
+type IndexedDBSchema = {
+  settings: {
+    name: { name: string };
+    dimensions: {
+      width: number;
+      height: number;
+      tileSize: number;
+    };
+  };
+  layers: {
+    layers: LayerComp[];
+  };
+  tilesets: {
+    tilesets: Tileset[];
+  };
+  autoTiles: {
+    autoTiles: AutoTile[];
+  };
+  attributes: {
+    attributes: [string, Map<string, string>][];
+  };
+  tileAttributes: {
+    tileAttributes: [string, Map<string, string>][];
+  };
+  autoTileAttributes: {
+    autoTileAttributes: [string, Map<string, string>][];
+  };
+  layerData: {
+    layerData: [string, LayerDataComp][];
+  };
+};
+
+type StoreName = keyof IndexedDBSchema;
+
+type StoreKey<T extends StoreName> = keyof IndexedDBSchema[T];
+
+type StoreValue<
+  T extends StoreName,
+  K extends StoreKey<T>,
+> = IndexedDBSchema[T][K];
 
 class IndexedDBService {
   private db: IDBDatabase | null = null;
@@ -111,6 +168,7 @@ class IndexedDBService {
           ProjectStateEventType.ATTRIBUTES_UPDATE,
           (e: ProjectStateEvent<ProjectStateEventType.ATTRIBUTES_UPDATE>) => {
             try {
+           
               indexedDBService.setAttributes(e.detail.attributes);
             } catch (err) {
               console.error(err);
@@ -157,6 +215,35 @@ class IndexedDBService {
           },
         );
 
+        projectStateEvents.on(
+          ProjectStateEventType.OPEN_FILE,
+          (e: ProjectStateEvent<ProjectStateEventType.OPEN_FILE>) => {
+            try {
+              indexedDBService.setAll(e.detail);
+            } catch (err) {
+              console.error(err);
+            }
+          },
+        );
+
+        projectStateEvents.on(
+          ProjectStateEventType.NEW_PROJECT,
+          (e: ProjectStateEvent<ProjectStateEventType.NEW_PROJECT>) => {
+            try {
+              indexedDBService.setAll(e.detail);
+            } catch (err) {
+              console.error(err);
+            }
+          },
+        );
+
+        // broadcastChannelService.listen(
+        //   (event: MessageEvent<IndexedDBBroadcastChannelMessage>) => {
+        //     if (event.data.name === "indexed-db-update") {
+        //       this.handleBcEvent(event.data.data);
+        //     }
+        //   },
+        // );
         resolve();
       };
 
@@ -164,7 +251,11 @@ class IndexedDBService {
     });
   }
 
-  private put<T>(storeName: string, key: string, value: T): Promise<void> {
+  private put<T extends StoreName, K extends StoreKey<T>>(
+    storeName: T,
+    key: K,
+    value: StoreValue<T, K>,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
         return reject(
@@ -177,18 +268,23 @@ class IndexedDBService {
 
       const tx = this.db.transaction([storeName], "readwrite");
       const store = tx.objectStore(storeName);
-      const req = store.put(value, key);
+      const req = store.put(value, key as string);
 
       req.onsuccess = () => {
+        // broadcastChannelService.send({
+        //   name: "indexed-db-updated",
+        //   data: { storeName, key },
+        // });
         resolve();
       };
-      req.onerror = () => {
-        reject(req.error);
-      };
+      req.onerror = () => reject(req.error);
     });
   }
 
-  private get<T>(storeName: string, key: string): Promise<T | undefined> {
+  private get<T extends StoreName, K extends StoreKey<T>>(
+    storeName: T,
+    key: K,
+  ): Promise<StoreValue<T, K> | undefined> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
         return reject(
@@ -201,11 +297,29 @@ class IndexedDBService {
 
       const tx = this.db.transaction([storeName], "readonly");
       const store = tx.objectStore(storeName);
-      const req = store.get(key);
+      const req = store.get(key as string);
 
-      req.onsuccess = () => resolve(req.result as T | undefined);
+      req.onsuccess = () => resolve(req.result as StoreValue<T, K> | undefined);
       req.onerror = () => reject(req.error);
     });
+  }
+
+  private async setAll(data: ProjectStateMembers): Promise<void> {
+    await Promise.all([
+      this.setName(data.name),
+      this.setDimensions({
+        width: data.width,
+        height: data.height,
+        tileSize: data.tileSize,
+      }),
+      this.setLayers(data.layers),
+      this.setTilesets(data.tilesets),
+      this.setAutoTiles(data.autoTiles),
+      this.setAttributes(data.attributes),
+      this.setTileAttributes(data.tileAttributes),
+      this.setAutoTileAttributes(data.autoTileAttributes),
+      this.setLayerData(data.layerData),
+    ]);
   }
 
   setDimensions(dimensions: {
@@ -219,10 +333,7 @@ class IndexedDBService {
   getDimensions(): Promise<
     { width: number; height: number; tileSize: number } | undefined
   > {
-    return this.get<{ width: number; height: number; tileSize: number }>(
-      "settings",
-      "dimensions",
-    );
+    return this.get("settings", "dimensions");
   }
 
   setName(name: string): Promise<void> {
@@ -230,9 +341,7 @@ class IndexedDBService {
   }
 
   getName(): Promise<string | undefined> {
-    return this.get<{ name: string }>("settings", "name").then(
-      (res) => res?.name,
-    );
+    return this.get("settings", "name").then((res) => res?.name);
   }
 
   setLayers(layers: LayerComp[]): Promise<void> {
@@ -240,7 +349,7 @@ class IndexedDBService {
   }
 
   getLayers(): Promise<LayerComp[] | undefined> {
-    return this.get<LayerComp[]>("layers", "layers");
+    return this.get("layers", "layers");
   }
 
   setTilesets(tilesets: Tileset[]): Promise<void> {
@@ -248,7 +357,7 @@ class IndexedDBService {
   }
 
   getTilesets(): Promise<Tileset[] | undefined> {
-    return this.get<Tileset[]>("tilesets", "tilesets");
+    return this.get("tilesets", "tilesets");
   }
 
   setAutoTiles(autoTiles: AutoTile[]): Promise<void> {
@@ -256,7 +365,7 @@ class IndexedDBService {
   }
 
   getAutoTiles(): Promise<AutoTile[] | undefined> {
-    return this.get<AutoTile[]>("autoTiles", "autoTiles");
+    return this.get("autoTiles", "autoTiles");
   }
 
   setAttributes(attributes: Map<string, Map<string, string>>): Promise<void> {
@@ -268,10 +377,9 @@ class IndexedDBService {
   }
 
   getAttributes(): Promise<Map<string, Map<string, string>> | undefined> {
-    return this.get<[string, Map<string, string>][]>(
-      "attributes",
-      "attributes",
-    ).then((data) => (data ? new Map(data) : undefined));
+    return this.get("attributes", "attributes").then((data) =>
+      data ? new Map(data) : undefined,
+    );
   }
 
   setTileAttributes(
@@ -285,10 +393,9 @@ class IndexedDBService {
   }
 
   getTileAttributes(): Promise<Map<string, Map<string, string>> | undefined> {
-    return this.get<[string, Map<string, string>][]>(
-      "tileAttributes",
-      "tileAttributes",
-    ).then((data) => (data ? new Map(data) : undefined));
+    return this.get("tileAttributes", "tileAttributes").then((data) =>
+      data ? new Map(data) : undefined,
+    );
   }
 
   setAutoTileAttributes(
@@ -304,10 +411,9 @@ class IndexedDBService {
   getAutoTileAttributes(): Promise<
     Map<string, Map<string, string>> | undefined
   > {
-    return this.get<[string, Map<string, string>][]>(
-      "autoTileAttributes",
-      "autoTileAttributes",
-    ).then((data) => (data ? new Map(data) : undefined));
+    return this.get("autoTileAttributes", "autoTileAttributes").then((data) =>
+      data ? new Map(data) : undefined,
+    );
   }
 
   setLayerData(layerData: Map<string, LayerDataComp>): Promise<void> {
@@ -315,8 +421,8 @@ class IndexedDBService {
   }
 
   getLayerData(): Promise<Map<string, LayerDataComp> | undefined> {
-    return this.get<[string, LayerDataComp][]>("layerData", "layerData").then(
-      (data) => (data ? new Map(data) : undefined),
+    return this.get("layerData", "layerData").then((data) =>
+      data ? new Map(data) : undefined,
     );
   }
 }
