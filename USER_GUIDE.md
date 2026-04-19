@@ -10,13 +10,13 @@ Tile size is limited to 16 or 32 pixels, and the number of rows and columns is l
 
 ## Layers
 
-There are two types of layers: **tile layers** and **autotile layers**.
+There are three types of layers: **tile layers**, **autotile layers** and **object layers**.
 
-Depending on which layer type is selected in the Layers list, you can paint using different assets.
+Depending on which layer type is selected in the Layers list, you can paint using different assets and the layers have different exports.
 
 ## Assets
 
-There are two types of assets: **tilesets**, and **autotiles**.
+There are two types of assets: **tilesets**, and **autotiles**. You paint with tiles on tile layers and object layers while auto tiles are used on auto tile layers.
 
 ### Tilesets
 
@@ -62,7 +62,12 @@ There are three levels of attributes that a tile in the tilemap can inherit from
 - **Autotile attributes** – Attributes for an autotile, can be edited in the auto tile dialog. All tiles included in the autotile inherits this attribute.
 - **Tile attributes** – Attributes for the tile asset, can be edited by right clicking the tile in the tileset canvas.
 
-The order of importance in case of name collisions are: painted tile attributes, tile attributes, autotile attributes.
+The precdence in case of name collisions are: painted tile attributes, tile attributes, autotile attributes.
+
+## Objects
+
+Object layers works almost the same as tile layers, but are exported as objects and not a part of the static tilemap. To create an object you add the 'object' attribute to a tile with its name as the value, in the tileset canvas or a painted tile on the tilemap. Width and height are also mandatory for this to work. The objects are exported as a list of objects with their name, dimensions, a base64 image and the rest of the attributes for the tile that you marked as an object. The image for the object is a merged image
+of all the object layers for that object, i.e. overlapping objects are not supported. This is a WIP feature!
 
 ## Export
 

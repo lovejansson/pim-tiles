@@ -63,7 +63,7 @@
 </script>
 
 <div id="layer" onclick={selectLayer}>
-  {#if layer.type === PaintType.TILE && layer.isObjectLayer}
+  {#if layer.type === PaintType.OBJECT }
     <sl-tooltip content="Object layer">
       <sl-icon library="pixelarticons" name="toke-square"></sl-icon>
     </sl-tooltip>

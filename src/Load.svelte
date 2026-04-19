@@ -17,6 +17,7 @@
         attributes,
         autoTiles,
         tilesets,
+        objects,
         name,
         dimensions,
       ] = await Promise.all([
@@ -27,6 +28,7 @@
         indexedDBService.getAttributes(),
         indexedDBService.getAutoTiles(),
         indexedDBService.getTilesets(),
+        indexedDBService.getObjects(),
         indexedDBService.getName(),
         indexedDBService.getDimensions(),
       ]);
@@ -42,6 +44,7 @@
       if (attributes !== undefined) partialState.attributes = attributes;
       if (autoTiles !== undefined) partialState.autoTiles = autoTiles;
       if (tilesets !== undefined) partialState.tilesets = tilesets;
+      if (objects !== undefined) partialState.objects = objects;
       if (name !== undefined) partialState.name = name;
       if (dimensions !== undefined) {
         partialState.tileSize = dimensions.tileSize;
@@ -50,6 +53,7 @@
       }
 
       projectState.init(partialState);
+
 
       loading = false;
     });

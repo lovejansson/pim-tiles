@@ -1,4 +1,4 @@
-import type { Cell, Point, Rect } from "./types";
+import type { Cell, Vec2, Rect } from "./types";
 
 function createCanvas(width: number, height: number) {
   const canvas = document.createElement("canvas");
@@ -33,7 +33,7 @@ async function dataURLToImageBitmap(dataURL: string) {
   return await createImageBitmap(blob);
 }
 
-function isPointInRect(point: Point, rect: Rect) {
+function isPointInRect(point: Vec2, rect: Rect) {
   return (
     point.x > rect.x &&
     point.x < rect.x + rect.width &&
@@ -95,7 +95,7 @@ function isSameCell(cell1: Cell, cell2: Cell) {
   return cell1.row === cell2.row && cell1.col === cell2.col;
 }
 
-function isSamePos(pos1: Point, pos2: Point) {
+function isSamePos(pos1: Vec2, pos2: Vec2) {
   return pos1.x === pos2.x && pos1.y === pos2.y;
 }
 

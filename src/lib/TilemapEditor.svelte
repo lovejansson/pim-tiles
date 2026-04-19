@@ -271,6 +271,7 @@
                 ] as PaintedAutoTile | null;
 
                 if (paintedAutoTile !== null) {
+                  console.log(paintedAutoTile, l.name);
                   const autoTile = projectState.getAutoTile(
                     paintedAutoTile.ref.id,
                   );

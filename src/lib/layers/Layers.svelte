@@ -88,8 +88,8 @@
   const renameLayer = (id: string, name: string) => {
     projectState.updateLayer(id, name);
   };
-  const createLayer = (name: string, type: PaintType, isObjectLayer: boolean = false) => {
-    projectState.createLayer(name, type, isObjectLayer);
+  const createLayer = (name: string, type: PaintType) => {
+    projectState.createLayer(name, type);
     layers = projectState.getLayers();
   };
 
@@ -170,6 +170,11 @@
   #layers {
     display: flex;
     flex-direction: column;
+
+  }
+  ul {
+        max-height: 400px;
+    overflow-y: auto;
   }
 
   li {

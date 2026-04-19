@@ -17,9 +17,10 @@
   type TilesCanvasProps = {
     tileset: Tileset;
     onSelect: (selectedTiles: TileAsset[]) => void;
+    initialSelection?: Tile[];
   };
 
-  let { tileset, onSelect }: TilesCanvasProps = $props();
+  let { tileset, onSelect, initialSelection = [] }: TilesCanvasProps = $props();
 
   let container!: HTMLDivElement;
   let tilemapViewport!: TilemapViewport;
@@ -27,6 +28,10 @@
   let attributesDialogIsOpen = $state(false);
 
   let attributesTile: Tile | null = $state(null);
+
+  function draw(ctx: CanvasRenderingContext2D) {
+    ctx.drawImage(tileset.spritesheet, 0, 0);
+  }
 
   onMount(() => {
     if (container === undefined) return;
@@ -49,6 +54,7 @@
     });
 
     const ro = new ResizeObserver(([entry]) => {
+
       if (entry.contentRect.width === 0) return;
       tilemapViewport.width = entry.contentRect.width;
       tilemapViewport.height = entry.contentRect.height;
@@ -61,6 +67,11 @@
       });
 
       tilemapViewport.addEventListener("right-click", handleCanvasRightClick);
+
+      // Set initial selection if provided
+      if (initialSelection.length > 0) {
+        setInitialSelection(initialSelection);
+      }
     });
 
     ro.observe(container);
@@ -71,6 +82,7 @@
   });
 
   $effect(() => {
+    if (!tilemapViewport) return;
     tilemapViewport.updateGridSize(
       tileset.width,
       tileset.height,
@@ -97,6 +109,19 @@
     }
   };
 
+  const setInitialSelection = (tiles: Tile[]) => {
+    if (tiles.length === 0 || !tilemapViewport) return;
+
+    // Convert tiles to cells
+    const cells: Cell[] = tiles.map(tile => ({
+      col: tile.x / projectState.tileSize,
+      row: tile.y / projectState.tileSize
+    }));
+
+    // Set the selection on the viewport
+    tilemapViewport.setSelection(cells);
+  };
+
   const handleCanvasRightClick = (e: Event) => {
     const { row, col } = (e as TilemapViewportRightClickEvent).cell;
 
@@ -107,10 +132,6 @@
     };
     attributesDialogIsOpen = true;
   };
-
-  function draw(ctx: CanvasRenderingContext2D) {
-    ctx.drawImage(tileset.spritesheet, 0, 0);
-  }
 </script>
 
 <div bind:this={container}></div>

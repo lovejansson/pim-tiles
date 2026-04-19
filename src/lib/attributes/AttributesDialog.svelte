@@ -4,6 +4,7 @@
     SlInput,
     type SlChangeEvent,
   } from "@shoelace-style/shoelace";
+  import { evaluateArithmeticExpr } from "../../arithmeticParser";
 
   type AttributesDialogProps = {
     title: string;
@@ -97,7 +98,9 @@
 
   <section id="section-attributes">
     {#if inheritedAttributes?.length}
-      <p style="font-size: smaller;margin:0;">Inherited from tile or autotile</p>
+      <p style="font-size: smaller;margin:0;">
+        Inherited from tile or autotile
+      </p>
       {#each inheritedAttributes as [key, value]}
         <li class="attribute inherited-attribute">
           <sl-input disabled label="Name" type="text" value={key}></sl-input>
@@ -123,7 +126,14 @@
             <sl-input
               onsl-change={(e: SlChangeEvent) => {
                 if (e.target === null) return;
-                updateAttributeValue(idx, (e.target as SlInput).value);
+                const value = (e.target as SlInput).value;
+                try {
+                  const res = evaluateArithmeticExpr(value);
+                  updateAttributeValue(idx,"");
+                  updateAttributeValue(idx, res.toString());
+                } catch (e) {
+                  updateAttributeValue(idx, value);
+                }
               }}
               label="Value"
               type="text"
@@ -140,7 +150,8 @@
           </li>
         {/each}
       </ul>
-    {:else}
+    {/if}
+    {#if !attributes.length && !inheritedAttributes?.length}
       <div id="no-attributes-added">
         <p>No attributes added.</p>
       </div>

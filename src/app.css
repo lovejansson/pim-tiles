@@ -92,6 +92,15 @@
   --sl-input-placeholder-color-disabled: var(--color-2);
 
   --sl-input-border-color: var(--color-2);
+
+  /* Button padding */
+  --sl-button-font-size-small: var(--sl-font-size-x-small);
+  --sl-button-font-size-medium: var(--sl-font-size-small);
+  --sl-button-font-size-large: var(--sl-font-size-medium);
+
+  --sl-button-padding-small: 0.5rem 0.75rem;
+  --sl-button-padding-medium: 0.75rem 1rem;
+  --sl-button-padding-large: 1rem 1.25rem;
 }
 
 * {

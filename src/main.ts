@@ -3,6 +3,7 @@ import "@shoelace-style/shoelace/dist/themes/light.css";
 import { setBasePath, registerIconLibrary } from "@shoelace-style/shoelace";
 import App from "./App.svelte";
 import "./app.css";
+import { evaluateArithmeticExpr } from "./arithmeticParser";
 
 setBasePath(
   "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/",

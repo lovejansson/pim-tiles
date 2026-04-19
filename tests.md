@@ -49,4 +49,3 @@
 | --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
 | Attributes | Create attributes for painted tile, tile and auto-tile                                         | OK     |                                                   |
 | Attributes | The order of importance for attributes in case of collide is tile > auto-tile > painted tile   | OK     |                                                   |
-

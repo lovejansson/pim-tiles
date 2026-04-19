@@ -1,5 +1,5 @@
 import { SlInput } from "@shoelace-style/shoelace";
-import { type Cell, type Point } from "../types";
+import { type Cell, type Vec2 } from "../types";
 import { isPointInRect } from "../utils";
 
 type ZoomSettings = {
@@ -68,9 +68,9 @@ export class TilemapViewportSelectionMoveStartEvent extends Event {
 }
 
 export class TilemapViewportSelectionMoveEvent extends Event {
-  delta: Point;
+  delta: Vec2;
 
-  constructor(delta: Point) {
+  constructor(delta: Vec2) {
     super("selection-move");
     this.delta = delta;
   }
@@ -120,14 +120,14 @@ enum MouseActionType {
 }
 
 type MouseActionData<T> = T extends MouseActionType.SELECT
-  ? { pos: Point; selection: SelectionRect }
+  ? { pos: Vec2; selection: SelectionRect }
   : T extends MouseActionType.PAN
-    ? { startPos: Point; startTranslation: Point }
+    ? { startPos: Vec2; startTranslation: Vec2 }
     : T extends MouseActionType.PAINT
       ? { lastPaintedTile: Cell }
       : T extends MouseActionType.MOVE_SELECTION
         ? {
-            startPos: Point;
+            startPos: Vec2;
             selection: SelectionRect;
             startSelection: SelectionRect;
           }
@@ -165,7 +165,7 @@ export default class TilemapViewport extends EventTarget {
   private ctxOverlay: CanvasRenderingContext2D;
 
   zoom: number;
-  private translation: Point;
+  private translation: Vec2;
 
   private zoomSettings: ZoomSettings | null;
   private panSettings: PanSettings | null;
@@ -322,6 +322,30 @@ export default class TilemapViewport extends EventTarget {
       this.selectionSettings.isActive = false;
       this.selection = null;
     }
+  }
+
+  setSelection(cells: Cell[]) {
+    if (!this.isSelectionEnabled(this.selectionSettings) || cells.length === 0) {
+      this.selection = null;
+      this.dispatchEvent(new TilemapViewportSelectionChangeEvent(null));
+      return;
+    }
+
+    // Find bounds of cells
+    const minCol = Math.min(...cells.map(c => c.col));
+    const maxCol = Math.max(...cells.map(c => c.col));
+    const minRow = Math.min(...cells.map(c => c.row));
+    const maxRow = Math.max(...cells.map(c => c.row));
+
+    // Convert to world coordinates
+    const tileSize = this.gridSettings.tileSize;
+    const x1 = minCol * tileSize;
+    const y1 = minRow * tileSize;
+    const x2 = (maxCol + 1) * tileSize;
+    const y2 = (maxRow + 1) * tileSize;
+
+    this.selection = { x1, y1, x2, y2 };
+    this.dispatchEvent(new TilemapViewportSelectionChangeEvent(cells));
   }
 
   init(options?: { center?: boolean; resize?: boolean }) {
@@ -832,8 +856,8 @@ export default class TilemapViewport extends EventTarget {
     clientX: number,
     clientY: number,
   ): {
-    canvasPos: Point;
-    worldPos: Point;
+    canvasPos: Vec2;
+    worldPos: Vec2;
     tile: Cell;
     isWithinGridBounds: boolean;
   } {
@@ -898,7 +922,7 @@ export default class TilemapViewport extends EventTarget {
     return rect;
   }
 
-  private getWorldPos(pos: Point) {
+  private getWorldPos(pos: Vec2) {
     // Uses the inverse translation matrix to convert a position on the canvas/screen to the world.
     const inv = this.ctx.getTransform().invertSelf();
     const p = new DOMPoint(pos.x, pos.y).matrixTransform(inv);

@@ -12,8 +12,6 @@
 
   let { open = $bindable(), row, col }: AttributesDialogProps = $props();
 
-  console.log("ARE WE HEREdasd")
-
   const getAttributesArray = (row: number, col: number) => {
     try {
       const attributes = projectState.getAttributes(row, col);
@@ -24,7 +22,6 @@
   };
 
   const getInheritedAttributes = (row: number, col: number) => {
-    console.log("JFKSL")
     const attributes = projectState.getInheritedAttributes(row, col);
     if (attributes !== null) {
       return Array.from(attributes.entries());

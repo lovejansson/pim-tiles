@@ -12,6 +12,7 @@
     ProjectStateEventType,
   } from "../projectState.svelte";
   import ConfirmDialog from "./common/ConfirmDialog.svelte";
+  import { evaluateArithmeticExpr } from "../arithmeticParser";
 
   let { open = $bindable() } = $props();
 
@@ -122,12 +123,19 @@
       onsl-change={(e: SlChangeEvent) => {
         if (colsError !== null) colsError = null;
         if (e.target) {
-          cols = Math.round(+(e.target as SlInput).value);
+          const value = (e.target as SlInput).value;
+          try {
+            const res = evaluateArithmeticExpr(value);
+            cols = 0; // Reset so that user can type in same expression 1+ times and still see the evaluated result.
+            cols = res;
+          } catch (e) {
+            cols = 0;
+          }
         }
       }}
       no-spin-buttons
       label="Cols"
-      type="number"
+      type="text"
       value={cols}
     >
       <span slot="suffix">tiles</span>
@@ -142,12 +150,19 @@
       onsl-change={(e: SlChangeEvent) => {
         if (rowError !== null) rowError = null;
         if (e.target) {
-          rows = Math.round(+(e.target as SlInput).value);
+          const value = (e.target as SlInput).value;
+          try {
+            const res = evaluateArithmeticExpr(value);
+            rows = 0; // Reset so that user can type in same expression 1+ times and still see the evaluated result.
+            rows = res;
+          } catch (e) {
+            rows = 0;
+          }
         }
       }}
       no-spin-buttons
       label="Rows"
-      type="number"
+      type="text"
       value={rows}
     >
       <span slot="suffix">tiles</span>

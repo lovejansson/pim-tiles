@@ -7,6 +7,7 @@
   import Tilesets from "./tilesets/Tilesets.svelte";
   import Tools from "./Tools.svelte";
   import Menu from "./Menu.svelte";
+  import Objects from "./objects/Objects.svelte";
 </script>
 
 <section id="toolbar">
@@ -38,6 +39,9 @@
   {:else if tilemapEditorState.type === PaintType.AUTO_TILE}
     <Tools />
     <AutoTiles />
+  {:else if tilemapEditorState.type === PaintType.OBJECT}
+    <Tools />
+    <Objects />
   {/if}
 </section>
 

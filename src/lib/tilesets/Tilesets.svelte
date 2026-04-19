@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { guiState, projectState, tilemapEditorState } from "../../projectState.svelte";
+  import {
+    guiState,
+    projectState,
+    tilemapEditorState,
+  } from "../../projectState.svelte";
   import FilePicker from "../common/FilePicker.svelte";
   import TilesetTab from "./TilesetTab.svelte";
   import TilesCanvas from "./TilesetCanvas.svelte";
@@ -76,10 +80,7 @@
           /></sl-tab
         >
         <sl-tab-panel name={tileset.name}>
-          <TilesCanvas
-            {tileset}
-            onSelect={handleOnSelectTiles}
-          />
+          <TilesCanvas {tileset} onSelect={handleOnSelectTiles} />
         </sl-tab-panel>
       {/each}
     </sl-tab-group>

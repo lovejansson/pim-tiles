@@ -1,13 +1,17 @@
-import {
-  broadcastChannelService,
-} from "./BroadcastChannelService";
+import { broadcastChannelService } from "./BroadcastChannelService";
 import {
   projectStateEvents,
   ProjectStateEventType,
   type ProjectStateEvent,
   type ProjectStateMembers,
 } from "./projectState.svelte";
-import type { AutoTile, LayerComp, LayerDataComp, Tileset } from "./types";
+import type {
+  AutoTile,
+  LayerComp,
+  LayerDataComp,
+  Object,
+  Tileset,
+} from "./types";
 
 enum IndexedDBErrorCode {
   DB_NOT_INITIALIZED = "db-not-initialized",
@@ -42,6 +46,9 @@ type IndexedDBSchema = {
   autoTiles: {
     autoTiles: AutoTile[];
   };
+  objects: {
+    objects: Object[];
+  };
   attributes: {
     attributes: [string, Map<string, string>][];
   };
@@ -57,7 +64,6 @@ type IndexedDBSchema = {
 };
 
 type StoreName = keyof IndexedDBSchema;
-
 type StoreKey<T extends StoreName> = keyof IndexedDBSchema[T];
 
 type StoreValue<
@@ -83,6 +89,8 @@ class IndexedDBService {
           db.createObjectStore("tilesets");
         if (!db.objectStoreNames.contains("autoTiles"))
           db.createObjectStore("autoTiles");
+        if (!db.objectStoreNames.contains("objects"))
+          db.createObjectStore("objects");
         if (!db.objectStoreNames.contains("attributes"))
           db.createObjectStore("attributes");
         if (!db.objectStoreNames.contains("tileAttributes"))
@@ -153,10 +161,20 @@ class IndexedDBService {
         );
 
         projectStateEvents.on(
+          ProjectStateEventType.OBJECTS_UPDATE,
+          (e: ProjectStateEvent<ProjectStateEventType.OBJECTS_UPDATE>) => {
+            try {
+              indexedDBService.setObjects(e.detail.objects);
+            } catch (err) {
+              console.error(err);
+            }
+          },
+        );
+
+        projectStateEvents.on(
           ProjectStateEventType.ATTRIBUTES_UPDATE,
           (e: ProjectStateEvent<ProjectStateEventType.ATTRIBUTES_UPDATE>) => {
             try {
-           
               indexedDBService.setAttributes(e.detail.attributes);
             } catch (err) {
               console.error(err);
@@ -292,6 +310,7 @@ class IndexedDBService {
       this.setLayers(data.layers),
       this.setTilesets(data.tilesets),
       this.setAutoTiles(data.autoTiles),
+      this.setObjects(data.objects),
       this.setAttributes(data.attributes),
       this.setTileAttributes(data.tileAttributes),
       this.setAutoTileAttributes(data.autoTileAttributes),
@@ -343,6 +362,14 @@ class IndexedDBService {
 
   getAutoTiles(): Promise<AutoTile[] | undefined> {
     return this.get("autoTiles", "autoTiles");
+  }
+
+  setObjects(objects: Object[]): Promise<void> {
+    return this.put("objects", "objects", objects);
+  }
+
+  getObjects(): Promise<Object[] | undefined> {
+    return this.get("objects", "objects");
   }
 
   setAttributes(attributes: Map<string, Map<string, string>>): Promise<void> {
