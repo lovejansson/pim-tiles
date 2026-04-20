@@ -9,6 +9,7 @@
   } from "../../types";
   import { guiState, projectState } from "../../projectState.svelte";
   import TilemapViewport, {
+    type SelectionTileRect,
     TilemapViewportRightClickEvent,
     TilemapViewportSelectionChangeEvent,
   } from "../TilemapViewport";
@@ -37,7 +38,7 @@
     if (container === undefined) return;
 
     tilemapViewport = new TilemapViewport(container, {
-      zoom: { min: 0.5, max: 4.0, speed: 0.375 },
+      zoom: { min: 0.5, max: 4.0, speed: 0.25 },
       pan: { key: " " },
       grid: {
         tileSize: projectState.tileSize,
@@ -63,7 +64,7 @@
       tilemapViewport.init();
 
       tilemapViewport.addEventListener("selection-change", (e) => {
-        updateSelectedTiles((e as TilemapViewportSelectionChangeEvent).tiles);
+        updateSelectedTiles((e as TilemapViewportSelectionChangeEvent).rect);
       });
 
       tilemapViewport.addEventListener("right-click", handleCanvasRightClick);
@@ -90,23 +91,28 @@
     );
   });
 
-  const updateSelectedTiles = (tiles: Cell[] | null) => {
-    if (tiles !== null) {
-      const selectedTiles: TileAsset[] = [];
+  const updateSelectedTiles = (rect: SelectionTileRect | null) => {
+    if (rect === null) {
+      onSelect([]);
+      return;
+    }
 
-      for (const t of tiles) {
+    const selectedTiles: TileAsset[] = [];
+
+    for (let row = rect.minRow; row <= rect.maxRow; ++row) {
+      for (let col = rect.minCol; col <= rect.maxCol; ++col) {
         selectedTiles.push({
           type: PaintType.TILE,
           ref: {
             tilesetId: tileset.id,
-            x: t.col * projectState.tileSize,
-            y: t.row * projectState.tileSize,
+            x: col * projectState.tileSize,
+            y: row * projectState.tileSize,
           },
         });
       }
-
-      onSelect(selectedTiles);
     }
+
+    onSelect(selectedTiles);
   };
 
   const setInitialSelection = (tiles: Tile[]) => {

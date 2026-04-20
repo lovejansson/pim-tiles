@@ -34,6 +34,13 @@ export type SelectionRect = {
   y2: number;
 };
 
+export type SelectionTileRect = {
+  minRow: number;
+  maxRow: number;
+  minCol: number;
+  maxCol: number;
+};
+
 export type TilemapViewportOptions = {
   zoom?: ZoomSettings;
   pan?: PanSettings;
@@ -53,10 +60,12 @@ export class TilemapViewportPaintEvent extends Event {
 }
 
 export class TilemapViewportSelectionChangeEvent extends Event {
+  rect: SelectionTileRect | null;
   tiles: Cell[] | null;
 
-  constructor(tiles: Cell[] | null) {
+  constructor(rect: SelectionTileRect | null, tiles: Cell[] | null = null) {
     super("selection-change");
+    this.rect = rect;
     this.tiles = tiles;
   }
 }
@@ -68,11 +77,13 @@ export class TilemapViewportSelectionMoveStartEvent extends Event {
 }
 
 export class TilemapViewportSelectionMoveEvent extends Event {
-  delta: Vec2;
+  rowDelta: number;
+  colDelta: number;
 
-  constructor(delta: Vec2) {
+  constructor(rowDelta: number, colDelta: number) {
     super("selection-move");
-    this.delta = delta;
+    this.rowDelta = rowDelta;
+    this.colDelta = colDelta;
   }
 }
 
@@ -327,7 +338,7 @@ export default class TilemapViewport extends EventTarget {
   setSelection(cells: Cell[]) {
     if (!this.isSelectionEnabled(this.selectionSettings) || cells.length === 0) {
       this.selection = null;
-      this.dispatchEvent(new TilemapViewportSelectionChangeEvent(null));
+      this.dispatchEvent(new TilemapViewportSelectionChangeEvent(null, null));
       return;
     }
 
@@ -345,7 +356,12 @@ export default class TilemapViewport extends EventTarget {
     const y2 = (maxRow + 1) * tileSize;
 
     this.selection = { x1, y1, x2, y2 };
-    this.dispatchEvent(new TilemapViewportSelectionChangeEvent(cells));
+    this.dispatchEvent(
+      new TilemapViewportSelectionChangeEvent(
+        { minRow, maxRow, minCol, maxCol },
+        cells,
+      ),
+    );
   }
 
   init(options?: { center?: boolean; resize?: boolean }) {
@@ -693,7 +709,7 @@ export default class TilemapViewport extends EventTarget {
                 // Else start new selection
               } else {
                 this.dispatchEvent(
-                  new TilemapViewportSelectionChangeEvent(null),
+                  new TilemapViewportSelectionChangeEvent(null, null),
                 );
                 this.mouseAction = {
                   type: MouseActionType.SELECT,
@@ -746,6 +762,7 @@ export default class TilemapViewport extends EventTarget {
                 const dxSnapped =
                   Math.round(dx / this.gridSettings.tileSize) *
                   this.gridSettings.tileSize;
+                const colDelta = dxSnapped / this.gridSettings.tileSize;
                 this.mouseAction.data.selection.x1 =
                   this.mouseAction.data.startSelection.x1 + dxSnapped;
                 this.mouseAction.data.selection.x2 =
@@ -754,16 +771,17 @@ export default class TilemapViewport extends EventTarget {
                 const dySnapped =
                   Math.round(dy / this.gridSettings.tileSize) *
                   this.gridSettings.tileSize;
+                const rowDelta = dySnapped / this.gridSettings.tileSize;
                 this.mouseAction.data.selection.y1 =
                   this.mouseAction.data.startSelection.y1 + dySnapped;
                 this.mouseAction.data.selection.y2 =
                   this.mouseAction.data.startSelection.y2 + dySnapped;
 
                 this.dispatchEvent(
-                  new TilemapViewportSelectionMoveEvent({
-                    x: dxSnapped,
-                    y: dySnapped,
-                  }),
+                  new TilemapViewportSelectionMoveEvent(
+                    rowDelta,
+                    colDelta,
+                  ),
                 );
               }
 
@@ -798,34 +816,37 @@ export default class TilemapViewport extends EventTarget {
       addEventListener("mouseup", (_: MouseEvent) => {
         if (this.isMouseDown(this.mouseAction)) {
           if (this.mouseAction.type === MouseActionType.SELECT) {
-            const tiles: Cell[] = [];
-
             const selection = this.mouseAction.data.selection;
+            const tileSize = this.gridSettings.tileSize;
 
             const minX = Math.max(0, Math.min(selection.x1, selection.x2));
             const maxX = Math.min(
-              this.gridSettings.width - 1,
+              this.gridSettings.width,
               Math.max(selection.x1, selection.x2),
             );
             const minY = Math.max(0, Math.min(selection.y1, selection.y2));
             const maxY = Math.min(
-              this.gridSettings.height - 1,
+              this.gridSettings.height,
               Math.max(selection.y1, selection.y2),
             );
 
-            let row = 0;
-            let col = 0;
+            if (maxX <= minX || maxY <= minY) {
+              this.dispatchEvent(new TilemapViewportSelectionChangeEvent(null));
+            } else {
+              const minCol = Math.floor(minX / tileSize);
+              const maxCol = Math.floor((maxX - 1) / tileSize);
+              const minRow = Math.floor(minY / tileSize);
+              const maxRow = Math.floor((maxY - 1) / tileSize);
 
-            for (let y = minY; y < maxY; y += this.gridSettings.tileSize) {
-              for (let x = minX; x < maxX; x += this.gridSettings.tileSize) {
-                row = Math.floor(y / this.gridSettings.tileSize);
-                col = Math.floor(x / this.gridSettings.tileSize);
-
-                tiles.push({ row, col });
-              }
+              this.dispatchEvent(
+                new TilemapViewportSelectionChangeEvent({
+                  minRow,
+                  maxRow,
+                  minCol,
+                  maxCol,
+                }),
+              );
             }
-
-            this.dispatchEvent(new TilemapViewportSelectionChangeEvent(tiles));
           } else if (this.mouseAction.type === MouseActionType.MOVE_SELECTION) {
             this.dispatchEvent(new TilemapViewportSelectionMoveEndEvent());
           }
@@ -876,9 +897,9 @@ export default class TilemapViewport extends EventTarget {
 
     const isWithinGridBounds =
       worldPos.x >= 0 &&
-      worldPos.x <= this.gridSettings.width &&
+      worldPos.x < this.gridSettings.width &&
       worldPos.y >= 0 &&
-      worldPos.y <= this.gridSettings.height;
+      worldPos.y < this.gridSettings.height;
 
     return {
       canvasPos: { x, y },

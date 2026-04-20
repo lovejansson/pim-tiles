@@ -20,9 +20,11 @@
       const name = file.name.split(".")[0];
       const bitmap = await createImageBitmap(file);
 
+      const sameNamePattern = new RegExp(`${name}\(\d\)?`) ;
+
       const numSameName = projectState
         .getTilesets()
-        .reduce((count, t) => (t.name === name ? (count += 1) : count), 0);
+        .reduce((count, t) => (sameNamePattern.test(t.name) ? (count += 1) : count), 0);
 
       projectState.createTileset(
         numSameName > 0 ? `${name} (${numSameName})` : name,

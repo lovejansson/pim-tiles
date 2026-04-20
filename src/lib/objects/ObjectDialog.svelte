@@ -12,6 +12,7 @@
     Tile,
     TileAsset,
   } from "../../types";
+  import { createCanvas } from "../../utils";
 
   type ObjectDialogProps = {
     open: boolean;
@@ -23,7 +24,7 @@
 
   let name = $state("");
   let category: ObjectCategory = $state("other");
-  let tiles: Tile[] = $state([]);
+  let image: { bitmap: ImageBitmap; tiles: Tile[] } | null = $state(null);
   let width = $state(0);
   let height = $state(0);
   let selectedTilesetIdx = $state(0);
@@ -33,47 +34,49 @@
   const resetForm = () => {
     name = object?.name ?? "";
     category = object?.category ?? "other";
-    tiles = object?.tiles?.slice() ?? [];
+    image = object?.image ?? null;
     width = object?.width ?? 0;
     height = object?.height ?? 0;
+    image = object?.image ?? null;
 
-    
-
-    if (tiles.length > 0) {
+    if (image !== null) {
       const tilesets = projectState.getTilesets();
-      const firstTilesetId = tiles[0].tilesetId;
+      const firstTilesetId = image.tiles[0].tilesetId;
       const idx = tilesets.findIndex((t) => t.id === firstTilesetId);
       selectedTilesetIdx = idx === -1 ? 0 : idx;
-      drawSelectedTiles();
+      drawObjectImage();
     } else {
       selectedTilesetIdx = 0;
     }
   };
 
-  const handleSelectTiles = (selectedTiles: TileAsset[]) => {
-    tiles = selectedTiles
+  const handleSelectTiles = async (selectedTiles: TileAsset[]) => {
+    const tiles = selectedTiles
       .slice()
       .sort((a, b) => a.ref.y - b.ref.y || a.ref.x - b.ref.x)
       .map((tile) => tile.ref);
 
-    computeDimensions();
-    drawSelectedTiles();
+    const { w, h } = computeDimensions(tiles);
+
+    width = w;
+    height = h;
+
+    const bitmap = await createObjectImage(tiles);
+
+    image = { bitmap, tiles };
+
+    drawObjectImage();
   };
 
-  function drawSelectedTiles() {
-    imageCanvas!.width = width;
-    imageCanvas!.height = height;
-    
-    const ctx = imageCanvas!.getContext("2d");
-
-    ctx!.imageSmoothingEnabled = false;
+  async function createObjectImage(tiles: Tile[]): Promise<ImageBitmap> {
+    const ctx = createCanvas(width, height);
 
     const minX = Math.min(...tiles.map((t) => t.x));
     const minY = Math.min(...tiles.map((t) => t.y));
 
     for (const t of tiles) {
       const tileset = projectState.getTileset(t.tilesetId);
-      ctx?.drawImage(
+      ctx.drawImage(
         tileset.spritesheet,
         t.x,
         t.y,
@@ -86,16 +89,21 @@
       );
     }
 
-
+    return await createImageBitmap(ctx.canvas);
   }
 
-  function computeDimensions() {
-    if (tiles.length === 0) {
-      width = 0;
-      height = 0;
-      return;
-    }
+  function drawObjectImage() {
+    if (image === null) throw new Error("Image is null");
+    if (imageCanvas === null) throw new Error("Image canvas is null");
+    imageCanvas.width = width;
+    imageCanvas.height = height;
+    const ctx = imageCanvas!.getContext("2d");
+    if (ctx === null) throw new Error("ctx for image canvas is null");
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(image.bitmap, 0, 0, image.bitmap.width, image.bitmap.height);
+  }
 
+  function computeDimensions(tiles: Tile[]): { w: number; h: number } {
     const tileSize = projectState.tileSize;
     const cols = tiles.map((tile) => tile.x / tileSize);
     const rows = tiles.map((tile) => tile.y / tileSize);
@@ -104,8 +112,10 @@
     const minRow = Math.min(...rows);
     const maxRow = Math.max(...rows);
 
-    width = (maxCol - minCol + 1) * tileSize;
-    height = (maxRow - minRow + 1) * tileSize;
+    return {
+      w: (maxCol - minCol + 1) * tileSize,
+      h: (maxRow - minRow + 1) * tileSize,
+    };
   }
 
   const hide = () => {
@@ -113,19 +123,22 @@
   };
 
   const save = () => {
+    if (!(name.trim().length > 0 && width > 0 && height > 0 && image !== null))
+      return;
     onSave({
-      id: object?.id ?? crypto.randomUUID(),
+      id: object?.id ?? "",
       name: name.trim(),
       category,
       width,
       height,
-      tiles,
+      image,
     });
     hide();
   };
 
-  const canSave = () =>
-    name.trim().length > 0 && width > 0 && height > 0 && tiles.length > 0;
+  const isValid = $derived.by(() => {
+    return name.trim().length > 0 && width > 0 && height > 0 && image !== null;
+  });
 </script>
 
 <sl-dialog
@@ -196,7 +209,7 @@
               <sl-tab-panel name={tileset.id}>
                 <TilesetCanvas
                   {tileset}
-                  initialSelection={tiles.filter(
+                  initialSelection={image?.tiles.filter(
                     (t) => t.tilesetId === tileset.id,
                   )}
                   onSelect={handleSelectTiles}
@@ -225,7 +238,7 @@
   <sl-button
     slot="footer"
     variant="primary"
-    disabled={!canSave()}
+    disabled={!isValid}
     onclick={save}
   >
     Save
@@ -237,7 +250,6 @@
 </sl-dialog>
 
 <style>
-
   sl-dialog::part(body) {
     display: flex;
     flex-direction: column;

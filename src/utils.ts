@@ -33,6 +33,12 @@ async function dataURLToImageBitmap(dataURL: string) {
   return await createImageBitmap(blob);
 }
 
+function imageBitmapToDataURL(imageBitmap: ImageBitmap) {
+  const ctx = createCanvas(imageBitmap.width, imageBitmap.height);
+
+  return ctx.canvas.toDataURL();
+}
+
 function isPointInRect(point: Vec2, rect: Rect) {
   return (
     point.x > rect.x &&
@@ -108,4 +114,5 @@ export {
   createCanvas,
   download,
   isSamePos,
+  imageBitmapToDataURL
 };

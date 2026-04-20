@@ -38,8 +38,6 @@
   );
 
   const save = () => {
-       console.log("SAVE2");
-
     if (attributes.length > 0) {
       projectState.updateAttributes(row, col, new Map(attributes));
     } else if (projectState.hasAttributes(row, col)) {
@@ -52,6 +50,6 @@
   title={`Tile attributes for r${row} c${col}`}
   onSave={save}
   bind:attributes
-  inheritedAttributes={inheritedAttributes}
+  {inheritedAttributes}
   bind:open
 />

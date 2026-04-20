@@ -50,7 +50,7 @@
         object.name,
         object.width,
         object.height,
-        object.tiles,
+        object.image,
         object.category,
       );
     }

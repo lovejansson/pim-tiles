@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tilemapEditorState } from "../projectState.svelte";
-  import { Tool } from "../types";
+  import { PaintType, Tool } from "../types";
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement | null)?.localName === "sl-input") return;
@@ -10,10 +10,10 @@
         tilemapEditorState.selectedTool = Tool.PAINT;
         break;
       case "w":
-        tilemapEditorState.selectedTool = Tool.ERASE;
+        tilemapEditorState.selectedTool = Tool.SELECT;
         break;
       case "e":
-        tilemapEditorState.selectedTool = Tool.SELECT;
+        tilemapEditorState.selectedTool = Tool.ERASE;
         break;
       case "r":
         tilemapEditorState.fillToolIsActive =
@@ -30,42 +30,42 @@
   <sl-button-group label="Tools">
     <sl-tooltip content="Tile paint (Q)">
       <sl-button
-       size="large"
+        size="large"
         class:selected-tool={tilemapEditorState.selectedTool === Tool.PAINT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.PAINT)}
-        ><sl-icon library="pixelarticons" name="edit" label="Tile paint"
+        ><sl-icon library="pixelarticons" name="edit" label="Paint"
         ></sl-icon></sl-button
       >
     </sl-tooltip>
 
-    <sl-tooltip content="Erase (W)">
+    <sl-tooltip content="Selection (W)">
       <sl-button
-       size="large"
-        class:selected-tool={tilemapEditorState.selectedTool === Tool.ERASE}
-        onclick={() => (tilemapEditorState.selectedTool = Tool.ERASE)}
-        ><sl-icon
-          library="pixelarticons"
-          name="layout-sidebar-left"
-          label="Erase"
-        ></sl-icon></sl-button
-      >
-    </sl-tooltip>
-
-    <sl-tooltip content="Selection (E)">
-      <sl-button
-       size="large"
+        size="large"
         class:selected-tool={tilemapEditorState.selectedTool === Tool.SELECT}
         onclick={() => (tilemapEditorState.selectedTool = Tool.SELECT)}
         ><sl-icon library="pixelarticons" name="drop-area" label="Select"
         ></sl-icon></sl-button
       >
     </sl-tooltip>
+    {#if tilemapEditorState.type === PaintType.AUTO_TILE || tilemapEditorState.type === PaintType.TILE}
+      <sl-tooltip content="Erase (E)">
+        <sl-button
+          size="large"
+          class:selected-tool={tilemapEditorState.selectedTool === Tool.ERASE}
+          onclick={() => (tilemapEditorState.selectedTool = Tool.ERASE)}
+          ><sl-icon
+            library="pixelarticons"
+            name="layout-sidebar-left"
+            label="Erase"
+          ></sl-icon></sl-button
+        >
+      </sl-tooltip>
+    {/if}
   </sl-button-group>
 
   <sl-button-group label="Modifiers">
     <sl-tooltip content="Fill tool (R)">
       <sl-button
-      
         class:selected-tool={tilemapEditorState.fillToolIsActive}
         onclick={() =>
           (tilemapEditorState.fillToolIsActive =

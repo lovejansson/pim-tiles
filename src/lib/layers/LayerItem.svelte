@@ -2,6 +2,7 @@
   import type { SlIconButton } from "@shoelace-style/shoelace";
   import {
     guiState,
+    projectState,
     tilemapEditorState,
     updateTilemapEditorState,
   } from "../../projectState.svelte";
@@ -15,7 +16,8 @@
     onRename: (name: string) => void;
   };
 
-  let { layer, onDelete, onRename }: LayerItemProps = $props();
+  let { layer, onDelete, onRename }: LayerItemProps =
+    $props();
 
   let icon: SlIconButton;
 
@@ -108,7 +110,11 @@
       library="pixelarticons"
       name="close"
       onclick={(e: MouseEvent) => {
-        confirmDialogIsOpen = true;
+        if (projectState.hasPaintedLayerData(layer.id)) {
+          confirmDialogIsOpen = true;
+        } else {
+          onDelete();
+        }
         e.stopPropagation();
       }}
     >

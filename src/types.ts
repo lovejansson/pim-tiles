@@ -20,25 +20,29 @@ type Vec2 = {
 
 /**
  *
- * Måla med ett objekt i tilemap editor: Ska placera objektetes tiles där man klickar, måste uppdatera projectState och så 
- * 
+ * Måla med ett objekt i tilemap editor: Ska placera objektetes tiles där man klickar, måste uppdatera projectState och så
+ *
  * Selection på objekt layer
- * 
+ *
+ * Radera detta objekt? mkt mer lättare att göra det utan erase tool, så "paint tool" kommer placera objektet vid en tile
+ *
+ * om man vill radera så får man markera ett eller flera objekt och trycka på delete eller backspace, det hör till selection
+ *
  *
  */
 
-type ObjectCategory =
-  | "houses"
-  | "nature"
-  | "decorations"
-  | "other";
+type ObjectCategory = "houses" | "nature" | "decorations" | "other";
 
 type Object = {
   id: string;
   name: string;
+
   width: number;
   height: number;
-  tiles: Tile[];
+  image: {
+    tiles: Tile[];
+    bitmap: ImageBitmap;
+  };
   category: ObjectCategory;
 };
 
@@ -48,7 +52,7 @@ type ObjectJSON = {
   height: number;
   pos: Vec2;
   name: string;
-}
+};
 
 type Cell = {
   row: number;
@@ -93,14 +97,19 @@ type PaintedAsset<T extends PaintType> = T extends PaintType.AUTO_TILE
   ? AssetRefT<T> & { readonly selectedTileRuleId: IdRef | null }
   : AssetRefT<T>;
 
-type LayerData<T extends PaintType> = (PaintedAsset<T> | null)[][];
+type LayerData<T extends PaintType> = T extends PaintType.OBJECT
+  ? Map<string, PaintedAsset<T>>
+  : (PaintedAsset<T> | null)[][];
 
 type LayerDataComp =
   | LayerData<PaintType.TILE>
   | LayerData<PaintType.AUTO_TILE>
   | LayerData<PaintType.OBJECT>;
 
-type LayerComp = Layer<PaintType.TILE> | Layer<PaintType.AUTO_TILE> | Layer<PaintType.OBJECT>;
+type LayerComp =
+  | Layer<PaintType.TILE>
+  | Layer<PaintType.AUTO_TILE>
+  | Layer<PaintType.OBJECT>;
 
 type Layer<T extends PaintType> = {
   id: LayerId<T>;
@@ -110,7 +119,10 @@ type Layer<T extends PaintType> = {
 
 type LayerId<T extends PaintType> = string & { __brand: T };
 
+type ObjectLayerId = LayerId<PaintType.OBJECT>;
+
 type PaintedTile = PaintedAsset<PaintType.TILE>;
+type PaintedObject = PaintedAsset<PaintType.OBJECT>;
 type PaintedAutoTile = PaintedAsset<PaintType.AUTO_TILE>;
 
 type TileLayer = Layer<PaintType.TILE>;
@@ -152,7 +164,6 @@ type SelectedAsset<T extends PaintType> = T extends PaintType.TILE
 type Selection<T extends PaintType> = {
   tiles: {
     org: Cell;
-    prev: Cell;
     curr: Cell;
     tile: PaintedAsset<T>;
   }[];
@@ -210,15 +221,16 @@ type Notification = {
   msg: string;
 };
 
-type HistoryEntryData<T extends PaintType> = PaintedAsset<T>;
+type HistoryEntryPaint<T extends PaintType> = PaintedAsset<T>;
 
 type HistoryEntryItem<T extends PaintType> = {
-  data: HistoryEntryData<T> | null;
+  data: HistoryEntryPaint<T> | null;
   pos: Cell;
 };
 
 type TileHistoryEntryItem = HistoryEntryItem<PaintType.TILE>;
 type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
+type ObjectHistoryEntryItem = HistoryEntryItem<PaintType.OBJECT>;
 
 type HistoryEntryT<T extends PaintType> = {
   type: T;
@@ -227,14 +239,27 @@ type HistoryEntryT<T extends PaintType> = {
   items: HistoryEntryItem<T>[];
 };
 
+type HistoryStackPopT<T extends PaintType> = {
+  prev: HistoryEntryT<T>;
+  curr: HistoryEntryT<T>;
+};
+
 type TileHistoryEntry = HistoryEntryT<PaintType.TILE>;
 type AutoTileHistoryEntry = HistoryEntryT<PaintType.AUTO_TILE>;
-
-type HistoryEntry = TileHistoryEntry | AutoTileHistoryEntry;
+type ObjectHistoryEntry = HistoryEntryT<PaintType.OBJECT>;
+type HistoryStackPop =
+  | HistoryStackPopT<PaintType.AUTO_TILE>
+  | HistoryStackPopT<PaintType.TILE>
+  | HistoryStackPopT<PaintType.OBJECT>;
+type HistoryEntry =
+  | TileHistoryEntry
+  | AutoTileHistoryEntry
+  | ObjectHistoryEntry;
 
 export {
   type ProjectJSONExport as ProjectStateJSONExport,
   type PaintedTile,
+  type PaintedObject,
   type PaintedAutoTile,
   type PaintedAsset,
   type Layer,
@@ -243,6 +268,8 @@ export {
   type LayerComp,
   type AutoTileHistoryEntryItem,
   type TileHistoryEntryItem,
+  type ObjectHistoryEntryItem,
+  type HistoryStackPop,
   PaintType,
   Tool,
   TileRequirement,
@@ -268,6 +295,7 @@ export {
   type IdRef,
   type AutoTileLayer,
   type LayerId,
+  type ObjectLayerId,
   type Object,
   type ObjectCategory,
   type ObjectJSON,

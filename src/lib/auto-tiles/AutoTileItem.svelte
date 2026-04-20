@@ -1,5 +1,10 @@
 <script lang="ts">
-  import {  projectState, tilemapEditorState } from "../../projectState.svelte";
+  import {
+    guiState,
+    projectState,
+    ProjectStateError,
+    tilemapEditorState,
+  } from "../../projectState.svelte";
   import {
     type AutoTile,
     PaintType,
@@ -11,12 +16,14 @@
     autoTile: AutoTile;
   };
 
-  const editorState = $derived.by((): TilemapEditorState<PaintType.AUTO_TILE> => {
-    if (tilemapEditorState.type === PaintType.AUTO_TILE)
-      return tilemapEditorState;
+  const editorState = $derived.by(
+    (): TilemapEditorState<PaintType.AUTO_TILE> => {
+      if (tilemapEditorState.type === PaintType.AUTO_TILE)
+        return tilemapEditorState;
 
-    throw new Error("Invalid UI state");
-  });
+      throw new Error("Invalid UI state");
+    },
+  );
 
   let { autoTile }: Props = $props();
 
@@ -56,7 +63,19 @@
       name="close"
       onclick={(e: MouseEvent) => {
         e.stopPropagation();
-        projectState.deleteAutoTile(autoTile.id);
+        try {
+          projectState.deleteAutoTile(autoTile.id);
+        } catch (e) {
+          if (e instanceof ProjectStateError) {
+            guiState.notification = {
+              variant: "danger",
+              title: "Delete autotile",
+              msg: e.message,
+            };
+          } else {
+            throw e
+          }
+        }
       }}
     >
     </sl-icon-button>

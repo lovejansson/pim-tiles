@@ -3,7 +3,7 @@
   import type { Tile } from "../../types";
   import AttributesDialog from "./AttributesDialog.svelte";
 
-  // This is the dialog for editing attributes for a tile's attributes 
+  // This is the dialog for editing attributes for a tile's attributes
 
   type TileAttributesDialogProps = {
     tile: Tile;
@@ -20,8 +20,6 @@
       return [];
     }
   };
-
-    console.log("ARE WE HERE F")
 
   // Using an array of tuples since the Map is not reactive!
   let attributes: [string, string][] = $state(

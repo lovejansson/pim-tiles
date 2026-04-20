@@ -173,7 +173,7 @@
 
   }
   ul {
-        max-height: 400px;
+      max-height: 280px;
     overflow-y: auto;
   }
 

@@ -3,7 +3,7 @@ import {
   projectStateEvents,
   ProjectStateEventType,
 } from "./projectState.svelte";
-import type { HistoryEntry } from "./types";
+import type { HistoryEntry, HistoryStackPop } from "./types";
 
 export const HistoryStack = (() => {
   // History management
@@ -57,32 +57,35 @@ export const HistoryStack = (() => {
     }
   });
 
-  const repaint = () => {
-    const entry = history[currIdx];
-
-    if (!entry) return;
+  const repaint = (): HistoryEntry => {
+    const entry = history.at(currIdx);
+    if(entry === undefined) throw new Error("History corrupted");
 
     for (const i of entry.items) {
       projectState.setTile(entry.layerId, i.pos.row, i.pos.col, i.data);
     }
 
-    return entry.items.map((i) => i.pos);
+    return entry;
   };
 
   return {
-    undo() {
-      if (currIdx <= 0) return;
+ 
+    undo(): HistoryStackPop | null {
+      if (currIdx <= 0) return null;
+      const curr = history[currIdx];
       currIdx--; // First repaint what was previously done
-      const tiles = repaint();
+      const entry = repaint();
       currIdx--; // Move to the previous state
-      return tiles;
+      return { curr: entry, prev: curr } as HistoryStackPop;
     },
 
-    redo() {
-      if (currIdx === history.length - 1) return;
+    redo(): HistoryStackPop | null {
+      if (currIdx === history.length - 1) return null;
+      const curr = history[currIdx];
       currIdx += 2; // Advance by two to redo the next action
-      const tiles = repaint();
-      return tiles;
+      const entry = repaint();
+      return { curr: entry, prev: curr } as HistoryStackPop;
     },
   };
 })();
+

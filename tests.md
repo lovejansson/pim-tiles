@@ -40,6 +40,15 @@
 | Autotile   | Delete auto tile                                                                               | OK     |                                                   |
 | Autotile   | Auto tiles can't be deleted if they are used in tilemap                                        | Ok     |                                                   |
 | --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
+| Object     | Create an object, make sure it has a name, image and category.                                 | OK     |                                                   |
+| Object     | Edit an object                                                                                 | OK     |                                                   |
+| Object     | Delete an object                                                                               | OK     |                                                   |
+| Object     | Paint an object on the map                                                                     | OK     |                                                   |
+| Object     | Select object to copy, move or delete                                                          | OK     |                                                   |
+| Object     | Tools available for objects are paint and selection                                            | OK     |                                                   |
+| Object     | Delete auto tile                                                                               | OK     |                                                   |
+| Object     | Auto tiles can't be deleted if they are used in tilemap                                        | Ok     |                                                   |
+| --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
 | Tilemap    | Paint with 1 or more tiles                                                                     | OK     |                                                   |
 | Tilemap    | Paint with an auto tile and see how the neighbours update according to rules                   | OK     |                                                   |
 | Tilemap    | Fill tool can be used to fill tiles on tile layers on tile layers                              | OK     |                                                   |
@@ -48,4 +57,7 @@
 | Tilemap    | Tilemap view is initially rendered with grid centered                                          | OK     |                                                   |
 | --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
 | Attributes | Create attributes for painted tile, tile and auto-tile                                         | OK     |                                                   |
-| Attributes | The order of importance for attributes in case of collide is tile > auto-tile > painted tile   | OK     |                                                   |
+| Attributes | The order of importance for attributes in case of collide is auto-tile > tile > painted tile   | OK     |                                                   |
+| --------   | ------------------------------------------------------------------------                       | ------ | ----                                              |
+| Indexed DB | All CRUD operations on project state syncs with updating indexed DB 'pim-tiles'                | OK     |                                                   |
+| Indexed DB | If another tab has edited the db a warning alert will prompt the user to reload the page       | OK     |                                                   |

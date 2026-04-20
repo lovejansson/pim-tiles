@@ -2,39 +2,33 @@
 
 * Build GB town 
 
-* Better UX for object layer
-
 # Bugs 
-
-* Selection for bigger areas is a bit slow and selection contains some bugs about grid bounds. Problems that arise when testing edge cases like moving and copying bigger areas 
 
 * Replace the DND kit if it doesn't work, has problems with reactivity UI on several places like the eye icon not working at all
 ---------> chunk-YUTDRR6G.js?v=db1b4a4a:4872 Uncaught TypeError: Cannot set properties of undefined (setting 'name')
     at toggleVisibility (LayerItem.svelte:56:16)
     at LayerItem.sl_icon_button_1.__click (LayerItem.svelte:94:9)
 
-
-* Auto tile rule "excluded" accounts for when neighbour is out of bounds also, but it shouldnt?
-* Auto tile rule "requried" don't acount for when neighbour is out of bounds, it should account it as?
-* scroll i side menu 
-* Pixel resolution on zoom needs to be integer scaled
-* Visa bara varning för delete layer när man faktiskt har målat något annars är det förvirrande
-
-* Att lägga till samma tilset 3 gånger fungerar inte med naming
-
-* not added to error handling: 10chunk-WJE5UCHF.js?v=1fd981d5:4872 Uncaught ProjectStateError: Autotile is used in project, can't be deleted.
-
 # Backlog
-
-* To fill areas with rect instead of flood fill 
 
 * Auto tiles don't work for certain cases: How to handle curb auto tile style 
 How to handle road auto tile style 
 
+* Auto tile rule "excluded" accounts for when neighbour is out of bounds also, but it shouldnt?
+
+* Auto tile rule "requried" don't acount for when neighbour is out of bounds, it should account it as?
+
+* Optimize flood fill by using scanline floodfill instead of grid based, remove size limit on AUTO TILES too see if it works without that, floodfill regular 
+works for my maps but to support maps up to 250 * 250 tiles it wont work, its to slow, maybe 3 sec on the biggest flood fill
+
+* Add fill rect tool for large rect areas of tiles to be used instead of flood fill for such occasions
+
 * make it possible to change dimensions without wiping the canvas, place current content inside of new dimensions 
-and choose where to start drawing the old content, 
+and choose where to start drawing the old content ? Var nödvändigt när jag ritat lite i en liten värld och sen ville använda det i den större, oklart om det är nödvändigt framöver
 
 * Use deviceDependedpixel size to avoid blur for grid lines
+
+* Pixel resolution on zoom needs to be integer scaled
 
 * Use pixie JS for rendering
 
@@ -42,7 +36,7 @@ and choose where to start drawing the old content,
 
 * Animation layer where u can put predefined animations
 
-* Maze tool 
+* Maze tool to generate maze parts 
 
 * Create a full editor to create living pixel worlds
 
