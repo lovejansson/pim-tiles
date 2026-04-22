@@ -2,10 +2,11 @@
   import {
     SlInput,
     SlSelect,
+    SlTabGroup,
     type SlChangeEvent,
   } from "@shoelace-style/shoelace";
   import TilesetCanvas from "../tilesets/TilesetCanvas.svelte";
-  import { projectState, tilemapEditorState } from "../../projectState.svelte";
+  import { projectState } from "../../projectState.svelte";
   import type {
     Object as ProjectObject,
     ObjectCategory,
@@ -27,11 +28,45 @@
   let image: { bitmap: ImageBitmap; tiles: Tile[] } | null = $state(null);
   let width = $state(0);
   let height = $state(0);
-  let selectedTilesetIdx = $state(0);
 
+  let imageContainer: HTMLElement | null = $state(null);
   let imageCanvas: HTMLCanvasElement | null = $state(null);
+  let ctx: CanvasRenderingContext2D | null = $state(null);
+  let tabs: SlTabGroup | null = $state(null);
+
+  $effect(() => {
+    if (imageCanvas === null) return;
+    ctx = imageCanvas.getContext("2d");
+    if (ctx !== null) {
+      ctx.imageSmoothingEnabled = false;
+    }
+
+    const ro = new ResizeObserver((e) => {
+      if (e[0].contentRect.width > 0 && image !== null) {
+        resizeObjectImageCanvas();
+        drawObjectImage();
+      }
+    });
+
+    ro.observe(imageCanvas);
+
+    return () => {
+      if (imageCanvas !== null) {
+        ro.unobserve(imageCanvas!);
+      }
+    };
+  });
+
+  $effect(() => {
+    if (open === false) {
+      // Clears the form for next open with a object prop that has been reset so that we can't see it afterwards
+      resetForm();
+    }
+  });
 
   const resetForm = () => {
+    clearObjectImageCanvas();
+
     name = object?.name ?? "";
     category = object?.category ?? "other";
     image = object?.image ?? null;
@@ -43,14 +78,18 @@
       const tilesets = projectState.getTilesets();
       const firstTilesetId = image.tiles[0].tilesetId;
       const idx = tilesets.findIndex((t) => t.id === firstTilesetId);
-      selectedTilesetIdx = idx === -1 ? 0 : idx;
-      drawObjectImage();
-    } else {
-      selectedTilesetIdx = 0;
+      const tabIdx = idx === -1 ? 0 : idx;
+
+      if (tabs !== null) {
+        const tabToFocus = projectState.getTilesets()[tabIdx].name;
+        tabs.show(tabToFocus);
+      }
     }
   };
 
   const handleSelectTiles = async (selectedTiles: TileAsset[]) => {
+    clearObjectImageCanvas();
+
     const tiles = selectedTiles
       .slice()
       .sort((a, b) => a.ref.y - b.ref.y || a.ref.x - b.ref.x)
@@ -65,6 +104,7 @@
 
     image = { bitmap, tiles };
 
+    resizeObjectImageCanvas();
     drawObjectImage();
   };
 
@@ -92,18 +132,45 @@
     return await createImageBitmap(ctx.canvas);
   }
 
+  function clearObjectImageCanvas() {
+    if (ctx === null) return;
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.canvas.style.visibility = "hidden";
+  }
+
+  function resizeObjectImageCanvas() {
+    if (ctx === null) throw new Error("Ctx for image canvas is null");
+    if (image === null) throw new Error("Image is null");
+    ctx.canvas.width = width;
+    ctx.canvas.height = height;
+    ctx.imageSmoothingEnabled = false;
+
+    let multiplier = 1;
+
+    while (
+      (multiplier + 1) * image.bitmap.width <
+      imageContainer!.clientWidth
+    ) {
+      multiplier++;
+    }
+
+    ctx.canvas.style.width = `${image.bitmap.width * multiplier}px`;
+    ctx.canvas.style.height = `${image.bitmap.height * multiplier}px`;
+  }
+
   function drawObjectImage() {
     if (image === null) throw new Error("Image is null");
     if (imageCanvas === null) throw new Error("Image canvas is null");
-    imageCanvas.width = width;
-    imageCanvas.height = height;
-    const ctx = imageCanvas!.getContext("2d");
-    if (ctx === null) throw new Error("ctx for image canvas is null");
-    ctx.imageSmoothingEnabled = false;
+    if (ctx === null) throw new Error("Ctx for image canvas is null");
     ctx.drawImage(image.bitmap, 0, 0, image.bitmap.width, image.bitmap.height);
+    imageCanvas.style.visibility = "visible";
   }
 
   function computeDimensions(tiles: Tile[]): { w: number; h: number } {
+    if (tiles.length === 0) {
+      return { w: 0, h: 0 };
+    }
+
     const tileSize = projectState.tileSize;
     const cols = tiles.map((tile) => tile.x / tileSize);
     const rows = tiles.map((tile) => tile.y / tileSize);
@@ -133,6 +200,7 @@
       height,
       image,
     });
+    resetForm();
     hide();
   };
 
@@ -165,7 +233,7 @@
   >
   </sl-icon-button>
   <div id="wrapper" tabindex="-1">
-    <div>
+    <div id="left">
       <section id="section-controls">
         <sl-input
           onsl-change={(e: SlChangeEvent) => {
@@ -175,6 +243,7 @@
           label="Name"
           type="text"
           value={name}
+          placeholder="Pick a name for the object"
         >
         </sl-input>
 
@@ -193,6 +262,7 @@
         >
           <sl-option value="houses">Houses</sl-option>
           <sl-option value="nature">Nature</sl-option>
+          <sl-option value="furniture">Furniture</sl-option>
           <sl-option value="decorations">Decorations</sl-option>
           <sl-option value="other">Other</sl-option>
         </sl-select>
@@ -203,15 +273,13 @@
       </section>
       <section id="section-tilesets">
         {#if projectState.getTilesets().length > 0}
-          <sl-tab-group>
+          <sl-tab-group bind:this={tabs}>
             {#each projectState.getTilesets() as tileset}
               <sl-tab slot="nav" panel={tileset.id}>{tileset.name}</sl-tab>
               <sl-tab-panel name={tileset.id}>
                 <TilesetCanvas
+                  reset={open}
                   {tileset}
-                  initialSelection={image?.tiles.filter(
-                    (t) => t.tilesetId === tileset.id,
-                  )}
                   onSelect={handleSelectTiles}
                 />
               </sl-tab-panel>
@@ -230,17 +298,12 @@
         {/if}
       </section>
     </div>
-    <section id="section-image">
+    <section bind:this={imageContainer} id="section-image">
       <canvas id="canvas-image" bind:this={imageCanvas}></canvas>
     </section>
   </div>
 
-  <sl-button
-    slot="footer"
-    variant="primary"
-    disabled={!isValid}
-    onclick={save}
-  >
+  <sl-button slot="footer" variant="primary" disabled={!isValid} onclick={save}>
     Save
   </sl-button>
 
@@ -258,7 +321,6 @@
   sl-dialog::part(panel) {
     display: flex;
     flex-direction: column;
-
     width: fit-content;
   }
 
@@ -266,9 +328,12 @@
     display: none;
   }
 
+  #section-image {
+    overflow: auto;
+    max-height: 650px;
+  }
+
   #canvas-image {
-    width: 75%;
-    height: auto;
     image-rendering: pixelated;
   }
   #wrapper {
@@ -276,6 +341,11 @@
     flex-direction: row;
     justify-content: space-evenly;
     gap: 2.4rem;
+  }
+
+  #left {
+    width: 400px;
+    overflow: auto;
   }
 
   p {
@@ -320,19 +390,29 @@
     color: var(--sl-color-neutral-500);
   }
 
-  sl-tab-group::part(body) {
-    height: 100%;
+  sl-tab-group {
+    width: 400px;
   }
-  sl-tab-panel::part(base) {
-    height: 100%;
-    width: 100%;
+
+  sl-tab-group::part(nav) {
+    overflow-x: hidden;
+  }
+
+  sl-tab-group::part(body) {
+    overflow-x: hidden;
   }
 
   sl-tab-panel {
     background-color: var(--color-3);
     --padding: 0;
     height: 400px;
-    width: auto;
-    aspect-ratio: 1/1;
+    width: 400px;
+    overflow-x: hidden;
+  }
+
+  sl-tab-panel::part(base) {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
   }
 </style>

@@ -427,10 +427,23 @@
     padding: 0;
   }
 
+  sl-tab-group {
+    overflow-x: hidden;
+  }
+
+  sl-tab-group::part(nav) {
+    overflow-x: hidden;
+  }
+
+  sl-tab-group::part(body) {
+    overflow-x: hidden;
+  }
+
   sl-tab-panel::part(base) {
     width: 400px;
     height: 55dvh;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 
   sl-tab-panel {
@@ -456,5 +469,6 @@
     background-color: var(--color-3);
     --padding: 0;
     height: 400px;
+    overflow-x: hidden;
   }
 </style>

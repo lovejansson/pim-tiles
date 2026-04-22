@@ -54,6 +54,7 @@ export const guiState: GUIState = $state({
   notification: null,
   gridColor: "#0217f6",
   showGrid: false,
+  outlineObjects: false,
   mouseTilePos: { row: 0, col: 0 },
   visibleLayers: {},
 });
@@ -581,6 +582,22 @@ export class ProjectState {
         ProjectStateErrorCode.NOT_FOUND,
       );
 
+    const isRenderedInMap = this.layers.find((l) => {
+      if (l.type === PaintType.OBJECT) {
+        const data = this.getLayerData(l.id);
+        if (data.values().find((o) => o.ref.id === id) !== undefined) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (isRenderedInMap !== undefined) {
+      throw new ProjectStateError(
+        "Object is used in project, can't be deleted.",
+        ProjectStateErrorCode.BAD_REQUEST,
+      );
+    }
     this.objects.splice(idx, 1);
     projectStateEvents.emit(ProjectStateEventType.OBJECTS_UPDATE, {
       objects: $state.snapshot(this.objects),
@@ -1070,7 +1087,6 @@ export class ProjectState {
         data.set(`${row}:${col}`, $state.snapshot(asset) as PaintedObject);
       }
     }
-    
   }
 
   getTileAt<T extends PaintType>(
@@ -1280,7 +1296,7 @@ export class ProjectState {
     col: number,
     paint: AssetRef | null,
   ): Cell[] {
-   if (!this.isWithinGridBounds(row, col))
+    if (!this.isWithinGridBounds(row, col))
       throw new ProjectStateError(
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
@@ -1307,7 +1323,10 @@ export class ProjectState {
     while (stack.length > 0) {
       if (filledTiles.length > MAX_FILL) {
         console.error("Filled area to large..");
-        throw new ProjectStateError("Area is to large", ProjectStateErrorCode.BAD_REQUEST);
+        throw new ProjectStateError(
+          "Area is to large",
+          ProjectStateErrorCode.BAD_REQUEST,
+        );
       }
 
       const tile = stack.pop()!;
@@ -1927,7 +1946,7 @@ export class ProjectState {
 
     const curr = this.getTileAt(layerId, row, col);
     this.setTile(layerId, row, col, null);
-  this.emitLayerDataUpdate();
+    this.emitLayerDataUpdate();
     projectStateEvents.emit(ProjectStateEventType.PAINT, {
       prev: {
         id: this.generateId(),

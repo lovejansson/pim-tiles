@@ -132,7 +132,11 @@
     });
 
     projectStateEvents.on(ProjectStateEventType.AUTO_TILES_UPDATE, () => {
-      repaintAutoTileLayers();
+      redrawAutoTileLayers();
+    });
+
+    projectStateEvents.on(ProjectStateEventType.OBJECTS_UPDATE, () => {
+      redrawObjectLayers();
     });
 
     projectStateEvents.on(ProjectStateEventType.LAYERS_UPDATE, () => {
@@ -179,46 +183,70 @@
     });
   }
 
-  function repaintAutoTileLayers() {
+  function redrawObjectLayers() {
+    let cached: CanvasRenderingContext2D | undefined;
+    let y = 0;
+    let x = 0;
+
     for (const l of projectState.getLayers()) {
-      if (l.type === PaintType.AUTO_TILE) {
-        const cached = layerCache.get(l.id);
+      if (l.type !== PaintType.OBJECT) continue;
 
-        if (cached === undefined) throw new Error("Cache for layer not found");
+      cached = layerCache.get(l.id);
+      if (cached === undefined) throw new Error("Cache for layer not found");
 
-        const data = projectState.getLayerData(l.id);
+      for (let r = 0; r < projectState.rows; ++r) {
+        for (let c = 0; c < projectState.cols; ++c) {
+          const paintedObj = projectState.getTileAt(l.id, r, c);
+          if (paintedObj !== null) {
+            x = c * projectState.tileSize;
+            y = r * projectState.tileSize;
 
-        let y = 0;
-        let x = 0;
+            const obj = projectState.getObject(paintedObj.ref.id);
+            cached.drawImage(obj.image.bitmap, x, y, obj.width, obj.height);
+          }
+        }
+      }
+    }
+  }
 
-        for (let row = 0; row < projectState.rows; ++row) {
-          for (let col = 0; col < projectState.cols; ++col) {
-            y = row * projectState.tileSize;
-            x = col * projectState.tileSize;
+  function redrawAutoTileLayers() {
+    let cached: CanvasRenderingContext2D | undefined;
+    let y = 0;
+    let x = 0;
 
-            const paintedAutoTile = data[row][col] as PaintedAutoTile | null;
+    for (const l of projectState.getLayers()) {
+      if (l.type !== PaintType.AUTO_TILE) continue;
+      cached = layerCache.get(l.id);
 
-            if (paintedAutoTile !== null) {
-              const autoTile = projectState.getAutoTile(paintedAutoTile.ref.id);
-              const tile =
-                autoTile.rules.find(
-                  (tr) => tr.id === paintedAutoTile.selectedTileRuleId?.id,
-                )?.tile ?? autoTile.defaultTile;
+      if (cached === undefined) throw new Error("Cache for layer not found");
 
-              const tileset = projectState.getTileset(tile.ref.tilesetId);
+      for (let row = 0; row < projectState.rows; ++row) {
+        for (let col = 0; col < projectState.cols; ++col) {
+          y = row * projectState.tileSize;
+          x = col * projectState.tileSize;
 
-              cached.drawImage(
-                tileset.spritesheet,
-                tile.ref.x,
-                tile.ref.y,
-                projectState.tileSize,
-                projectState.tileSize,
-                x,
-                y,
-                projectState.tileSize,
-                projectState.tileSize,
-              );
-            }
+          const paintedAutoTile = projectState.getTileAt(l.id, row, col);
+
+          if (paintedAutoTile !== null) {
+            const autoTile = projectState.getAutoTile(paintedAutoTile.ref.id);
+            const tile =
+              autoTile.rules.find(
+                (tr) => tr.id === paintedAutoTile.selectedTileRuleId?.id,
+              )?.tile ?? autoTile.defaultTile;
+
+            const tileset = projectState.getTileset(tile.ref.tilesetId);
+
+            cached.drawImage(
+              tileset.spritesheet,
+              tile.ref.x,
+              tile.ref.y,
+              projectState.tileSize,
+              projectState.tileSize,
+              x,
+              y,
+              projectState.tileSize,
+              projectState.tileSize,
+            );
           }
         }
       }
@@ -333,6 +361,8 @@
 
     const { minRow, maxRow, minCol, maxCol } = rect;
 
+    const isSingleTileSelection = maxRow === minRow && maxCol === minCol;
+
     const isIntersectingSelection = (
       objRow: number,
       objCol: number,
@@ -379,6 +409,29 @@
           tile: paintedObj,
         });
       }
+    }
+
+    selected.sort((a, b) => {
+      if (a.org.row !== b.org.row) return b.org.row - a.org.row;
+      return b.org.col - a.org.col;
+    });
+
+    if (selected.length > 1 && isSingleTileSelection) {
+      let firstRendered = selected[0];
+
+      for (let i = 1; i < selected.length; ++i) {
+        const candidate = selected[i];
+        const isRenderedAfterCurr =
+          candidate.org.row > firstRendered.org.row &&
+          candidate.org.col > firstRendered.org.col;
+
+        if (isRenderedAfterCurr) {
+          firstRendered = candidate;
+        }
+      }
+
+      const o = projectState.getObject(firstRendered.tile.ref.id);
+      return [firstRendered];
     }
 
     return selected;
@@ -908,17 +961,6 @@
                 }
                 break;
               }
-              case Tool.ERASE:
-                {
-                  projectState.eraseObject(
-                    tilemapEditorState.selectedLayer,
-                    row,
-                    col,
-                  );
-
-                  dirtyObjLayers.push(tilemapEditorState.selectedLayer);
-                }
-                break;
             }
           }
 
@@ -1076,15 +1118,15 @@
 
       cached.clearRect(0, 0, cached.canvas.width, cached.canvas.height);
 
-      for (let r = 0; r < projectState.rows; r++) {
-        for (let c = 0; c < projectState.cols; c++) {
+      for (let r = 0; r < projectState.rows; ++r) {
+        for (let c = 0; c < projectState.cols; ++c) {
           const paintedObj = projectState.getTileAt(id, r, c);
-
           if (paintedObj !== null) {
             x = c * projectState.tileSize;
             y = r * projectState.tileSize;
 
             const obj = projectState.getObject(paintedObj.ref.id);
+
             cached.drawImage(obj.image.bitmap, x, y, obj.width, obj.height);
           }
         }
@@ -1124,67 +1166,98 @@
               const drawRow = t.curr.row + selectionMoveDelta.row;
               const drawCol = t.curr.col + selectionMoveDelta.col;
 
-              if (projectState.isWithinGridBounds(drawRow, drawCol)) {
-                x = drawCol * projectState.tileSize;
-                y = drawRow * projectState.tileSize;
+              // if (projectState.isWithinGridBounds(drawRow, drawCol)) {
+              x = drawCol * projectState.tileSize;
+              y = drawRow * projectState.tileSize;
 
-                switch (t.tile.type) {
-                  case PaintType.TILE: {
-                    const tileset = projectState.getTileset(t.tile.ref.tilesetId);
+              switch (t.tile.type) {
+                case PaintType.TILE: {
+                  const tileset = projectState.getTileset(t.tile.ref.tilesetId);
 
-                    ctx.drawImage(
-                      tileset.spritesheet,
-                      t.tile.ref.x,
-                      t.tile.ref.y,
-                      projectState.tileSize,
-                      projectState.tileSize,
-                      x,
-                      y,
-                      projectState.tileSize,
-                      projectState.tileSize,
-                    );
-                    break;
-                  }
-                  case PaintType.AUTO_TILE: {
-                    const autoTile = projectState.getAutoTile(t.tile.ref.id);
-                    const tile =
-                      autoTile.rules.find(
-                        (tr) =>
-                          tr.id ===
-                          (t.tile as PaintedAutoTile).selectedTileRuleId?.id,
-                      )?.tile ?? autoTile.defaultTile;
+                  ctx.drawImage(
+                    tileset.spritesheet,
+                    t.tile.ref.x,
+                    t.tile.ref.y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                    x,
+                    y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                  );
+                  break;
+                }
+                case PaintType.AUTO_TILE: {
+                  const autoTile = projectState.getAutoTile(t.tile.ref.id);
+                  const tile =
+                    autoTile.rules.find(
+                      (tr) =>
+                        tr.id ===
+                        (t.tile as PaintedAutoTile).selectedTileRuleId?.id,
+                    )?.tile ?? autoTile.defaultTile;
 
-                    const tileset = projectState.getTileset(tile.ref.tilesetId);
+                  const tileset = projectState.getTileset(tile.ref.tilesetId);
 
-                    ctx.drawImage(
-                      tileset.spritesheet,
-                      tile.ref.x,
-                      tile.ref.y,
-                      projectState.tileSize,
-                      projectState.tileSize,
-                      x,
-                      y,
-                      projectState.tileSize,
-                      projectState.tileSize,
-                    );
+                  ctx.drawImage(
+                    tileset.spritesheet,
+                    tile.ref.x,
+                    tile.ref.y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                    x,
+                    y,
+                    projectState.tileSize,
+                    projectState.tileSize,
+                  );
 
-                    break;
-                  }
-                  case PaintType.OBJECT: {
-                    const obj = projectState.getObject(t.tile.ref.id);
+                  break;
+                }
+                case PaintType.OBJECT: {
+                  const obj = projectState.getObject(t.tile.ref.id);
 
-                    ctx.drawImage(
-                      obj.image.bitmap,
-                      x,
-                      y,
-                      obj.width,
-                      obj.height,
-                    );
-                    break;
-                  }
+                  ctx.drawImage(obj.image.bitmap, x, y, obj.width, obj.height);
+                  break;
                 }
               }
             }
+          }
+        }
+      }
+    }
+
+    if (guiState.outlineObjects) {
+      ctx.font = "8px Google Sans Code, monospace";
+      for (const l of projectState.getLayers()) {
+        if (l.type !== PaintType.OBJECT) continue;
+
+        for (const [k, v] of projectState.getLayerData(l.id)) {
+          const [row, col] = k.split(":").map(Number);
+          const paintedObj = projectState.getTileAt(l.id, row, col);
+          if (paintedObj !== null) {
+            x = col * projectState.tileSize;
+            y = row * projectState.tileSize;
+
+            const obj = projectState.getObject(paintedObj.ref.id);
+            ctx.strokeStyle = "lime";
+            ctx.strokeRect(x, y, obj.width, obj.height);
+
+            const metrics = ctx.measureText(obj.name);
+            const offY = 0;
+            const offX = 0;
+            const padding = 8;
+            const rectWidth =
+              metrics.actualBoundingBoxLeft +
+              metrics.actualBoundingBoxRight;
+            const rectHeight =
+              metrics.actualBoundingBoxAscent +
+              metrics.actualBoundingBoxDescent;
+            ctx.fillStyle = "#ececec";
+            ctx.fillRect(x - offX, y - offY, rectWidth + padding * 2, rectHeight + padding);
+            ctx.strokeStyle = "black";
+            ctx.strokeRect(x - offX, y - offY, rectWidth + padding * 2, rectHeight + padding);
+
+            ctx.fillStyle = "black";
+            ctx.fillText(obj.name, x + padding, y + rectHeight + padding / 4);
           }
         }
       }

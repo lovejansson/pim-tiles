@@ -117,14 +117,28 @@
     justify-content: center;
   }
 
+  sl-tab-group {
+    overflow-x: hidden;
+  }
+
+  sl-tab-group::part(nav) {
+    overflow-x: hidden;
+  }
+
+  sl-tab-group::part(body) {
+    overflow-x: hidden;
+  }
+
   sl-tab-panel::part(base) {
     height: 100%;
     width: 100%;
+    overflow-x: hidden;
   }
 
   sl-tab-panel {
     background-color: var(--color-3);
     --padding: 0;
     height: 400px;
+    overflow-x: hidden;
   }
 </style>

@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { projectState, tilemapEditorState } from "../../projectState.svelte";
+  import {
+    guiState,
+    projectState,
+    ProjectStateError,
+    tilemapEditorState,
+  } from "../../projectState.svelte";
   import type { Object as ProjectObject, ObjectCategory } from "../../types";
   import { PaintType } from "../../types";
   import type { SlTabGroup } from "@shoelace-style/shoelace";
@@ -9,13 +14,19 @@
   const categories: { id: ObjectCategory; label: string }[] = [
     { id: "houses", label: "Houses" },
     { id: "nature", label: "Nature" },
+    { id: "furniture", label: "Furniture" },
     { id: "decorations", label: "Decorations" },
     { id: "other", label: "Other" },
   ];
 
-  let tabGroup!: SlTabGroup;
   let dialogIsOpen = $state(false);
   let editingObject: ProjectObject | null = $state(null);
+
+  $effect(() => {
+    if(dialogIsOpen === false) {
+      editingObject = null;
+    }
+  })
 
   const editorState = $derived.by(() => {
     if (tilemapEditorState.type === PaintType.OBJECT) return tilemapEditorState;
@@ -64,7 +75,18 @@
     }
 
     if (item.value === "remove") {
-      projectState.deleteObject(object.id);
+      try {
+        projectState.deleteObject(object.id);
+      } catch (e) {
+        if (e instanceof ProjectStateError) {
+          guiState.notification = {
+            msg: e.message,
+            title: "Delete object",
+            variant: "danger",
+          };
+        }
+      }
+
       if (editorState.selectedAsset?.ref.id === object.id) {
         editorState.selectedAsset = null;
       }
@@ -81,7 +103,7 @@
     >
   </header>
 
-  <sl-tab-group bind:this={tabGroup}>
+  <sl-tab-group>
     {#each categories as category}
       <sl-tab slot="nav" panel={category.id}>{category.label}</sl-tab>
     {/each}
@@ -96,28 +118,43 @@
                 { label: "Edit", value: "edit", icon: "edit-box" },
                 { label: "Remove", value: "remove", icon: "close" },
               ]}
-            >
-              <sl-button
-                class="btn-obj {editorState.selectedAsset?.ref.id === object.id
-                  ? 'selected'
-                  : ''}"
-                onclick={() => selectObject(object)}
-              >
-                <sl-icon library="pixelarticons" name="toke-square"></sl-icon>
+              >{#if object.name.length > 7}
+                <sl-tooltip content={object.name}>
+                  <sl-button
+                    class="btn-obj {editorState.selectedAsset?.ref.id ===
+                    object.id
+                      ? 'selected'
+                      : ''}"
+                    onclick={() => selectObject(object)}
+                  >
+                    <sl-icon library="pixelarticons" name="toke-square"
+                    ></sl-icon>
 
-                <p class="obj-name">{object.name}</p>
-              </sl-button>
+                    <p class="obj-name">{object.name}</p>
+                  </sl-button>
+                </sl-tooltip>
+              {:else}
+                <sl-button
+                  class="btn-obj {editorState.selectedAsset?.ref.id ===
+                  object.id
+                    ? 'selected'
+                    : ''}"
+                  onclick={() => selectObject(object)}
+                >
+                  <sl-icon library="pixelarticons" name="toke-square"></sl-icon>
+
+                  <p class="obj-name">{object.name}</p>
+                </sl-button>
+              {/if}
             </ContextMenu>
           {/each}
-
         </div>
-        
-          {#if objectsByCategory(category.id).length === 0}
-            <div id="div-empty">
-              <sl-icon library="pixelarticons"  name="toke-square"></sl-icon>
-       
-            </div>
-          {:else}{/if}
+
+        {#if objectsByCategory(category.id).length === 0}
+          <div id="div-empty">
+            <sl-icon library="pixelarticons" name="toke-square"></sl-icon>
+          </div>
+        {:else}{/if}
       </sl-tab-panel>
     {/each}
   </sl-tab-group>
@@ -145,8 +182,9 @@
   .object-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.75rem;
-    margin-top: 1rem;
+    /* margin-top: 1rem; */
+    margin: 0.5rem;
+    gap: 0.5rem;
   }
 
   .btn-obj::part(label) {
@@ -157,8 +195,15 @@
     padding: 1rem;
   }
 
+  .btn-obj {
+    width: 100%;
+  }
+
   .obj-name {
     margin: 0;
+    max-width: 75px;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 
   sl-tab {
@@ -173,18 +218,32 @@
     justify-content: center;
   }
 
+  sl-tab-group {
+    overflow-x: hidden;
+  }
+
+  sl-tab-group::part(nav) {
+    overflow-x: hidden;
+  }
+
+  sl-tab-group::part(body) {
+    overflow-x: hidden;
+  }
+
   .selected::part(base) {
-    background:  lime;
+    background: lime;
   }
 
   sl-tab-panel::part(base) {
     height: 100%;
     width: 100%;
+    overflow-x: hidden;
   }
 
   sl-tab-panel {
     background-color: var(--color-3);
     --padding: 0;
     height: 400px;
+    overflow-x: hidden;
   }
 </style>

@@ -11,6 +11,10 @@
 
 # Backlog
 
+* Objects UX: 
+- nu finns det outlines, kanske hade varit najs att kunna right klick på ett object för att se just den outlinen + tag alternativt öppna edit dialog från mappen
+- review move, copy, delete for object if it works alright
+
 * Auto tiles don't work for certain cases: How to handle curb auto tile style 
 How to handle road auto tile style 
 
@@ -40,6 +44,3 @@ and choose where to start drawing the old content ? Var nödvändigt när jag ri
 
 * Create a full editor to create living pixel worlds
 
-# Frågor
-
-* Auto tiles ligger kvar även om alla auto tile layer är borta

@@ -2,7 +2,6 @@
   import { onMount } from "svelte";
   import {
     PaintType,
-    type Cell,
     type Tile,
     type TileAsset,
     type Tileset,
@@ -16,12 +15,12 @@
   import TileAttributesDialog from "../attributes/TileAttributesDialog.svelte";
 
   type TilesCanvasProps = {
+    reset?: boolean;
     tileset: Tileset;
     onSelect: (selectedTiles: TileAsset[]) => void;
-    initialSelection?: Tile[];
   };
 
-  let { tileset, onSelect, initialSelection = [] }: TilesCanvasProps = $props();
+  let { tileset, onSelect, reset }: TilesCanvasProps = $props();
 
   let container!: HTMLDivElement;
   let tilemapViewport!: TilemapViewport;
@@ -29,6 +28,12 @@
   let attributesDialogIsOpen = $state(false);
 
   let attributesTile: Tile | null = $state(null);
+
+  $effect(() => {
+    if (tilemapViewport !== undefined && reset === true) {
+      tilemapViewport.reset();
+    }
+  });
 
   function draw(ctx: CanvasRenderingContext2D) {
     ctx.drawImage(tileset.spritesheet, 0, 0);
@@ -55,8 +60,8 @@
     });
 
     const ro = new ResizeObserver(([entry]) => {
-
       if (entry.contentRect.width === 0) return;
+
       tilemapViewport.width = entry.contentRect.width;
       tilemapViewport.height = entry.contentRect.height;
       ro.disconnect();
@@ -68,11 +73,6 @@
       });
 
       tilemapViewport.addEventListener("right-click", handleCanvasRightClick);
-
-      // Set initial selection if provided
-      if (initialSelection.length > 0) {
-        setInitialSelection(initialSelection);
-      }
     });
 
     ro.observe(container);
@@ -113,19 +113,6 @@
     }
 
     onSelect(selectedTiles);
-  };
-
-  const setInitialSelection = (tiles: Tile[]) => {
-    if (tiles.length === 0 || !tilemapViewport) return;
-
-    // Convert tiles to cells
-    const cells: Cell[] = tiles.map(tile => ({
-      col: tile.x / projectState.tileSize,
-      row: tile.y / projectState.tileSize
-    }));
-
-    // Set the selection on the viewport
-    tilemapViewport.setSelection(cells);
   };
 
   const handleCanvasRightClick = (e: Event) => {

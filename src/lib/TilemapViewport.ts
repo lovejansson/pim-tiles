@@ -61,12 +61,10 @@ export class TilemapViewportPaintEvent extends Event {
 
 export class TilemapViewportSelectionChangeEvent extends Event {
   rect: SelectionTileRect | null;
-  tiles: Cell[] | null;
 
-  constructor(rect: SelectionTileRect | null, tiles: Cell[] | null = null) {
+  constructor(rect: SelectionTileRect | null) {
     super("selection-change");
     this.rect = rect;
-    this.tiles = tiles;
   }
 }
 
@@ -303,6 +301,16 @@ export default class TilemapViewport extends EventTarget {
     this.gridSettings.tileSize = tileSize;
   }
 
+  reset() {
+    this.zoom = this.gridSettings.width > 1280 ? 0.25 : 0.5;
+    this.translation = { x: 0, y: 0 };
+    this.selection = null;
+
+    this.isPanKeyDown = false;
+    this.mouseAction = null;
+    this.transformHasChanged = true;
+  }
+
   updateGridSize(
     width: number,
     height: number,
@@ -338,7 +346,7 @@ export default class TilemapViewport extends EventTarget {
   setSelection(cells: Cell[]) {
     if (!this.isSelectionEnabled(this.selectionSettings) || cells.length === 0) {
       this.selection = null;
-      this.dispatchEvent(new TilemapViewportSelectionChangeEvent(null, null));
+      this.dispatchEvent(new TilemapViewportSelectionChangeEvent(null));
       return;
     }
 
@@ -359,7 +367,6 @@ export default class TilemapViewport extends EventTarget {
     this.dispatchEvent(
       new TilemapViewportSelectionChangeEvent(
         { minRow, maxRow, minCol, maxCol },
-        cells,
       ),
     );
   }
@@ -708,9 +715,10 @@ export default class TilemapViewport extends EventTarget {
 
                 // Else start new selection
               } else {
-                this.dispatchEvent(
-                  new TilemapViewportSelectionChangeEvent(null, null),
-                );
+                // Resets any current selection by sending out a null selection event, not sure if it is needed or if it is better to wait for mouse up to send out the new event
+                // this.dispatchEvent(
+                //   new TilemapViewportSelectionChangeEvent(null, null),
+                // );
                 this.mouseAction = {
                   type: MouseActionType.SELECT,
                   data: {

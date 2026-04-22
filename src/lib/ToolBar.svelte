@@ -55,8 +55,6 @@
     gap: 1rem;
     width: 400px;
     align-items: stretch;
-    position: relative;
-    overflow-x: hidden;
   }
 
   #grid-settings {

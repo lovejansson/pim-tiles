@@ -23,6 +23,13 @@ export const HistoryStack = (() => {
     history.push(e.detail.prev);
     history.push(e.detail.next);
 
+    // History stack limit since it is wasteful to store too large history stacks, user's don't need to go back to far usually anyway
+    const MAX_ACTIONS = 250;
+    if (history.length > MAX_ACTIONS * 2) {
+      const excess = history.length - MAX_ACTIONS * 2;
+      history.splice(0, excess);
+    }
+
     currIdx = history.length - 1;
   });
 
@@ -59,7 +66,7 @@ export const HistoryStack = (() => {
 
   const repaint = (): HistoryEntry => {
     const entry = history.at(currIdx);
-    if(entry === undefined) throw new Error("History corrupted");
+    if (entry === undefined) throw new Error("History corrupted");
 
     for (const i of entry.items) {
       projectState.setTile(entry.layerId, i.pos.row, i.pos.col, i.data);
@@ -69,7 +76,6 @@ export const HistoryStack = (() => {
   };
 
   return {
- 
     undo(): HistoryStackPop | null {
       if (currIdx <= 0) return null;
       const curr = history[currIdx];
@@ -88,4 +94,3 @@ export const HistoryStack = (() => {
     },
   };
 })();
-

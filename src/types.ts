@@ -31,7 +31,7 @@ type Vec2 = {
  *
  */
 
-type ObjectCategory = "houses" | "nature" | "decorations" | "other";
+type ObjectCategory = "houses" | "nature" | "furniture" | "decorations" | "other";
 
 type Object = {
   id: string;
@@ -181,6 +181,7 @@ type TilemapEditorState<T extends PaintType> = {
 type GUIState = {
   notification: Notification | null;
   showGrid: boolean;
+  outlineObjects: boolean;
   gridColor: string;
   mouseTilePos: { row: number; col: number };
   visibleLayers: { [key: string]: boolean };

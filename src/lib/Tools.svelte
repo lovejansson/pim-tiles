@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { tilemapEditorState } from "../projectState.svelte";
+  import { type SlChangeEvent, SlCheckbox } from "@shoelace-style/shoelace";
+  import { guiState, tilemapEditorState } from "../projectState.svelte";
   import { PaintType, Tool } from "../types";
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -13,11 +14,22 @@
         tilemapEditorState.selectedTool = Tool.SELECT;
         break;
       case "e":
-        tilemapEditorState.selectedTool = Tool.ERASE;
+        if (
+          tilemapEditorState.type === PaintType.AUTO_TILE ||
+          tilemapEditorState.type === PaintType.TILE
+        ) {
+          tilemapEditorState.selectedTool = Tool.ERASE;
+        }
         break;
       case "r":
-        tilemapEditorState.fillToolIsActive =
-          !tilemapEditorState.fillToolIsActive;
+        if (
+          tilemapEditorState.type === PaintType.AUTO_TILE ||
+          tilemapEditorState.type === PaintType.TILE
+        ) {
+          tilemapEditorState.fillToolIsActive =
+            !tilemapEditorState.fillToolIsActive;
+        }
+        break;
 
         break;
     }
@@ -62,25 +74,38 @@
       </sl-tooltip>
     {/if}
   </sl-button-group>
+  {#if tilemapEditorState.type === PaintType.AUTO_TILE || tilemapEditorState.type === PaintType.TILE}
+    <sl-button-group label="Modifiers">
+      <sl-tooltip content="Fill tool (R)">
+        <sl-button
+          class:selected-tool={tilemapEditorState.fillToolIsActive}
+          onclick={() =>
+            (tilemapEditorState.fillToolIsActive =
+              !tilemapEditorState.fillToolIsActive)}
+          ><sl-icon library="pixelarticons" name="paint-bucket"
+          ></sl-icon></sl-button
+        >
+      </sl-tooltip>
+    </sl-button-group>
+  {/if}
 
-  <sl-button-group label="Modifiers">
-    <sl-tooltip content="Fill tool (R)">
-      <sl-button
-        class:selected-tool={tilemapEditorState.fillToolIsActive}
-        onclick={() =>
-          (tilemapEditorState.fillToolIsActive =
-            !tilemapEditorState.fillToolIsActive)}
-        ><sl-icon library="pixelarticons" name="paint-bucket"
-        ></sl-icon></sl-button
-      >
-    </sl-tooltip>
-  </sl-button-group>
+  {#if tilemapEditorState.type === PaintType.OBJECT}
+    <sl-checkbox
+      onsl-change={(e: SlChangeEvent) => {
+        if (e.target) {
+          guiState.outlineObjects = (e.target as SlCheckbox).checked;
+        }
+      }}
+      checked={guiState.outlineObjects}>Outline objects</sl-checkbox
+    >
+  {/if}
 </section>
 
 <style lang="postcss">
   section {
     display: flex;
     justify-content: space-between;
+    align-items: center;
   }
   .selected-tool::part(base) {
     background-color: var(--color-3);
