@@ -15,6 +15,8 @@
         autoTileAttributes,
         tileAttributes,
         attributes,
+        objectAttributes,
+        paintedObjectAttributes,
         autoTiles,
         tilesets,
         objects,
@@ -26,6 +28,8 @@
         indexedDBService.getAutoTileAttributes(),
         indexedDBService.getTileAttributes(),
         indexedDBService.getAttributes(),
+        indexedDBService.getObjectAttributes(),
+        indexedDBService.getPaintedObjectAttributes(),
         indexedDBService.getAutoTiles(),
         indexedDBService.getTilesets(),
         indexedDBService.getObjects(),
@@ -42,6 +46,10 @@
       if (tileAttributes !== undefined)
         partialState.tileAttributes = tileAttributes;
       if (attributes !== undefined) partialState.attributes = attributes;
+      if (objectAttributes !== undefined)
+        partialState.objectAttributes = objectAttributes;
+      if (paintedObjectAttributes !== undefined)
+        partialState.paintedObjectAttributes = paintedObjectAttributes;
       if (autoTiles !== undefined) partialState.autoTiles = autoTiles;
       if (tilesets !== undefined) partialState.tilesets = tilesets;
       if (objects !== undefined) partialState.objects = objects;

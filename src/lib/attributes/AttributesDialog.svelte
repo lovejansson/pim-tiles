@@ -93,7 +93,7 @@
   </sl-icon-button>
 
   {#if img !== undefined}
-    <img src={img} alt="tile" />
+    <img class="preview-image" src={img} alt="attributes preview" />
   {/if}
 
   <section id="section-attributes">
@@ -180,9 +180,13 @@
     display: none;
   }
 
-  img {
-    width: 64px;
-    height: 64px;
+  .preview-image {
+    display: block;
+    max-width: 160px;
+    max-height: 160px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
     image-rendering: pixelated;
   }
 

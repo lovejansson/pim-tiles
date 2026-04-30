@@ -13,12 +13,13 @@
     Tile,
     TileAsset,
   } from "../../types";
-  import { createCanvas } from "../../utils";
+  import { createCanvas, imageBitmapToDataURL } from "../../utils";
+  import AttributesDialog from "../attributes/AttributesDialog.svelte";
 
   type ObjectDialogProps = {
     open: boolean;
     object: ProjectObject | null;
-    onSave: (object: ProjectObject) => void;
+    onSave: (object: ProjectObject, attributes: [string, string][]) => void;
   };
 
   let { open = $bindable(), object, onSave }: ObjectDialogProps = $props();
@@ -33,6 +34,20 @@
   let imageCanvas: HTMLCanvasElement | null = $state(null);
   let ctx: CanvasRenderingContext2D | null = $state(null);
   let tabs: SlTabGroup | null = $state(null);
+  let attributesDialogIsOpen = $state(false);
+
+  const getAttributesArray = (obj: ProjectObject) => {
+    try {
+      const attrs = projectState.getObjectAttributes(obj.id);
+      return Array.from(attrs.entries());
+    } catch (e) {
+      return [];
+    }
+  };
+
+  let attributes: [string, string][] = $state(
+    object !== null ? getAttributesArray(object) : [],
+  );
 
   $effect(() => {
     if (imageCanvas === null) return;
@@ -73,6 +88,7 @@
     width = object?.width ?? 0;
     height = object?.height ?? 0;
     image = object?.image ?? null;
+    attributes = object !== null ? getAttributesArray(object) : [];
 
     if (image !== null) {
       const tilesets = projectState.getTilesets();
@@ -187,19 +203,33 @@
 
   const hide = () => {
     open = false;
+    attributesDialogIsOpen = false;
   };
 
   const save = () => {
     if (!(name.trim().length > 0 && width > 0 && height > 0 && image !== null))
       return;
-    onSave({
+    const savedObject = {
       id: object?.id ?? "",
       name: name.trim(),
       category,
       width,
       height,
       image,
-    });
+    };
+
+    onSave(savedObject, attributes);
+
+    // For edits, object.id is known — save attributes directly.
+    // For new objects, Objects.svelte handles persistence after createObject.
+    if (object !== null) {
+      if (attributes.length > 0) {
+        projectState.updateObjectAttributes(object.id, new Map(attributes));
+      } else if (projectState.hasObjectAttributes(object.id)) {
+        projectState.deleteObjectAttributes(object.id);
+      }
+    }
+
     resetForm();
     hide();
   };
@@ -267,6 +297,12 @@
           <sl-option value="other">Other</sl-option>
         </sl-select>
 
+        <sl-button onclick={() => (attributesDialogIsOpen = true)}>
+          Edit object attributes
+          <sl-icon label="Edit object attributes" library="pixelarticons" name="edit"
+          ></sl-icon>
+        </sl-button>
+
         <div id="info-section">
           <p>Size: {width} x {height}</p>
         </div>
@@ -279,6 +315,7 @@
               <sl-tab-panel name={tileset.id}>
                 <TilesetCanvas
                   reset={open}
+                  allowTileAttributesEdit={false}
                   {tileset}
                   onSelect={handleSelectTiles}
                 />
@@ -311,6 +348,14 @@
     Cancel
   </sl-button>
 </sl-dialog>
+
+<AttributesDialog
+  title="Object attributes"
+  onSave={() => {}}
+  bind:attributes
+  bind:open={attributesDialogIsOpen}
+  img={image ? imageBitmapToDataURL(image.bitmap) : undefined}
+/>
 
 <style>
   sl-dialog::part(body) {
@@ -356,6 +401,7 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    padding: 1rem;
   }
 
   #section-tilesets {

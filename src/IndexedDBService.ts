@@ -58,6 +58,12 @@ type IndexedDBSchema = {
   autoTileAttributes: {
     autoTileAttributes: [string, Map<string, string>][];
   };
+  objectAttributes: {
+    objectAttributes: [string, Map<string, string>][];
+  };
+  paintedObjectAttributes: {
+    paintedObjectAttributes: [string, Map<string, string>][];
+  };
   layerData: {
     layerData: [string, LayerDataComp][];
   };
@@ -76,7 +82,7 @@ class IndexedDBService {
 
   async open(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("pim-tiles", 1);
+      const request = indexedDB.open("pim-tiles", 2);
 
       request.onupgradeneeded = () => {
         const db = request.result;
@@ -97,6 +103,10 @@ class IndexedDBService {
           db.createObjectStore("tileAttributes");
         if (!db.objectStoreNames.contains("autoTileAttributes"))
           db.createObjectStore("autoTileAttributes");
+        if (!db.objectStoreNames.contains("objectAttributes"))
+          db.createObjectStore("objectAttributes");
+        if (!db.objectStoreNames.contains("paintedObjectAttributes"))
+          db.createObjectStore("paintedObjectAttributes");
         if (!db.objectStoreNames.contains("layerData"))
           db.createObjectStore("layerData");
       };
@@ -211,6 +221,34 @@ class IndexedDBService {
         );
 
         projectStateEvents.on(
+          ProjectStateEventType.OBJECT_ATTRIBUTES_UPDATE,
+          (
+            e: ProjectStateEvent<ProjectStateEventType.OBJECT_ATTRIBUTES_UPDATE>,
+          ) => {
+            try {
+              indexedDBService.setObjectAttributes(e.detail.objectAttributes);
+            } catch (err) {
+              console.error(err);
+            }
+          },
+        );
+
+        projectStateEvents.on(
+          ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+          (
+            e: ProjectStateEvent<ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE>,
+          ) => {
+            try {
+              indexedDBService.setPaintedObjectAttributes(
+                e.detail.paintedObjectAttributes,
+              );
+            } catch (err) {
+              console.error(err);
+            }
+          },
+        );
+
+        projectStateEvents.on(
           ProjectStateEventType.LAYER_DATA_UPDATE,
           (e: ProjectStateEvent<ProjectStateEventType.LAYER_DATA_UPDATE>) => {
             try {
@@ -314,6 +352,8 @@ class IndexedDBService {
       this.setAttributes(data.attributes),
       this.setTileAttributes(data.tileAttributes),
       this.setAutoTileAttributes(data.autoTileAttributes),
+      this.setObjectAttributes(data.objectAttributes),
+      this.setPaintedObjectAttributes(data.paintedObjectAttributes),
       this.setLayerData(data.layerData),
     ]);
   }
@@ -418,6 +458,41 @@ class IndexedDBService {
     return this.get("autoTileAttributes", "autoTileAttributes").then((data) =>
       data ? new Map(data) : undefined,
     );
+  }
+
+  setObjectAttributes(
+    objectAttributes: Map<string, Map<string, string>>,
+  ): Promise<void> {
+    return this.put(
+      "objectAttributes",
+      "objectAttributes",
+      Array.from(objectAttributes.entries()),
+    );
+  }
+
+  getObjectAttributes(): Promise<Map<string, Map<string, string>> | undefined> {
+    return this.get("objectAttributes", "objectAttributes").then((data) =>
+      data ? new Map(data) : undefined,
+    );
+  }
+
+  setPaintedObjectAttributes(
+    paintedObjectAttributes: Map<string, Map<string, string>>,
+  ): Promise<void> {
+    return this.put(
+      "paintedObjectAttributes",
+      "paintedObjectAttributes",
+      Array.from(paintedObjectAttributes.entries()),
+    );
+  }
+
+  getPaintedObjectAttributes(): Promise<
+    Map<string, Map<string, string>> | undefined
+  > {
+    return this.get(
+      "paintedObjectAttributes",
+      "paintedObjectAttributes",
+    ).then((data) => (data ? new Map(data) : undefined));
   }
 
   setLayerData(layerData: Map<string, LayerDataComp>): Promise<void> {

@@ -1,4 +1,4 @@
-import {
+﻿import {
   type GUIState,
   type TileLayer,
   type AssetRef,
@@ -114,53 +114,55 @@ export enum ProjectStateEventType {
   ATTRIBUTES_UPDATE = "attributes-update",
   TILE_ATTRIBUTES_UPDATE = "tile-attributes-update",
   AUTO_TILE_ATTRIBUTES_UPDATE = "auto-tile-attributes-update",
+  OBJECT_ATTRIBUTES_UPDATE = "object-attributes-update",
+  PAINTED_OBJECT_ATTRIBUTES_UPDATE = "painted-object-attributes-update",
   LAYER_DATA_UPDATE = "layer-data-update",
   PAINT = "paint",
 }
 
 type ProjectStateEventDetail<T extends ProjectStateEventType> =
-  T extends ProjectStateEventType.PAINT
-    ? {
-        prev: HistoryEntry;
-        next: HistoryEntry;
-      }
-    : T extends ProjectStateEventType.LAYER_DATA_UPDATE
-      ? {
-          layerData: Map<string, LayerDataComp>;
-        }
-      : T extends ProjectStateEventType.NAME_UPDATE
-        ? {
-            name: string;
-          }
-        : T extends ProjectStateEventType.LAYERS_UPDATE
-          ? { layers: LayerComp[] }
-          : T extends ProjectStateEventType.AUTO_TILES_UPDATE
-            ? {
-                autoTiles: AutoTile[];
-              }
-            : T extends ProjectStateEventType.TILESETS_UPDATE
-              ? { tilesets: Tileset[] }
-              : T extends ProjectStateEventType.OBJECTS_UPDATE
-                ? { objects: Object[] }
-                : T extends ProjectStateEventType.ATTRIBUTES_UPDATE
-                  ? { attributes: Map<string, Map<string, string>> }
-                  : T extends ProjectStateEventType.TILE_ATTRIBUTES_UPDATE
-                    ? { tileAttributes: Map<string, Map<string, string>> }
-                    : T extends ProjectStateEventType.AUTO_TILE_ATTRIBUTES_UPDATE
-                      ? { autoTileAttributes: Map<string, Map<string, string>> }
-                      : T extends ProjectStateEventType.DIMENSIONS_UPDATE
-                        ? {
-                            dimensions: {
-                              width: number;
-                              height: number;
-                              tileSize: number;
-                            };
-                          }
-                        : T extends ProjectStateEventType.OPEN_FILE
-                          ? ProjectStateMembers
-                          : T extends ProjectStateEventType.NEW_PROJECT
-                            ? ProjectStateMembers
-                            : null;
+    T extends ProjectStateEventType.PAINT
+      ? { prev: HistoryEntry; next: HistoryEntry }
+      : T extends ProjectStateEventType.LAYER_DATA_UPDATE
+        ? { layerData: Map<string, LayerDataComp> }
+        : T extends ProjectStateEventType.NAME_UPDATE
+          ? { name: string }
+          : T extends ProjectStateEventType.LAYERS_UPDATE
+            ? { layers: LayerComp[] }
+            : T extends ProjectStateEventType.AUTO_TILES_UPDATE
+              ? { autoTiles: AutoTile[] }
+              : T extends ProjectStateEventType.TILESETS_UPDATE
+                ? { tilesets: Tileset[] }
+                : T extends ProjectStateEventType.OBJECTS_UPDATE
+                  ? { objects: Object[] }
+                  : T extends ProjectStateEventType.ATTRIBUTES_UPDATE
+                    ? { attributes: Map<string, Map<string, string>> }
+                    : T extends ProjectStateEventType.TILE_ATTRIBUTES_UPDATE
+                      ? { tileAttributes: Map<string, Map<string, string>> }
+                      : T extends ProjectStateEventType.AUTO_TILE_ATTRIBUTES_UPDATE
+                        ? { autoTileAttributes: Map<string, Map<string, string>> }
+                        : T extends ProjectStateEventType.OBJECT_ATTRIBUTES_UPDATE
+                          ? { objectAttributes: Map<string, Map<string, string>> }
+                          : T extends ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE
+                            ? {
+                                paintedObjectAttributes: Map<
+                                  string,
+                                  Map<string, string>
+                                >;
+                              }
+                            : T extends ProjectStateEventType.DIMENSIONS_UPDATE
+                              ? {
+                                  dimensions: {
+                                    width: number;
+                                    height: number;
+                                    tileSize: number;
+                                  };
+                                }
+                              : T extends ProjectStateEventType.OPEN_FILE
+                                ? ProjectStateMembers
+                                : T extends ProjectStateEventType.NEW_PROJECT
+                                  ? ProjectStateMembers
+                                  : null;
 
 export type ProjectStateEvent<T extends ProjectStateEventType> = CustomEvent<
   ProjectStateEventDetail<T>
@@ -191,6 +193,8 @@ export type ProjectStateMembers = {
   autoTileAttributes: Map<string, Map<string, string>>;
   tileAttributes: Map<string, Map<string, string>>;
   attributes: Map<string, Map<string, string>>;
+  objectAttributes: Map<string, Map<string, string>>;
+  paintedObjectAttributes: Map<string, Map<string, string>>;
   autoTiles: AutoTile[];
   tilesets: Tileset[];
   objects: Object[];
@@ -227,6 +231,8 @@ export class ProjectState {
   private tileAttributes: Map<string, Map<string, string>>; // Attributes for a tile highest priority
   private autoTileAttributes: Map<string, Map<string, string>>; // Attributes for an auto tile, will be passed on to each tile painted with this
   private layerData: Map<string, LayerDataComp>;
+  private objectAttributes: Map<string, Map<string, string>>; // Attributes for an object definition
+  private paintedObjectAttributes: Map<string, Map<string, string>>; // Attributes for a painted object instance, keyed by layerId:row:col
 
   constructor() {
     this._name = $state("My project");
@@ -244,6 +250,8 @@ export class ProjectState {
     this.tileAttributes = new Map();
     this.autoTileAttributes = new Map();
     this.layerData = new Map();
+    this.objectAttributes = new Map();
+    this.paintedObjectAttributes = new Map();
   }
 
   init(data: Partial<ProjectStateMembers>) {
@@ -252,6 +260,9 @@ export class ProjectState {
         this.autoTileAttributes = data.autoTileAttributes;
       if (data.tileAttributes) this.tileAttributes = data.tileAttributes;
       if (data.attributes) this.attributes = data.attributes;
+      if (data.objectAttributes) this.objectAttributes = data.objectAttributes;
+      if (data.paintedObjectAttributes)
+        this.paintedObjectAttributes = data.paintedObjectAttributes;
       if (data.autoTiles) this.autoTiles = data.autoTiles;
       if (data.tilesets) this.tilesets = data.tilesets;
       if (data.objects) this.objects = data.objects;
@@ -353,7 +364,7 @@ export class ProjectState {
     this._height = height;
     this._width = width;
 
-    this.wipeLayerData();
+    // this.wipeLayerData();
 
     projectStateEvents.emit(ProjectStateEventType.DIMENSIONS_UPDATE, {
       dimensions: {
@@ -598,6 +609,14 @@ export class ProjectState {
         ProjectStateErrorCode.BAD_REQUEST,
       );
     }
+
+    if (this.hasObjectAttributes(id)) {
+      this.objectAttributes.delete(id);
+      projectStateEvents.emit(ProjectStateEventType.OBJECT_ATTRIBUTES_UPDATE, {
+        objectAttributes: this.objectAttributes,
+      });
+    }
+
     this.objects.splice(idx, 1);
     projectStateEvents.emit(ProjectStateEventType.OBJECTS_UPDATE, {
       objects: $state.snapshot(this.objects),
@@ -905,6 +924,163 @@ export class ProjectState {
     return this.tileAttributes.has(`${tile.tilesetId}:${tile.x}:${tile.y}`);
   }
 
+  getObjectAttributes(objectId: string): Map<string, string> {
+    const attributes = this.objectAttributes.get(objectId);
+
+    if (attributes === undefined)
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    return attributes;
+  }
+
+  getObjectAttributesSafe(objectId: string): Map<string, string> | null {
+    const attributes = this.objectAttributes.get(objectId);
+    if (attributes === undefined) return null;
+    return attributes;
+  }
+
+  updateObjectAttributes(objectId: string, attributes: Map<string, string>) {
+    this.objectAttributes.set(objectId, attributes);
+
+    projectStateEvents.emit(ProjectStateEventType.OBJECT_ATTRIBUTES_UPDATE, {
+      objectAttributes: this.objectAttributes,
+    });
+  }
+
+  deleteObjectAttributes(objectId: string) {
+    if (!this.hasObjectAttributes(objectId))
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    this.objectAttributes.delete(objectId);
+
+    projectStateEvents.emit(ProjectStateEventType.OBJECT_ATTRIBUTES_UPDATE, {
+      objectAttributes: this.objectAttributes,
+    });
+  }
+
+  hasObjectAttributes(objectId: string) {
+    return this.objectAttributes.has(objectId);
+  }
+
+  getPaintedObjectAttributes(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+  ): Map<string, string> {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
+    const attributes = this.paintedObjectAttributes.get(
+      this.getPaintedObjectAttributesKey(layerId, row, col),
+    );
+
+    if (attributes === undefined)
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    return attributes;
+  }
+
+  getPaintedObjectAttributesSafe(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+  ): Map<string, string> | null {
+    const attributes = this.paintedObjectAttributes.get(
+      this.getPaintedObjectAttributesKey(layerId, row, col),
+    );
+    if (attributes === undefined) return null;
+    return attributes;
+  }
+
+  getInheritedPaintedObjectAttributes(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+  ): Map<string, string> | null {
+    const paintedObject = this.getTileAt(layerId, row, col);
+
+    if (paintedObject === null || paintedObject.type !== PaintType.OBJECT)
+      return null;
+
+    return this.getObjectAttributesSafe(paintedObject.ref.id);
+  }
+
+  updatePaintedObjectAttributes(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+    attributes: Map<string, string>,
+  ) {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
+    this.paintedObjectAttributes.set(
+      this.getPaintedObjectAttributesKey(layerId, row, col),
+      attributes,
+    );
+
+    projectStateEvents.emit(
+      ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+      {
+        paintedObjectAttributes: this.paintedObjectAttributes,
+      },
+    );
+  }
+
+  deletePaintedObjectAttributes(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+  ) {
+    if (!this.isWithinGridBounds(row, col))
+      throw new ProjectStateError(
+        "row and/or col is out of bounds for grid",
+        ProjectStateErrorCode.OUT_OF_BOUNDS,
+      );
+
+    if (!this.hasPaintedObjectAttributes(layerId, row, col))
+      throw new ProjectStateError(
+        "Attributes not found",
+        ProjectStateErrorCode.NOT_FOUND,
+      );
+
+    this.paintedObjectAttributes.delete(
+      this.getPaintedObjectAttributesKey(layerId, row, col),
+    );
+
+    projectStateEvents.emit(
+      ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+      {
+        paintedObjectAttributes: this.paintedObjectAttributes,
+      },
+    );
+  }
+
+  hasPaintedObjectAttributes(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+  ) {
+    return this.paintedObjectAttributes.has(
+      this.getPaintedObjectAttributesKey(layerId, row, col),
+    );
+  }
+
   // Methods layers //
 
   getLayers() {
@@ -1050,6 +1226,8 @@ export class ProjectState {
         "Layer not found",
         ProjectStateErrorCode.NOT_FOUND,
       );
+
+    this.removePaintedObjectAttributesByLayer(id);
 
     this.layerData.delete(id);
     this.layers.splice(idx, 1);
@@ -1867,6 +2045,18 @@ export class ProjectState {
 
     const curr = this.getTileAt(layerId, row, col);
 
+    if (this.hasPaintedObjectAttributes(layerId, row, col)) {
+      this.paintedObjectAttributes.delete(
+        this.getPaintedObjectAttributesKey(layerId, row, col),
+      );
+      projectStateEvents.emit(
+        ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+        {
+          paintedObjectAttributes: this.paintedObjectAttributes,
+        },
+      );
+    }
+
     this.setTile(layerId, row, col, asset);
     this.emitLayerDataUpdate();
 
@@ -1904,6 +2094,12 @@ export class ProjectState {
     for (const o of objects) {
       const curr = this.getTileAt(layerId, o.row, o.col);
 
+      if (this.hasPaintedObjectAttributes(layerId, o.row, o.col)) {
+        this.paintedObjectAttributes.delete(
+          this.getPaintedObjectAttributesKey(layerId, o.row, o.col),
+        );
+      }
+
       this.setTile(layerId, o.row, o.col, o.objectAsset);
 
       prevItems.push({
@@ -1916,6 +2112,13 @@ export class ProjectState {
         pos: { row: o.row, col: o.col },
       });
     }
+
+    projectStateEvents.emit(
+      ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+      {
+        paintedObjectAttributes: this.paintedObjectAttributes,
+      },
+    );
 
     this.emitLayerDataUpdate();
 
@@ -1943,6 +2146,19 @@ export class ProjectState {
         "row and/or col is out of bounds for grid",
         ProjectStateErrorCode.OUT_OF_BOUNDS,
       );
+
+    if (this.hasPaintedObjectAttributes(layerId, row, col)) {
+      this.paintedObjectAttributes.delete(
+        this.getPaintedObjectAttributesKey(layerId, row, col),
+      );
+
+      projectStateEvents.emit(
+        ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+        {
+          paintedObjectAttributes: this.paintedObjectAttributes,
+        },
+      );
+    }
 
     const curr = this.getTileAt(layerId, row, col);
     this.setTile(layerId, row, col, null);
@@ -1977,6 +2193,13 @@ export class ProjectState {
 
     for (const o of objects) {
       const curr = this.getTileAt(layerId, o.row, o.col);
+
+      if (this.hasPaintedObjectAttributes(layerId, o.row, o.col)) {
+        this.paintedObjectAttributes.delete(
+          this.getPaintedObjectAttributesKey(layerId, o.row, o.col),
+        );
+      }
+
       this.setTile(layerId, o.row, o.col, null);
 
       prevItems.push({
@@ -1989,6 +2212,13 @@ export class ProjectState {
         pos: { row: o.row, col: o.col },
       });
     }
+
+    projectStateEvents.emit(
+      ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+      {
+        paintedObjectAttributes: this.paintedObjectAttributes,
+      },
+    );
 
     this.emitLayerDataUpdate();
 
@@ -2049,6 +2279,19 @@ export class ProjectState {
       };
     });
 
+    const objects = this.objects.map((obj) => {
+      const ctx = createCanvas(obj.image.bitmap.width, obj.image.bitmap.height);
+      ctx.drawImage(obj.image.bitmap, 0, 0);
+
+      return {
+        ...obj,
+        image: {
+          ...obj.image,
+          bitmap: ctx.canvas.toDataURL(),
+        },
+      };
+    });
+
     const attributes = Array.from(this.attributes.entries()).map((e) => {
       const [row, col] = e[0].split(":").map(Number);
 
@@ -2085,8 +2328,38 @@ export class ProjectState {
       };
     });
 
+    const objectAttributes = Array.from(this.objectAttributes.entries()).map(
+      (e) => {
+        return {
+          objectId: e[0],
+          attributes: Object.fromEntries(e[1]),
+        };
+      },
+    );
+
+    const paintedObjectAttributes = Array.from(
+      this.paintedObjectAttributes.entries(),
+    ).map((e) => {
+      const [layerId, row, col] = e[0].split(":");
+
+      return {
+        layerId,
+        row: parseInt(row),
+        col: parseInt(col),
+        attributes: Object.fromEntries(e[1]),
+      };
+    });
+
     const layers = this.layers.map((l) => {
       const data = this.getLayerData(l.id) as LayerDataComp;
+
+      if (l.type === PaintType.OBJECT && data instanceof Map) {
+        return {
+          ...l,
+          data: Array.from(data.entries()) as [string, PaintedObject][],
+        };
+      }
+
       return { ...l, data };
     });
 
@@ -2097,10 +2370,12 @@ export class ProjectState {
       height: this.height,
       tilesets,
       autoTiles: this.autoTiles,
-      objects: this.objects,
+      objects,
       attributes,
       tileAttributes,
       autoTileAttributes,
+      objectAttributes,
+      paintedObjectAttributes,
       layers,
     };
 
@@ -2122,6 +2397,8 @@ export class ProjectState {
     this.attributes = new Map();
     this.tileAttributes = new Map();
     this.autoTileAttributes = new Map();
+    this.objectAttributes = new Map();
+    this.paintedObjectAttributes = new Map();
     this.layerData = new Map();
 
     this.createDefaultLayers();
@@ -2130,6 +2407,8 @@ export class ProjectState {
       attributes: this.attributes,
       tileAttributes: this.tileAttributes,
       autoTileAttributes: this.autoTileAttributes,
+      objectAttributes: this.objectAttributes,
+      paintedObjectAttributes: this.paintedObjectAttributes,
       autoTiles: $state.snapshot(this.autoTiles),
       objects: $state.snapshot(this.objects),
       height: $state.snapshot(this._height),
@@ -2158,6 +2437,12 @@ export class ProjectState {
       this._width = data.width;
       this._height = data.height;
 
+      this.attributes = new Map();
+      this.tileAttributes = new Map();
+      this.autoTileAttributes = new Map();
+      this.objectAttributes = new Map();
+      this.paintedObjectAttributes = new Map();
+
       // Create attributes maps
 
       for (const a of data.attributes) {
@@ -2181,6 +2466,24 @@ export class ProjectState {
         );
       }
 
+      for (const a of data.objectAttributes ?? []) {
+        this.objectAttributes.set(
+          `${a.objectId}`,
+          new Map(Object.entries(a.attributes)),
+        );
+      }
+
+      for (const a of data.paintedObjectAttributes ?? []) {
+        this.paintedObjectAttributes.set(
+          this.getPaintedObjectAttributesKey(
+            a.layerId as LayerId<PaintType.OBJECT>,
+            a.row,
+            a.col,
+          ),
+          new Map(Object.entries(a.attributes)),
+        );
+      }
+
       // Convert data URL to ImageBitmap in tilesets
       this.tilesets = await Promise.all(
         data.tilesets.map(async (t) => {
@@ -2190,7 +2493,31 @@ export class ProjectState {
       );
 
       this.autoTiles = data.autoTiles;
-      this.objects = data.objects ?? [];
+
+      this.objects = await Promise.all(
+        (data.objects ?? []).map(async (obj) => {
+          let bitmap: ImageBitmap;
+
+          if (typeof obj.image.bitmap === "string") {
+            bitmap = await dataURLToImageBitmap(obj.image.bitmap);
+          } else {
+            // Recover from previously broken exports where bitmap was serialized as {}.
+            bitmap = await this.buildObjectBitmapFromTiles(
+              obj.image.tiles,
+              obj.width,
+              obj.height,
+            );
+          }
+
+          return {
+            ...obj,
+            image: {
+              ...obj.image,
+              bitmap,
+            },
+          };
+        }),
+      );
 
       // Create layers
 
@@ -2199,12 +2526,27 @@ export class ProjectState {
       this.layerData.clear();
 
       for (const l of data.layers) {
-        this.layerData.set(l.id, l.data);
+        let layerData = l.data as LayerDataComp;
+
+        if (l.type === PaintType.OBJECT) {
+          if (Array.isArray(l.data)) {
+            layerData = new Map(l.data as [string, PaintedObject][]) as LayerDataComp;
+          } else {
+            throw new ProjectStateError(
+              `Invalid object layer data for layer ${l.id}: expected array of entries`,
+              ProjectStateErrorCode.BAD_REQUEST,
+            );
+          }
+        }
+
+        this.layerData.set(l.id, layerData);
 
         let id =
           l.type === PaintType.AUTO_TILE
             ? (l.id as LayerId<PaintType.AUTO_TILE>)
-            : (l.id as LayerId<PaintType.TILE>);
+            : l.type === PaintType.OBJECT
+              ? (l.id as LayerId<PaintType.OBJECT>)
+              : (l.id as LayerId<PaintType.TILE>);
 
         this.layers.push({ name: l.name, id, type: l.type } as LayerComp);
       }
@@ -2213,6 +2555,8 @@ export class ProjectState {
         attributes: this.attributes,
         tileAttributes: this.tileAttributes,
         autoTileAttributes: this.autoTileAttributes,
+        objectAttributes: this.objectAttributes,
+        paintedObjectAttributes: this.paintedObjectAttributes,
         autoTiles: $state.snapshot(this.autoTiles),
         objects: $state.snapshot(this.objects),
         height: $state.snapshot(this._height),
@@ -2271,7 +2615,9 @@ export class ProjectState {
   private getExportedObjects(): ObjectJSON[] {
     const objects: ObjectJSON[] = [];
 
-    for (const layer of this.layers) {
+    for (let i = 0; i < this.layers.length; ++i) {
+      const layer = this.layers[i];
+
       if (layer.type !== PaintType.OBJECT) continue;
 
       for (let r = 0; r < this.rows; r++) {
@@ -2279,14 +2625,26 @@ export class ProjectState {
           const paintedObject = this.getTileAt(layer.id, r, c);
           if (paintedObject === null) continue;
 
+          const obj = this.getObject(paintedObject.ref.id);
+          if (obj === null) continue;
           try {
-            const object = this.getObject(paintedObject.ref.id);
+            const dataURL = imageBitmapToDataURL(obj.image.bitmap);
+            const mergedAttributes = this.getMergedExportedObjectAttributes(
+              layer.id,
+              r,
+              c,
+            );
+
             objects.push({
-              image: imageBitmapToDataURL(object.image.bitmap),
-              width: object.width,
-              height: object.height,
+              image: dataURL,
+              width: obj.width,
+              height: obj.height,
               pos: { x: c * this.tileSize, y: r * this.tileSize },
-              name: object.name,
+              name: obj.name,
+              layerIdx: i,
+              ...(Object.keys(mergedAttributes).length > 0
+                ? { attributes: mergedAttributes }
+                : {}),
             });
           } catch {
             // Skip invalid object references
@@ -2441,6 +2799,92 @@ export class ProjectState {
     }
 
     return ctx;
+  }
+
+  private getPaintedObjectAttributesKey(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+  ) {
+    return `${layerId}:${row}:${col}`;
+  }
+
+  private async buildObjectBitmapFromTiles(
+    tiles: Tile[],
+    width: number,
+    height: number,
+  ): Promise<ImageBitmap> {
+    const ctx = createCanvas(width, height);
+
+    if (tiles.length === 0) {
+      return await createImageBitmap(ctx.canvas);
+    }
+
+    const minX = Math.min(...tiles.map((t) => t.x));
+    const minY = Math.min(...tiles.map((t) => t.y));
+
+    for (const t of tiles) {
+      const tileset = this.getTileset(t.tilesetId);
+      ctx.drawImage(
+        tileset.spritesheet,
+        t.x,
+        t.y,
+        this.tileSize,
+        this.tileSize,
+        t.x - minX,
+        t.y - minY,
+        this.tileSize,
+        this.tileSize,
+      );
+    }
+
+    return await createImageBitmap(ctx.canvas);
+  }
+
+  private getMergedExportedObjectAttributes(
+    layerId: LayerId<PaintType.OBJECT>,
+    row: number,
+    col: number,
+  ): { [k: string]: string } {
+    const paintedObject = this.getTileAt(layerId, row, col);
+
+    if (paintedObject === null || paintedObject.type !== PaintType.OBJECT)
+      return {};
+
+    const attrs = new Map<string, string>();
+
+    const objectAttrs = this.getObjectAttributesSafe(paintedObject.ref.id);
+    if (objectAttrs !== null) {
+      for (const [k, v] of objectAttrs.entries()) {
+        attrs.set(k, v);
+      }
+    }
+
+    const instanceAttrs = this.getPaintedObjectAttributesSafe(layerId, row, col);
+    if (instanceAttrs !== null) {
+      for (const [k, v] of instanceAttrs.entries()) {
+        attrs.set(k, v);
+      }
+    }
+
+    return Object.fromEntries(attrs.entries());
+  }
+
+  private removePaintedObjectAttributesByLayer(layerId: string) {
+    const prefix = `${layerId}:`;
+
+    for (const key of Array.from(this.paintedObjectAttributes.keys())) {
+      if (key.startsWith(prefix)) {
+        this.paintedObjectAttributes.delete(key);
+      }
+    }
+
+    projectStateEvents.emit(
+      ProjectStateEventType.PAINTED_OBJECT_ATTRIBUTES_UPDATE,
+      {
+        paintedObjectAttributes: this.paintedObjectAttributes,
+      },
+    );
   }
 
   private wipeLayerData() {

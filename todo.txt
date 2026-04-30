@@ -2,6 +2,9 @@
 
 * Build GB town 
 
+* Add object parameters on object layers for the instance of that object useful for tables 
+and seats and stuff, easy to just write and read it in then to code wise calculate
+
 # Bugs 
 
 * Replace the DND kit if it doesn't work, has problems with reactivity UI on several places like the eye icon not working at all

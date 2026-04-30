@@ -28,10 +28,14 @@
     TilemapViewportSelectionMoveEvent,
   } from "./TilemapViewport";
   import PaintedTileAttributesDialog from "./attributes/PaintedTileAttributesDialog.svelte";
+  import PaintedObjectAttributesDialog from "./attributes/PaintedObjectAttributesDialog.svelte";
   import { onMount } from "svelte";
   import { createCanvas } from "../utils";
 
   let attributesDialogIsOpen = $state(false);
+  let attributesDialogType: PaintType.TILE | PaintType.OBJECT = $state(
+    PaintType.TILE,
+  );
 
   let attributesCell: Cell = $state({ row: 0, col: 0 });
 
@@ -429,8 +433,6 @@
           firstRendered = candidate;
         }
       }
-
-      const o = projectState.getObject(firstRendered.tile.ref.id);
       return [firstRendered];
     }
 
@@ -553,8 +555,50 @@
   const handleCanvasRightClick = (e: Event) => {
     const { row, col } = (e as TilemapViewportRightClickEvent).cell;
 
-    attributesCell = { row, col };
-    attributesDialogIsOpen = true;
+    if (tilemapEditorState.type === PaintType.OBJECT) {
+      const layerId = tilemapEditorState.selectedLayer as ObjectLayerId;
+      const data = projectState.getLayerData(layerId);
+
+      let foundObjCell: Cell | null = null;
+
+      for (const [key, paintedObj] of data.entries()) {
+        const [rowStr, colStr] = key.split(":");
+        const objRow = Number.parseInt(rowStr, 10);
+        const objCol = Number.parseInt(colStr, 10);
+        if (Number.isNaN(objRow) || Number.isNaN(objCol)) continue;
+
+        const obj = projectState.getObject(paintedObj.ref.id);
+        const objRows = Math.max(
+          1,
+          Math.floor(obj.height / projectState.tileSize),
+        );
+        const objCols = Math.max(
+          1,
+          Math.floor(obj.width / projectState.tileSize),
+        );
+
+        if (
+          row >= objRow &&
+          row <= objRow + objRows - 1 &&
+          col >= objCol &&
+          col <= objCol + objCols - 1
+        ) {
+          foundObjCell = { row: objRow, col: objCol };
+          break;
+        }
+      }
+
+      if (foundObjCell !== null) {
+        attributesCell = foundObjCell;
+        attributesDialogType = PaintType.OBJECT;
+        attributesDialogIsOpen = true;
+      }
+    } else {
+      attributesCell = { row, col };
+
+      attributesDialogType = PaintType.TILE;
+      attributesDialogIsOpen = true;
+    }
   };
 
   const handleSelectionMoveStart = () => {
@@ -1246,15 +1290,24 @@
             const offX = 0;
             const padding = 8;
             const rectWidth =
-              metrics.actualBoundingBoxLeft +
-              metrics.actualBoundingBoxRight;
+              metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight;
             const rectHeight =
               metrics.actualBoundingBoxAscent +
               metrics.actualBoundingBoxDescent;
             ctx.fillStyle = "#ececec";
-            ctx.fillRect(x - offX, y - offY, rectWidth + padding * 2, rectHeight + padding);
+            ctx.fillRect(
+              x - offX,
+              y - offY,
+              rectWidth + padding * 2,
+              rectHeight + padding,
+            );
             ctx.strokeStyle = "black";
-            ctx.strokeRect(x - offX, y - offY, rectWidth + padding * 2, rectHeight + padding);
+            ctx.strokeRect(
+              x - offX,
+              y - offY,
+              rectWidth + padding * 2,
+              rectHeight + padding,
+            );
 
             ctx.fillStyle = "black";
             ctx.fillText(obj.name, x + padding, y + rectHeight + padding / 4);
@@ -1274,8 +1327,16 @@
 
 <section bind:this={container} id="tilemap-editor"></section>
 
-{#if attributesDialogIsOpen}
+{#if attributesDialogIsOpen && attributesDialogType === PaintType.TILE}
   <PaintedTileAttributesDialog
+    bind:open={attributesDialogIsOpen}
+    row={attributesCell.row}
+    col={attributesCell.col}
+  />
+{/if}
+
+{#if attributesDialogIsOpen && attributesDialogType === PaintType.OBJECT}
+  <PaintedObjectAttributesDialog
     bind:open={attributesDialogIsOpen}
     row={attributesCell.row}
     col={attributesCell.col}

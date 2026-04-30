@@ -36,6 +36,8 @@ async function dataURLToImageBitmap(dataURL: string) {
 function imageBitmapToDataURL(imageBitmap: ImageBitmap) {
   const ctx = createCanvas(imageBitmap.width, imageBitmap.height);
 
+  ctx.drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
+
   return ctx.canvas.toDataURL();
 }
 
@@ -114,5 +116,5 @@ export {
   createCanvas,
   download,
   isSamePos,
-  imageBitmapToDataURL
+  imageBitmapToDataURL,
 };

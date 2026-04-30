@@ -8,6 +8,7 @@
   import type { Object as ProjectObject, ObjectCategory } from "../../types";
   import { PaintType } from "../../types";
   import type { SlTabGroup } from "@shoelace-style/shoelace";
+  import { imageBitmapToDataURL } from "../../utils";
   import ContextMenu from "../common/ContextMenu.svelte";
   import ObjectDialog from "./ObjectDialog.svelte";
 
@@ -53,17 +54,20 @@
     dialogIsOpen = true;
   };
 
-  const handleDialogSave = (object: ProjectObject) => {
+  const handleDialogSave = (object: ProjectObject, attributes: [string, string][]) => {
     if (editingObject) {
       projectState.updateObject(object);
     } else {
-      projectState.createObject(
+      const created = projectState.createObject(
         object.name,
         object.width,
         object.height,
         object.image,
         object.category,
       );
+      if (attributes.length > 0) {
+        projectState.updateObjectAttributes(created.id, new Map(attributes));
+      }
     }
 
     dialogIsOpen = false;
@@ -127,8 +131,11 @@
                       : ''}"
                     onclick={() => selectObject(object)}
                   >
-                    <sl-icon library="pixelarticons" name="toke-square"
-                    ></sl-icon>
+                    <img
+                      class="obj-thumb"
+                      src={imageBitmapToDataURL(object.image.bitmap)}
+                      alt={object.name}
+                    />
 
                     <p class="obj-name">{object.name}</p>
                   </sl-button>
@@ -141,7 +148,11 @@
                     : ''}"
                   onclick={() => selectObject(object)}
                 >
-                  <sl-icon library="pixelarticons" name="toke-square"></sl-icon>
+                  <img
+                    class="obj-thumb"
+                    src={imageBitmapToDataURL(object.image.bitmap)}
+                    alt={object.name}
+                  />
 
                   <p class="obj-name">{object.name}</p>
                 </sl-button>
@@ -204,6 +215,16 @@
     max-width: 75px;
     text-overflow: ellipsis;
     overflow: hidden;
+  }
+
+  .obj-thumb {
+    display: block;
+    max-width: 100%;
+    max-height: 72px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    image-rendering: pixelated;
   }
 
   sl-tab {

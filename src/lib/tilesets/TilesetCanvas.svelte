@@ -18,9 +18,15 @@
     reset?: boolean;
     tileset: Tileset;
     onSelect: (selectedTiles: TileAsset[]) => void;
+    allowTileAttributesEdit?: boolean;
   };
 
-  let { tileset, onSelect, reset }: TilesCanvasProps = $props();
+  let {
+    tileset,
+    onSelect,
+    reset,
+    allowTileAttributesEdit = true,
+  }: TilesCanvasProps = $props();
 
   let container!: HTMLDivElement;
   let tilemapViewport!: TilemapViewport;
@@ -72,7 +78,9 @@
         updateSelectedTiles((e as TilemapViewportSelectionChangeEvent).rect);
       });
 
-      tilemapViewport.addEventListener("right-click", handleCanvasRightClick);
+      if (allowTileAttributesEdit) {
+        tilemapViewport.addEventListener("right-click", handleCanvasRightClick);
+      }
     });
 
     ro.observe(container);
@@ -129,7 +137,7 @@
 
 <div bind:this={container}></div>
 
-{#if attributesDialogIsOpen && attributesTile !== null}
+{#if allowTileAttributesEdit && attributesDialogIsOpen && attributesTile !== null}
   <TileAttributesDialog
     bind:open={attributesDialogIsOpen}
     tile={attributesTile}

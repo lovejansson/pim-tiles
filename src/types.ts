@@ -1,4 +1,4 @@
-type Tileset = {
+export type Tileset = {
   id: string;
   name: string;
   width: number;
@@ -6,14 +6,14 @@ type Tileset = {
   spritesheet: ImageBitmap;
 };
 
-type AutoTile = {
+export type AutoTile = {
   id: string;
   name: string;
   rules: TileRule[];
   defaultTile: TileAsset;
 };
 
-type Vec2 = {
+export type Vec2 = {
   x: number;
   y: number;
 };
@@ -31,9 +31,9 @@ type Vec2 = {
  *
  */
 
-type ObjectCategory = "houses" | "nature" | "furniture" | "decorations" | "other";
+export type ObjectCategory = "houses" | "nature" | "furniture" | "decorations" | "other";
 
-type Object = {
+export type Object = {
   id: string;
   name: string;
 
@@ -46,95 +46,97 @@ type Object = {
   category: ObjectCategory;
 };
 
-type ObjectJSON = {
+export type ObjectJSON = {
   image: string;
   width: number;
   height: number;
   pos: Vec2;
   name: string;
+  layerIdx: number;
+  attributes?: { [key: string]: any };
 };
 
-type Cell = {
+export type Cell = {
   row: number;
   col: number;
 };
 
-type Rect = {
+export type Rect = {
   x: number;
   y: number;
   width: number;
   height: number;
 };
 
-enum PaintType {
+export enum PaintType {
   TILE,
   AUTO_TILE,
   OBJECT,
 }
 
-enum Tool {
+export enum Tool {
   PAINT,
   ERASE,
   SELECT,
 }
 
-type IdRef = {
+export type IdRef = {
   readonly id: string;
 };
 
-type Tile = {
+export type Tile = {
   readonly tilesetId: string;
   readonly x: number;
   readonly y: number;
 };
 
-type AssetRefT<T extends PaintType> = {
+export type AssetRefT<T extends PaintType> = {
   readonly type: T;
   readonly ref: T extends PaintType.TILE ? Tile : IdRef;
 };
 
-type PaintedAsset<T extends PaintType> = T extends PaintType.AUTO_TILE
+export type PaintedAsset<T extends PaintType> = T extends PaintType.AUTO_TILE
   ? AssetRefT<T> & { readonly selectedTileRuleId: IdRef | null }
   : AssetRefT<T>;
 
-type LayerData<T extends PaintType> = T extends PaintType.OBJECT
+export type LayerData<T extends PaintType> = T extends PaintType.OBJECT
   ? Map<string, PaintedAsset<T>>
   : (PaintedAsset<T> | null)[][];
 
-type LayerDataComp =
+export type LayerDataComp =
   | LayerData<PaintType.TILE>
   | LayerData<PaintType.AUTO_TILE>
   | LayerData<PaintType.OBJECT>;
 
-type LayerComp =
+export type LayerComp =
   | Layer<PaintType.TILE>
   | Layer<PaintType.AUTO_TILE>
   | Layer<PaintType.OBJECT>;
 
-type Layer<T extends PaintType> = {
+export type Layer<T extends PaintType> = {
   id: LayerId<T>;
   type: T;
   name: string;
 };
 
-type LayerId<T extends PaintType> = string & { __brand: T };
+export type LayerId<T extends PaintType> = string & { __brand: T };
 
-type ObjectLayerId = LayerId<PaintType.OBJECT>;
+export type ObjectLayerId = LayerId<PaintType.OBJECT>;
 
-type PaintedTile = PaintedAsset<PaintType.TILE>;
-type PaintedObject = PaintedAsset<PaintType.OBJECT>;
-type PaintedAutoTile = PaintedAsset<PaintType.AUTO_TILE>;
+export type PaintedTile = PaintedAsset<PaintType.TILE>;
+export type PaintedObject = PaintedAsset<PaintType.OBJECT>;
+export type PaintedAutoTile = PaintedAsset<PaintType.AUTO_TILE>;
 
-type TileLayer = Layer<PaintType.TILE>;
-type AutoTileLayer = Layer<PaintType.AUTO_TILE>;
+export type TileLayer = Layer<PaintType.TILE>;
+export type AutoTileLayer = Layer<PaintType.AUTO_TILE>;
 
-enum TileRequirement {
+export enum TileRequirement {
   REQUIRED = "required",
   EXCLUDED = "excluded",
   OPTIONAL = "optional",
 }
 
-type TileConnections = {
+export type TileConnections = {
   n: TileRequirement;
   ne: TileRequirement;
   e: TileRequirement;
@@ -145,23 +147,23 @@ type TileConnections = {
   nw: TileRequirement;
 };
 
-type TileRule = {
+export type TileRule = {
   id: string;
   connections: TileConnections;
   tile: TileAsset;
 };
 
-type TileAsset = AssetRefT<PaintType.TILE>;
-type AutoTileAsset = AssetRefT<PaintType.AUTO_TILE>;
-type ObjectAsset = AssetRefT<PaintType.OBJECT>;
+export type TileAsset = AssetRefT<PaintType.TILE>;
+export type AutoTileAsset = AssetRefT<PaintType.AUTO_TILE>;
+export type ObjectAsset = AssetRefT<PaintType.OBJECT>;
 
-type AssetRef = TileAsset | AutoTileAsset | ObjectAsset;
+export type AssetRef = TileAsset | AutoTileAsset | ObjectAsset;
 
-type SelectedAsset<T extends PaintType> = T extends PaintType.TILE
+export type SelectedAsset<T extends PaintType> = T extends PaintType.TILE
   ? AssetRefT<PaintType.TILE>[]
   : AssetRefT<T>;
 
-type Selection<T extends PaintType> = {
+export type Selection<T extends PaintType> = {
   tiles: {
     org: Cell;
     curr: Cell;
@@ -169,7 +171,7 @@ type Selection<T extends PaintType> = {
   }[];
 };
 
-type TilemapEditorState<T extends PaintType> = {
+export type TilemapEditorState<T extends PaintType> = {
   type: T;
   selectedTool: Tool;
   selectedLayer: LayerId<T>;
@@ -178,7 +180,7 @@ type TilemapEditorState<T extends PaintType> = {
   selection: Selection<T>;
 };
 
-type GUIState = {
+export type GUIState = {
   notification: Notification | null;
   showGrid: boolean;
   outlineObjects: boolean;
@@ -187,7 +189,7 @@ type GUIState = {
   visibleLayers: { [key: string]: boolean };
 };
 
-type ProjectJSONExport = {
+export type ProjectStateJSONExport = {
   tilemap: string;
   name: string;
   tileSize: number;
@@ -199,105 +201,75 @@ type ProjectJSONExport = {
   objects: ObjectJSON[];
 };
 
-type ProjectFile = {
+export type SerializedProjectObject = Omit<Object, "image"> & {
+  image: {
+    tiles: Tile[];
+    bitmap: string | Record<string, never>;
+  };
+};
+
+export type ProjectFile = {
   name: string;
   tileSize: number;
   width: number;
   height: number;
-  layers: (LayerComp & { data: LayerDataComp })[];
+  layers: (LayerComp & { data: LayerDataComp | [string, PaintedObject][] })[];
   tilesets: (Omit<Tileset, "spritesheet"> & { spritesheet: string })[];
   autoTiles: AutoTile[];
-  objects: Object[];
+  objects: SerializedProjectObject[];
   attributes: { pos: Vec2; attributes: { [key: string]: any } }[];
   tileAttributes: { tile: Tile; attributes: { [key: string]: any } }[];
   autoTileAttributes: {
     autoTileId: string;
     attributes: { [key: string]: any };
   }[];
+  objectAttributes: { objectId: string; attributes: { [key: string]: any } }[];
+  paintedObjectAttributes: {
+    layerId: string;
+    row: number;
+    col: number;
+    attributes: { [key: string]: any };
+  }[];
 };
 
-type Notification = {
+export type Notification = {
   variant: "primary" | "success" | "neutral" | "warning" | "danger";
   title: string;
   msg: string;
 };
 
-type HistoryEntryPaint<T extends PaintType> = PaintedAsset<T>;
+export type HistoryEntryPaint<T extends PaintType> = PaintedAsset<T>;
 
-type HistoryEntryItem<T extends PaintType> = {
+export type HistoryEntryItem<T extends PaintType> = {
   data: HistoryEntryPaint<T> | null;
   pos: Cell;
 };
 
-type TileHistoryEntryItem = HistoryEntryItem<PaintType.TILE>;
-type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
-type ObjectHistoryEntryItem = HistoryEntryItem<PaintType.OBJECT>;
+export type TileHistoryEntryItem = HistoryEntryItem<PaintType.TILE>;
+export type AutoTileHistoryEntryItem = HistoryEntryItem<PaintType.AUTO_TILE>;
+export type ObjectHistoryEntryItem = HistoryEntryItem<PaintType.OBJECT>;
 
-type HistoryEntryT<T extends PaintType> = {
+export type HistoryEntryT<T extends PaintType> = {
   type: T;
   id: string;
   layerId: LayerId<T>;
   items: HistoryEntryItem<T>[];
 };
 
-type HistoryStackPopT<T extends PaintType> = {
+export type HistoryStackPopT<T extends PaintType> = {
   prev: HistoryEntryT<T>;
   curr: HistoryEntryT<T>;
 };
 
-type TileHistoryEntry = HistoryEntryT<PaintType.TILE>;
-type AutoTileHistoryEntry = HistoryEntryT<PaintType.AUTO_TILE>;
-type ObjectHistoryEntry = HistoryEntryT<PaintType.OBJECT>;
-type HistoryStackPop =
+export type TileHistoryEntry = HistoryEntryT<PaintType.TILE>;
+export type AutoTileHistoryEntry = HistoryEntryT<PaintType.AUTO_TILE>;
+export type ObjectHistoryEntry = HistoryEntryT<PaintType.OBJECT>;
+export type HistoryStackPop =
   | HistoryStackPopT<PaintType.AUTO_TILE>
   | HistoryStackPopT<PaintType.TILE>
   | HistoryStackPopT<PaintType.OBJECT>;
-type HistoryEntry =
+export type HistoryEntry =
   | TileHistoryEntry
   | AutoTileHistoryEntry
   | ObjectHistoryEntry;
 
-export {
-  type ProjectJSONExport as ProjectStateJSONExport,
-  type PaintedTile,
-  type PaintedObject,
-  type PaintedAutoTile,
-  type PaintedAsset,
-  type Layer,
-  type LayerData,
-  type LayerDataComp,
-  type LayerComp,
-  type AutoTileHistoryEntryItem,
-  type TileHistoryEntryItem,
-  type ObjectHistoryEntryItem,
-  type HistoryStackPop,
-  PaintType,
-  Tool,
-  TileRequirement,
-  type ProjectFile,
-  type HistoryEntry,
-  type TileHistoryEntry,
-  type TilemapEditorState,
-  type AssetRef,
-  type TileAsset,
-  type AutoTileAsset,
-  type ObjectAsset,
-  type Vec2,
-  type Rect,
-  type GUIState,
-  type Notification,
-  type TileLayer,
-  type Tileset,
-  type Tile,
-  type AutoTile,
-  type TileRule,
-  type TileConnections,
-  type Cell,
-  type IdRef,
-  type AutoTileLayer,
-  type LayerId,
-  type ObjectLayerId,
-  type Object,
-  type ObjectCategory,
-  type ObjectJSON,
-};
